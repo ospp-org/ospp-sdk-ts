@@ -5,7 +5,7 @@ import { SchemaValidator } from '../../src/validation/SchemaValidator';
 import { SchemaPath } from '../../src/schemas/SchemaPath';
 
 const BUNDLED_SCHEMAS_ROOT = join(__dirname, '..', '..', 'src', 'schemas');
-const TEST_VECTORS_ROOT = join(__dirname, '..', '..', '..', 'spec', 'conformance', 'test-vectors');
+const TEST_VECTORS_ROOT = join(__dirname, '..', '..', 'src', 'test-vectors');
 
 // Use SchemaPath at module level just for key lookup (no Ajv needed)
 const ALL_KEYS = new SchemaPath(BUNDLED_SCHEMAS_ROOT).allKeys;
