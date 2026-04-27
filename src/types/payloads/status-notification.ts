@@ -1,5 +1,5 @@
-import type { BayId, ServiceId } from '../common';
-import { BayStatus } from '../../enums/BayStatus';
+import type { BayId, ServiceId } from '../common.js';
+import { BayStatus } from '../../enums/BayStatus.js';
 
 /** Service availability within a StatusNotification. */
 export interface BayServiceStatus {

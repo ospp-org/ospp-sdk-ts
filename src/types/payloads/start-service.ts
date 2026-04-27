@@ -1,4 +1,4 @@
-import type { SessionId, BayId, ServiceId, ReservationId, SessionSource } from '../common';
+import type { SessionId, BayId, ServiceId, ReservationId, SessionSource } from '../common.js';
 
 /** StartService REQUEST — Server → Station. */
 export interface StartServiceRequest {

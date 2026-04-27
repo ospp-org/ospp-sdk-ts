@@ -1,5 +1,5 @@
-import type { StationId, Timestamp, NetworkInfo, StationCapabilities } from '../common';
-import { BootReason } from '../../enums/BootReason';
+import type { StationId, Timestamp, NetworkInfo, StationCapabilities } from '../common.js';
+import { BootReason } from '../../enums/BootReason.js';
 
 /** BootNotification REQUEST — Station → Server. */
 export interface BootNotificationRequest {

@@ -1,4 +1,4 @@
-import type { ServiceItem } from '../common';
+import type { ServiceItem } from '../common.js';
 
 /** UpdateServiceCatalog REQUEST — Server → Station. */
 export interface UpdateServiceCatalogRequest {

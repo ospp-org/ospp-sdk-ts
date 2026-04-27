@@ -11,7 +11,7 @@
  * It remains `v1` for all OSPP 1.x protocol versions.
  */
 
-import type { StationId } from '../types/common';
+import type { StationId } from '../types/common.js';
 
 const TOPIC_PREFIX = 'ospp/v1/stations';
 

@@ -1,4 +1,4 @@
-import type { BayId, SessionId, Timestamp, MeterValues } from '../common';
+import type { BayId, SessionId, Timestamp, MeterValues } from '../common.js';
 
 /** MeterValues EVENT — Station → Server. */
 export interface MeterValuesPayload {

@@ -3,19 +3,13 @@
  *
  * Schemas live in the spec repo under schemas/mqtt/ and schemas/common/.
  * This module maps action names + message types to schema file paths.
- */
-
-import { join } from 'path';
-
-/** Bundled schemas root — relative to compiled dist/schemas/ directory. */
-const DEFAULT_SCHEMAS_ROOT = join(__dirname, '..', 'schemas');
-
-/**
- * Maps a schema key (derived from file name) to its path under schemas/mqtt/.
  *
- * Key format: `{kebab-action}-{request|response|event}.schema.json`
- * Example:    `boot-notification-request` → `mqtt/boot-notification-request.schema.json`
+ * Node-only. Path resolution is lazy (computed on first call) so accidental
+ * import in a non-Node context does not crash at module-evaluation time.
  */
+
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ACTION_TO_SCHEMA_FILE: Record<string, string> = {
   // Provisioning
@@ -79,8 +73,22 @@ const ACTION_TO_SCHEMA_FILE: Record<string, string> = {
   'trigger-message-response': 'mqtt/trigger-message-response.schema.json',
 };
 
+let defaultRootCache: string | undefined;
+
+function defaultSchemasRoot(): string {
+  if (defaultRootCache === undefined) {
+    const here = dirname(fileURLToPath(import.meta.url));
+    defaultRootCache = join(here, '..', 'schemas');
+  }
+  return defaultRootCache;
+}
+
 export class SchemaPath {
-  constructor(private readonly schemasRoot: string = DEFAULT_SCHEMAS_ROOT) {}
+  private readonly schemasRootOverride: string | undefined;
+
+  constructor(schemasRoot?: string) {
+    this.schemasRootOverride = schemasRoot;
+  }
 
   /** Resolve the absolute path for a schema key (e.g. "boot-notification-request"). */
   resolve(schemaKey: string): string {
@@ -88,17 +96,17 @@ export class SchemaPath {
     if (!relative) {
       throw new Error(`Unknown schema key: ${schemaKey}`);
     }
-    return join(this.schemasRoot, relative);
+    return join(this.root, relative);
   }
 
   /** Resolve the absolute path for a common schema (e.g. "timestamp"). */
   resolveCommon(name: string): string {
-    return join(this.schemasRoot, 'common', `${name}.schema.json`);
+    return join(this.root, 'common', `${name}.schema.json`);
   }
 
-  /** Get the schemas root directory. */
+  /** Get the schemas root directory (lazily resolved on first access). */
   get root(): string {
-    return this.schemasRoot;
+    return this.schemasRootOverride ?? defaultSchemasRoot();
   }
 
   /** List all known schema keys. */

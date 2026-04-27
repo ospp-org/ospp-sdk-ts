@@ -1,4 +1,4 @@
-import type { CertificateType } from './sign-certificate';
+import type { CertificateType } from './sign-certificate.js';
 
 /** TriggerCertificateRenewal REQUEST — Server → Station. */
 export interface TriggerCertificateRenewalRequest {

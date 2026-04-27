@@ -11,9 +11,9 @@
  * The `action` field identifies the message; there is NO topic-per-action.
  */
 
-import { OsppAction } from '../actions/OsppAction';
-import { MessageType } from '../enums/MessageType';
-import { MessageSource } from '../enums/MessageSource';
+import { OsppAction } from '../actions/OsppAction.js';
+import { MessageType } from '../enums/MessageType.js';
+import { MessageSource } from '../enums/MessageSource.js';
 
 // ---------------------------------------------------------------------------
 // Envelope

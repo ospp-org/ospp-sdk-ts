@@ -1,4 +1,4 @@
-import type { OfflinePassId, OfflinePass, DeviceId, BayId, ServiceId, SessionId, CreditAmount } from '../common';
+import type { OfflinePassId, OfflinePass, DeviceId, BayId, ServiceId, SessionId, CreditAmount } from '../common.js';
 
 /** AuthorizeOfflinePass REQUEST — Station → Server. */
 export interface AuthorizeOfflinePassRequest {

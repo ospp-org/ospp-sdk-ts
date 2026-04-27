@@ -8,8 +8,8 @@
  * Verification MUST use timing-safe comparison (crypto.timingSafeEqual).
  */
 
-import { createHmac, timingSafeEqual } from 'crypto';
-import { canonicalize, canonicalizeToBytes } from './CanonicalJsonSerializer';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { canonicalizeToBytes } from './CanonicalJsonBytes.js';
 
 /**
  * Compute the HMAC-SHA256 MAC for an OSPP message.

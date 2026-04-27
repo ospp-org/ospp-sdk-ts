@@ -6,7 +6,7 @@
  * Any transition not listed is invalid and MUST be rejected.
  */
 
-import { BayStatus } from '../enums/BayStatus';
+import { BayStatus } from '../enums/BayStatus.js';
 
 const { UNKNOWN, AVAILABLE, RESERVED, OCCUPIED, FINISHING, FAULTED, UNAVAILABLE } = BayStatus;
 

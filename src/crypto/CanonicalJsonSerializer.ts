@@ -8,13 +8,12 @@
  *   2. Remove the `mac` field if present
  *   3. Sort all keys alphabetically at every nesting level (recursive)
  *   4. Serialize as compact JSON (no whitespace)
- *   5. Encode as UTF-8 bytes
+ *   5. Encode as UTF-8 bytes (see canonicalizeToBytes in ./CanonicalJsonBytes)
+ *
+ * This module is pure JS and browser-safe. The Buffer-returning variant
+ * lives in ./CanonicalJsonBytes (Node-only).
  */
 
-/**
- * Recursively sort all object keys alphabetically.
- * Arrays preserve element order; non-object values pass through unchanged.
- */
 function sortKeys(value: unknown): unknown {
   if (value === null || typeof value !== 'object') {
     return value;
@@ -41,11 +40,4 @@ function sortKeys(value: unknown): unknown {
 export function canonicalize(message: Record<string, unknown>): string {
   const { mac: _, ...withoutMac } = message;
   return JSON.stringify(sortKeys(withoutMac));
-}
-
-/**
- * Produce the canonical form as a UTF-8 Buffer, ready for HMAC input.
- */
-export function canonicalizeToBytes(message: Record<string, unknown>): Buffer {
-  return Buffer.from(canonicalize(message), 'utf-8');
 }

@@ -7,11 +7,19 @@
  * We load referenced schemas and register them with Ajv so $ref resolution works.
  */
 
-import Ajv, { type ValidateFunction, type ErrorObject, type AnySchema } from 'ajv/dist/2020';
-import addFormats from 'ajv-formats';
-import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
-import { SchemaPath } from '../schemas/SchemaPath';
+import { Ajv2020, type ValidateFunction, type ErrorObject, type AnySchema } from 'ajv/dist/2020.js';
+import addFormatsImport from 'ajv-formats';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { SchemaPath } from '../schemas/SchemaPath.js';
+
+// ajv-formats ships CJS without an `exports` map. Under NodeNext ESM the
+// default-import binding is the module namespace; the callable plugin sits at
+// `.default` in newer Node versions but is the namespace itself when ESM
+// interop already unwrapped it. Cast through `any` so both shapes type-check.
+type AddFormatsFn = (ajv: Ajv2020) => unknown;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const addFormats: AddFormatsFn = ((addFormatsImport as any).default ?? addFormatsImport) as AddFormatsFn;
 
 export interface ValidationResult {
   valid: boolean;
@@ -19,7 +27,7 @@ export interface ValidationResult {
 }
 
 export class SchemaValidator {
-  private readonly ajv: Ajv;
+  private readonly ajv: Ajv2020;
   private readonly schemaPath: SchemaPath;
   private readonly validators = new Map<string, ValidateFunction>();
 
@@ -28,7 +36,7 @@ export class SchemaValidator {
     // strictRequired: false — spec schemas use allOf/if/then with required
     // properties defined at the top-level properties, not inside then blocks.
     // Ajv strict mode rejects this pattern; the schemas are spec-authored and correct.
-    this.ajv = new Ajv({ strict: true, strictRequired: false, allErrors: true });
+    this.ajv = new Ajv2020({ strict: true, strictRequired: false, allErrors: true });
     addFormats(this.ajv);
     this.loadCommonSchemas();
   }
@@ -55,19 +63,19 @@ export class SchemaValidator {
    * Get or compile a validator for the given schema key.
    */
   private getValidator(schemaKey: string): ValidateFunction {
-    let validate = this.validators.get(schemaKey);
-    if (!validate) {
-      const filePath = this.schemaPath.resolve(schemaKey);
-      const schema = JSON.parse(readFileSync(filePath, 'utf-8'));
+    const cached = this.validators.get(schemaKey);
+    if (cached) return cached;
 
-      // Rewrite relative $ref paths to absolute $id URIs so Ajv can resolve them.
-      // Remove $id from MQTT schemas to avoid Ajv registration collisions.
-      const rewritten = this.rewriteRefs(schema) as Record<string, unknown>;
-      delete rewritten.$id;
+    const filePath = this.schemaPath.resolve(schemaKey);
+    const schema = JSON.parse(readFileSync(filePath, 'utf-8'));
 
-      validate = this.ajv.compile(rewritten as AnySchema);
-      this.validators.set(schemaKey, validate);
-    }
+    // Rewrite relative $ref paths to absolute $id URIs so Ajv can resolve them.
+    // Remove $id from MQTT schemas to avoid Ajv registration collisions.
+    const rewritten = this.rewriteRefs(schema) as Record<string, unknown>;
+    delete rewritten.$id;
+
+    const validate = this.ajv.compile(rewritten as AnySchema);
+    this.validators.set(schemaKey, validate);
     return validate;
   }
 

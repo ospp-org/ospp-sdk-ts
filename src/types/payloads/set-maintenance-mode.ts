@@ -1,4 +1,4 @@
-import type { BayId } from '../common';
+import type { BayId } from '../common.js';
 
 /** SetMaintenanceMode REQUEST — Server → Station. */
 export interface SetMaintenanceModeRequest {

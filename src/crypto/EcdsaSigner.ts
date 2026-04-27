@@ -13,8 +13,8 @@
  * Node.js crypto uses RFC 6979 by default for ECDSA.
  */
 
-import { createSign, createVerify } from 'crypto';
-import type { KeyLike } from 'crypto';
+import { createSign, createVerify } from 'node:crypto';
+import type { KeyLike } from 'node:crypto';
 
 const ALGORITHM = 'SHA256';
 const SIGNATURE_ALGORITHM = 'ECDSA-P256-SHA256' as const;

@@ -1,4 +1,4 @@
-import type { Timestamp } from '../common';
+import type { Timestamp } from '../common.js';
 
 /** Security event types from spec/schemas/mqtt/security-event.schema.json. */
 export type SecurityEventType =

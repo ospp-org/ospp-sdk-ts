@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalize, canonicalizeToBytes } from '../../src/crypto/CanonicalJsonSerializer';
+import { canonicalize } from '../../src/crypto/CanonicalJsonSerializer';
+import { canonicalizeToBytes } from '../../src/crypto/CanonicalJsonBytes';
 
 describe('canonicalize', () => {
   it('should match the spec §5.3 example exactly', () => {

@@ -1,4 +1,4 @@
-import type { OfflineTxId, OfflinePassId, UserId, BayId, ServiceId, Timestamp, CreditAmount, Receipt, MeterValues } from '../common';
+import type { OfflineTxId, OfflinePassId, UserId, BayId, ServiceId, Timestamp, CreditAmount, Receipt, MeterValues } from '../common.js';
 
 /** TransactionEvent REQUEST — Station → Server (offline reconciliation). */
 export interface TransactionEventRequest {

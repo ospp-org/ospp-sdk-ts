@@ -9,8 +9,8 @@
  *    2 are always exempt regardless of mode (BootNotification REQ, ConnectionLost)
  */
 
-import { OsppAction } from '../actions/OsppAction';
-import { MessageType } from '../enums/MessageType';
+import { OsppAction } from '../actions/OsppAction.js';
+import { MessageType } from '../enums/MessageType.js';
 
 export type MessageSigningMode = 'All' | 'Critical' | 'None';
 

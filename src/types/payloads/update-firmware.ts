@@ -1,4 +1,4 @@
-import type { Timestamp } from '../common';
+import type { Timestamp } from '../common.js';
 
 /** UpdateFirmware REQUEST — Server → Station. */
 export interface UpdateFirmwareRequest {

@@ -1,4 +1,4 @@
-import type { Timestamp } from '../common';
+import type { Timestamp } from '../common.js';
 
 /** Heartbeat REQUEST — Station → Server. Empty payload. */
 export type HeartbeatRequest = Record<string, never>;

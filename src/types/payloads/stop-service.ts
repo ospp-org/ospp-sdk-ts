@@ -1,4 +1,4 @@
-import type { SessionId, BayId, CreditAmount, MeterValues } from '../common';
+import type { SessionId, BayId, CreditAmount, MeterValues } from '../common.js';
 
 /** StopService REQUEST — Server → Station. */
 export interface StopServiceRequest {

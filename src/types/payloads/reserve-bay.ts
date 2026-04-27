@@ -1,4 +1,4 @@
-import type { BayId, ReservationId, Timestamp, SessionSource } from '../common';
+import type { BayId, ReservationId, Timestamp, SessionSource } from '../common.js';
 
 /** ReserveBay REQUEST — Server → Station. */
 export interface ReserveBayRequest {

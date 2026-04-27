@@ -1,4 +1,4 @@
-import type { BayId, ReservationId } from '../common';
+import type { BayId, ReservationId } from '../common.js';
 
 /** CancelReservation REQUEST — Server → Station. */
 export interface CancelReservationRequest {
