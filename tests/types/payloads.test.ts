@@ -249,6 +249,18 @@ describe('StopService payloads', () => {
       expect(res.errorCode).toBe(3006);
     }
   });
+
+  it('should accept Accepted response with optional finalSeqNo', () => {
+    const res: StopServiceResponse = {
+      status: 'Accepted',
+      actualDurationSeconds: 280,
+      creditsCharged: 47,
+      finalSeqNo: 14,
+    };
+    if (res.status === 'Accepted') {
+      expect(res.finalSeqNo).toBe(14);
+    }
+  });
 });
 
 // ── TransactionEvent ────────────────────────────────────────────────────
@@ -342,6 +354,17 @@ describe('MeterValues payload', () => {
     };
     expect(payload.values.liquidMl).toBe(5000);
   });
+
+  it('should accept optional seqNo for session ordering', () => {
+    const payload: MeterValuesPayload = {
+      bayId: 'bay_c1d2e3f4a5b6',
+      sessionId: 'sess_a1b2c3d4e5',
+      timestamp: '2026-01-30T12:01:00.000Z',
+      values: { liquidMl: 5000 },
+      seqNo: 7,
+    };
+    expect(payload.seqNo).toBe(7);
+  });
 });
 
 describe('SessionEnded payload', () => {
@@ -402,6 +425,20 @@ describe('SessionEnded payload', () => {
     };
     expect(payload.reason).toBe('Deauthorized');
     expect(payload.creditsCharged).toBe(0);
+  });
+
+  it('should accept optional seqNo + finalSeqNo for session ordering', () => {
+    const payload: SessionEndedPayload = {
+      sessionId: 'sess_a1b2c3d4e5',
+      bayId: 'bay_c1d2e3f4a5b6',
+      reason: SessionEndReason.TIMER_EXPIRED,
+      actualDurationSeconds: 300,
+      creditsCharged: 50,
+      seqNo: 12,
+      finalSeqNo: 12,
+    };
+    expect(payload.seqNo).toBe(12);
+    expect(payload.finalSeqNo).toBe(12);
   });
 });
 
