@@ -368,6 +368,41 @@ describe('SessionEnded payload', () => {
     expect(payload.reason).toBe('Fault');
     expect(payload.meterValues).toBeUndefined();
   });
+
+  it('should accept Local reason (user pressed Stop at station)', () => {
+    const payload: SessionEndedPayload = {
+      sessionId: 'sess_a1b2c3d4e5',
+      bayId: 'bay_c1d2e3f4a5b6',
+      reason: SessionEndReason.LOCAL,
+      actualDurationSeconds: 180,
+      creditsCharged: 30,
+    };
+    expect(payload.reason).toBe('Local');
+  });
+
+  it('should accept LocalOutOfCredit reason with creditsCharged: 0 (full refund)', () => {
+    const payload: SessionEndedPayload = {
+      sessionId: 'sess_a1b2c3d4e5',
+      bayId: 'bay_c1d2e3f4a5b6',
+      reason: SessionEndReason.LOCAL_OUT_OF_CREDIT,
+      actualDurationSeconds: 95,
+      creditsCharged: 0,
+    };
+    expect(payload.reason).toBe('LocalOutOfCredit');
+    expect(payload.creditsCharged).toBe(0);
+  });
+
+  it('should accept Deauthorized reason with creditsCharged: 0 (full refund)', () => {
+    const payload: SessionEndedPayload = {
+      sessionId: 'sess_a1b2c3d4e5',
+      bayId: 'bay_c1d2e3f4a5b6',
+      reason: SessionEndReason.DEAUTHORIZED,
+      actualDurationSeconds: 60,
+      creditsCharged: 0,
+    };
+    expect(payload.reason).toBe('Deauthorized');
+    expect(payload.creditsCharged).toBe(0);
+  });
 });
 
 describe('ConnectionLost payload', () => {
