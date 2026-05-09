@@ -1,14 +1,20 @@
 /**
- * Canonical JSON serializer for OSPP HMAC computation.
+ * Canonical JSON serializer for OSPP cryptographic flows.
  *
- * Source: spec/06-security.md §5.3.
+ * Source: spec/06-security.md §4.8 (OSPP Canonical Form) — the single
+ * deterministic JSON serialization used by §5.3 (HMAC of MQTT messages),
+ * §6.2 (ECDSA of transaction receipts), and offline-pass signing.
  *
  * Algorithm:
  *   1. Take the complete message JSON object
- *   2. Remove the `mac` field if present
+ *   2. Remove the `mac` field if present (HMAC-specific pre-step per §5.3)
  *   3. Sort all keys alphabetically at every nesting level (recursive)
  *   4. Serialize as compact JSON (no whitespace)
  *   5. Encode as UTF-8 bytes (see canonicalizeToBytes in ./CanonicalJsonBytes)
+ *
+ * Materially similar to RFC 8785 (JCS) but does not require Unicode NFKC
+ * normalization — OSPP message vocabulary is ASCII-only in practice
+ * (UUIDs, ISO 8601 timestamps, PascalCase enums, identifier strings).
  *
  * This module is pure JS and browser-safe. The Buffer-returning variant
  * lives in ./CanonicalJsonBytes (Node-only).

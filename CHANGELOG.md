@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.4.0 — 2026-05-09
+
+Aligns the SDK with OSPP spec v0.4.0 (`ospp-org/spec` tag `v0.4.0`,
+2026-05-07). Spec v0.3.0 was an HTTP-provisioning-only release and
+introduced no MQTT-side changes; the SDK skips a published v0.3.0 and
+jumps directly from v0.2.0 to v0.4.0.
+
+### Added
+
+- `SessionEndReason` extended from 2 to 5 values: `LOCAL`,
+  `LOCAL_OUT_OF_CREDIT`, `DEAUTHORIZED`. Bundled
+  `session-ended-event.schema.json` reason enum updated to match.
+  Per spec §6 refund policy, `LocalOutOfCredit` and `Deauthorized`
+  mandate `creditsCharged: 0`. (Spec v0.4.0 Item 8.)
+- Optional `seqNo` on `MeterValuesPayload` and `SessionEndedPayload`
+  — per-session monotonic counter starting at 0, incrementing by 1
+  per session-scoped EVENT. (Spec v0.4.0 Item 3.)
+- Optional `finalSeqNo` on `SessionEndedPayload` and on
+  `StopServiceResponse` Accepted variant — canonical session-final
+  marker; servers discard `MeterValues` with `seqNo > finalSeqNo` for
+  the same `sessionId` post-stop. (Spec v0.4.0 Item 3.)
+
+### Changed
+
+- `crypto/CanonicalJsonSerializer` documentation comment now
+  references spec §4.8 (OSPP Canonical Form) — the formalized
+  algorithm location used by §5.3 (HMAC) + §6.2 (ECDSA). No behavior
+  change; existing implementation already matched §4.8 exactly.
+  (Spec v0.4.0 Item 4.)
+
+### Migration
+
+This release requires a **coordinated v0.3.0 → v0.4.0 stack upgrade**
+because v0.3.0 servers will reject `SessionEnded` payloads carrying
+`Local`, `LocalOutOfCredit`, or `Deauthorized` via JSON-schema
+validation. Pre-launch context (no field deployments) makes this
+acceptable. See spec CHANGELOG `0.4.0 — Migration` for full details.
+
+The new `seqNo` / `finalSeqNo` fields are OPTIONAL and additive;
+v0.3.0 servers ignore unknown fields per `02-transport.md §10.1`
+forward-compatibility. Wire `protocolVersion` remains `"0.2.1"`.
+
 ## 0.2.0 — 2026-04-27
 
 ### Breaking
