@@ -1,6 +1,6 @@
 # @ospp/protocol
 
-TypeScript SDK for the OSPP (Open Station Payment Protocol) v0.2.5.
+TypeScript SDK for the OSPP (Open Self-Service Point Protocol) v0.5.0.
 
 ## Install
 
