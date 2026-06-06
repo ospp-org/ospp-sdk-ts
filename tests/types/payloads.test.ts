@@ -301,6 +301,27 @@ describe('TransactionEvent payloads', () => {
     expect(dup.status).toBe('Duplicate');
     expect(retry.status).toBe('RetryLater');
   });
+
+  it('should accept Deferred response with required reason (spec 0.5.0 §4.2)', () => {
+    const deferred: TransactionEventResponse = {
+      status: 'Deferred',
+      reason: 'Transaction counter gap detected: expected 7, received 9 (gap size 2). Reconciliation deferred until operator-manual unblock per spec §4.2:52.',
+    };
+    expect(deferred.status).toBe('Deferred');
+    if (deferred.status === 'Deferred') {
+      expect(deferred.reason).toMatch(/counter gap/);
+    }
+  });
+
+  it('Deferred is distinct from RetryLater in the discriminated union', () => {
+    // OSPP v0.5.0 reconciliation.md §4.2 step 4: distinct station behaviors.
+    // RetryLater = back-off-and-resend (transient server condition);
+    // Deferred = held server-side, NO auto-resend, awaits operator-manual
+    // unblock OR arrival of the missing in-sequence transactions.
+    const deferred: TransactionEventResponse = { status: 'Deferred', reason: 'gap detected' };
+    const retry: TransactionEventResponse = { status: 'RetryLater', reason: 'server busy' };
+    expect(deferred.status).not.toBe(retry.status);
+  });
 });
 
 // ── Heartbeat ───────────────────────────────────────────────────────────
