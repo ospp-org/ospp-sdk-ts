@@ -11,8 +11,10 @@ describe('OsppErrorCode', () => {
     (v): v is number => typeof v === 'number',
   );
 
-  it('should have exactly 102 error codes', () => {
-    expect(allCodes).toHaveLength(102);
+  it('should have exactly 106 error codes', () => {
+    // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes).
+    // Total 102 → 106.
+    expect(allCodes).toHaveLength(106);
   });
 
   it('should have unique numeric values', () => {
@@ -27,8 +29,9 @@ describe('OsppErrorCode', () => {
       expect(byRange(1000, 1999)).toHaveLength(15);
     });
 
-    it('should have 14 auth errors (2xxx)', () => {
-      expect(byRange(2000, 2999)).toHaveLength(14);
+    it('should have 18 auth errors (2xxx)', () => {
+      // v0.5.2: 14 → 18 (2014/2015/2016/2017).
+      expect(byRange(2000, 2999)).toHaveLength(18);
     });
 
     it('should have 17 session/bay errors (3xxx)', () => {
@@ -47,8 +50,48 @@ describe('OsppErrorCode', () => {
       expect(byRange(6000, 6999)).toHaveLength(8);
     });
 
-    it('15 + 14 + 17 + 14 + 34 + 8 = 102', () => {
-      expect(15 + 14 + 17 + 14 + 34 + 8).toBe(102);
+    it('15 + 18 + 17 + 14 + 34 + 8 = 106', () => {
+      expect(15 + 18 + 17 + 14 + 34 + 8).toBe(106);
+    });
+  });
+
+  describe('v0.5.2 codes (spec v0.4.2 07-errors.md §3.2)', () => {
+    it('should expose OFFLINE_PASS_REVOKED = 2014 with Error severity, non-recoverable', () => {
+      expect(OsppErrorCode.OFFLINE_PASS_REVOKED).toBe(2014);
+      const meta = OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_PASS_REVOKED];
+      expect(meta.text).toBe('OFFLINE_PASS_REVOKED');
+      expect(meta.severity).toBe('Error');
+      expect(meta.recoverable).toBe(false);
+      expect(meta.category).toBe('Auth');
+    });
+
+    it('should expose OFFLINE_ORG_MISMATCH = 2015 with Error severity, non-recoverable', () => {
+      expect(OsppErrorCode.OFFLINE_ORG_MISMATCH).toBe(2015);
+      const meta = OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_ORG_MISMATCH];
+      expect(meta.text).toBe('OFFLINE_ORG_MISMATCH');
+      expect(meta.severity).toBe('Error');
+      expect(meta.recoverable).toBe(false);
+      expect(meta.category).toBe('Auth');
+    });
+
+    it('should expose OFFLINE_USER_MISMATCH = 2016 with Error severity, non-recoverable', () => {
+      expect(OsppErrorCode.OFFLINE_USER_MISMATCH).toBe(2016);
+      const meta = OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_USER_MISMATCH];
+      expect(meta.text).toBe('OFFLINE_USER_MISMATCH');
+      expect(meta.severity).toBe('Error');
+      expect(meta.recoverable).toBe(false);
+      expect(meta.category).toBe('Auth');
+    });
+
+    it('should expose OFFLINE_RECEIPT_MISMATCH = 2017 with Critical severity, non-recoverable', () => {
+      // spec 07-errors.md §3.2 elevates 2017 to Critical — receipt-body
+      // tampering is a stronger integrity violation than the other gate fails.
+      expect(OsppErrorCode.OFFLINE_RECEIPT_MISMATCH).toBe(2017);
+      const meta = OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_RECEIPT_MISMATCH];
+      expect(meta.text).toBe('OFFLINE_RECEIPT_MISMATCH');
+      expect(meta.severity).toBe('Critical');
+      expect(meta.recoverable).toBe(false);
+      expect(meta.category).toBe('Auth');
     });
   });
 });

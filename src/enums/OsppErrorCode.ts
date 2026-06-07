@@ -1,7 +1,7 @@
 /**
- * All 102 standard OSPP error codes with static metadata.
+ * All 106 standard OSPP error codes with static metadata.
  *
- * Source: spec/07-errors.md §3.1–§3.6.
+ * Source: spec/07-errors.md §3.1–§3.6 (v0.4.2: 102 → 106 with 2014-2017 additions).
  *
  * Ranges:
  *   1000–1999  Transport
@@ -84,6 +84,11 @@ export enum OsppErrorCode {
   SESSION_TOKEN_EXPIRED     = 2011,
   SESSION_TOKEN_INVALID     = 2012,
   BLE_AUTH_FAILED           = 2013,
+  // spec v0.4.2 07-errors.md §3.2 additions — reconciliation gate hard-rejects
+  OFFLINE_PASS_REVOKED      = 2014,
+  OFFLINE_ORG_MISMATCH      = 2015,
+  OFFLINE_USER_MISMATCH     = 2016,
+  OFFLINE_RECEIPT_MISMATCH  = 2017,
 
   // --- Session & Bay (3xxx) ---
   SESSION_GENERIC           = 3000,
@@ -229,6 +234,11 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.SESSION_TOKEN_EXPIRED]:     meta(2011, 'SESSION_TOKEN_EXPIRED',     'Warning',  true,  401, 'Auth'),
   [OsppErrorCode.SESSION_TOKEN_INVALID]:     meta(2012, 'SESSION_TOKEN_INVALID',     'Error',    false, 401, 'Auth'),
   [OsppErrorCode.BLE_AUTH_FAILED]:           meta(2013, 'BLE_AUTH_FAILED',           'Error',    false, 401, 'Auth'),
+  // ── v0.5.2 spec v0.4.2 §3.2 additions ──────────────────────────────────
+  [OsppErrorCode.OFFLINE_PASS_REVOKED]:      meta(2014, 'OFFLINE_PASS_REVOKED',      'Error',    false, 401, 'Auth'),
+  [OsppErrorCode.OFFLINE_ORG_MISMATCH]:      meta(2015, 'OFFLINE_ORG_MISMATCH',      'Error',    false, 403, 'Auth'),
+  [OsppErrorCode.OFFLINE_USER_MISMATCH]:     meta(2016, 'OFFLINE_USER_MISMATCH',     'Error',    false, 401, 'Auth'),
+  [OsppErrorCode.OFFLINE_RECEIPT_MISMATCH]:  meta(2017, 'OFFLINE_RECEIPT_MISMATCH',  'Critical', false, 401, 'Auth'),
 
   // ── Session & Bay (3xxx) ──────────────────────────────────────────────
   [OsppErrorCode.SESSION_GENERIC]:           meta(3000, 'SESSION_GENERIC',           'Error',    true,  500, 'Session'),
