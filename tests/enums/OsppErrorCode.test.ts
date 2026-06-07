@@ -93,6 +93,26 @@ describe('OsppErrorCode', () => {
       expect(meta.recoverable).toBe(false);
       expect(meta.category).toBe('Auth');
     });
+
+    it('has semantically-confirmed httpStatus aligned cross-SDK with ospp-sdk-php v0.5.2', () => {
+      // Spec §2.4 does not normatively specify httpStatus for these 4 codes;
+      // both SDKs converge on values chosen by RFC 9110 semantics:
+      //
+      //   2014 OFFLINE_PASS_REVOKED      → 401  (revoked credential ≡ credential
+      //         no longer valid; RFC 9110 401 "credential invalid")
+      //   2015 OFFLINE_ORG_MISMATCH      → 403  (pass valid but used cross-org;
+      //         RFC 9110 403 "authenticated, not permitted for this resource")
+      //   2016 OFFLINE_USER_MISMATCH     → 403  (pass valid but bound to a
+      //         different user than the envelope claims; 403 — pass is fine,
+      //         just not for this user; same shape as 2006 STATION_MISMATCH)
+      //   2017 OFFLINE_RECEIPT_MISMATCH  → 422  (signature itself verified per
+      //         spec §3.2 — NOT 401; the cross-check failure is "syntax correct,
+      //         instructions inconsistent" ≡ RFC 9110 422 Unprocessable Entity)
+      expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_PASS_REVOKED].httpStatus).toBe(401);
+      expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_ORG_MISMATCH].httpStatus).toBe(403);
+      expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_USER_MISMATCH].httpStatus).toBe(403);
+      expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_RECEIPT_MISMATCH].httpStatus).toBe(422);
+    });
   });
 });
 

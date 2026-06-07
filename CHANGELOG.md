@@ -23,14 +23,40 @@ historical-drift pattern as the `v0.5.1` schema sync release.
 - `OSPP_ERROR_REGISTRY` extended with 4 metadata entries placed in a
   new `v0.5.2 spec v0.4.2 §3.2 additions` sub-section for diff clarity.
 
+### Updated
+
+- `OSPP_ERROR_REGISTRY` `httpStatus` values for `2016 OFFLINE_USER_MISMATCH`
+  (was `401` → now `403`) and `2017 OFFLINE_RECEIPT_MISMATCH` (was `401`
+  → now `422`), semantically aligned cross-SDK with `ospp-sdk-php v0.5.2`.
+  Spec §2.4 does not normatively specify httpStatus for these codes;
+  both SDKs converge on values chosen by RFC 9110 semantics:
+  - `2014 OFFLINE_PASS_REVOKED → 401` — revoked credential ≡ credential
+    no longer valid; RFC 9110 401 "credential invalid". (no change in TS)
+  - `2015 OFFLINE_ORG_MISMATCH → 403` — pass valid but used cross-org;
+    RFC 9110 403 "authenticated, not permitted for this resource".
+    (no change in TS)
+  - `2016 OFFLINE_USER_MISMATCH → 403` — pass valid but bound to a
+    different user than the envelope claims (same shape as
+    `2006 OFFLINE_STATION_MISMATCH`). **Changed from 401 → 403** to
+    reflect the credential-fine-context-wrong semantic.
+  - `2017 OFFLINE_RECEIPT_MISMATCH → 422` — signature itself verified
+    per spec §3.2; cross-check failure is "syntax correct, instructions
+    inconsistent" ≡ RFC 9110 422 Unprocessable Entity. **Changed from
+    401 → 422** because auth itself succeeded — the failure is
+    content cross-check, not authentication.
+
 ### Verification
 
-- `npm test`: `Test Files 23 passed (23) / Tests 808 passed (808)`.
-- `--filter tests/enums/OsppErrorCode.test.ts`: `51 passed`.
+- `npm test`: `Test Files 23 passed (23) / Tests 809 passed (809)`.
+- `--filter tests/enums/OsppErrorCode.test.ts`: `52 passed`.
 - `npm run build`: clean.
-- RED-first: prior to the enum addition, the four code-specific tests
-  + the count assertions produced 6 failures in the focused suite —
-  see commit `76d9415` for the captured output.
+- RED-first on enum addition: prior to the enum addition, the four
+  code-specific tests + the count assertions produced 6 failures in
+  the focused suite — see commit `76d9415` for the captured output.
+- RED-first on httpStatus alignment: prior to changing 2016/2017
+  registry values, the cross-SDK parity test failed expecting `403`
+  / `422` but receiving `401` / `401` — confirms 2016/2017 were
+  semantically misaligned vs the chosen cross-SDK values.
 
 ### Migration
 
@@ -50,6 +76,29 @@ historical-drift pattern as the `v0.5.1` schema sync release.
   `v0.4.3` for csms-server admin-action coverage but never propagated
   to this TS SDK. Separate Phase B SDK-asymmetry finding, not addressed
   in this release.
+- **`httpStatus` cross-SDK drift on pre-existing 2xxx auth codes.**
+  10 of 14 existing 2xxx codes diverge between this SDK and
+  `ospp-sdk-php` v0.5.x on `httpStatus`:
+  - `2000 AUTH_GENERIC`, `2002 OFFLINE_PASS_INVALID`,
+    `2003 OFFLINE_PASS_EXPIRED`, `2004 OFFLINE_EPOCH_REVOKED`,
+    `2005 OFFLINE_COUNTER_REPLAY`, `2006 OFFLINE_STATION_MISMATCH`,
+    `2007 COMMAND_NOT_SUPPORTED`, `2013 BLE_AUTH_FAILED` — this SDK
+    maps these to `401` / `403` / `501` explicitly; `ospp-sdk-php`
+    falls through to `500` via its `match` default.
+  - `2001 STATION_NOT_REGISTERED` — this SDK maps to `401`;
+    `ospp-sdk-php` maps to `422`.
+  - `2008 ACTION_NOT_PERMITTED` — this SDK maps to `403`;
+    `ospp-sdk-php` maps to `401`. (Spec §2.4 lists 2008 under both
+    401 and 403, so this divergence has a spec-level ambiguity behind
+    it.)
+  Only 4 of 14 agree (`2009`/`2010`/`2011`/`2012` — all 401). Scope
+  of this drift extends beyond 2xxx (cross-SDK parity on 3xxx/4xxx/
+  5xxx/6xxx not audited yet). Closing this drift requires a dedicated
+  SDK-metadata parity sprint that: (i) audits cross-SDK on the entire
+  enum; (ii) chooses the canonical value per code (spec doesn't
+  specify for most); (iii) potentially upgrades `07-errors.md §2.4`
+  from an indicative "Typical Error Codes" table to a normative
+  exhaustive mapping. Tracked separately; NOT in scope for v0.5.2.
 
 ## 0.5.1 — 2026-06-07
 

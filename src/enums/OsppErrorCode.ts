@@ -235,10 +235,16 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.SESSION_TOKEN_INVALID]:     meta(2012, 'SESSION_TOKEN_INVALID',     'Error',    false, 401, 'Auth'),
   [OsppErrorCode.BLE_AUTH_FAILED]:           meta(2013, 'BLE_AUTH_FAILED',           'Error',    false, 401, 'Auth'),
   // ── v0.5.2 spec v0.4.2 §3.2 additions ──────────────────────────────────
+  // httpStatus semantically confirmed cross-SDK with ospp-sdk-php v0.5.2:
+  //   2014 → 401 (revoked credential)
+  //   2015 → 403 (cross-org forbidden)
+  //   2016 → 403 (pass not for this user — same shape as 2006 STATION_MISMATCH)
+  //   2017 → 422 (signature verified, values inconsistent — Unprocessable Entity;
+  //         NOT 401 because auth itself succeeded per spec §3.2)
   [OsppErrorCode.OFFLINE_PASS_REVOKED]:      meta(2014, 'OFFLINE_PASS_REVOKED',      'Error',    false, 401, 'Auth'),
   [OsppErrorCode.OFFLINE_ORG_MISMATCH]:      meta(2015, 'OFFLINE_ORG_MISMATCH',      'Error',    false, 403, 'Auth'),
-  [OsppErrorCode.OFFLINE_USER_MISMATCH]:     meta(2016, 'OFFLINE_USER_MISMATCH',     'Error',    false, 401, 'Auth'),
-  [OsppErrorCode.OFFLINE_RECEIPT_MISMATCH]:  meta(2017, 'OFFLINE_RECEIPT_MISMATCH',  'Critical', false, 401, 'Auth'),
+  [OsppErrorCode.OFFLINE_USER_MISMATCH]:     meta(2016, 'OFFLINE_USER_MISMATCH',     'Error',    false, 403, 'Auth'),
+  [OsppErrorCode.OFFLINE_RECEIPT_MISMATCH]:  meta(2017, 'OFFLINE_RECEIPT_MISMATCH',  'Critical', false, 422, 'Auth'),
 
   // ── Session & Bay (3xxx) ──────────────────────────────────────────────
   [OsppErrorCode.SESSION_GENERIC]:           meta(3000, 'SESSION_GENERIC',           'Error',    true,  500, 'Session'),
