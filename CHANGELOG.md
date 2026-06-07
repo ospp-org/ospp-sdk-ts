@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.5.3 — 2026-06-07
+
+UserSub derivation lift. Coordinated with `ospp-sdk-php v0.5.3`. `spec`
+is **NOT** bumped — the derivation rule (`sub` = `sub_` + UUID with
+hyphens stripped) is implicitly normative via the existing
+`^sub_[a-zA-Z0-9]+$` regex on the OfflinePass `sub` field
+(`schemas/common/offline-pass.schema.json`); the spec prose does not
+call it out but the schema regex forces it. No wire change.
+
+### Why
+
+The derivation rule lived only in csms-server (`App\Shared\ValueObjects\
+UserSub`) prior to v0.5.3 — a latent drift risk if a firmware or
+alternative pass issuer ever derives a `sub_*` independently. Lifting
+into the SDK makes it the cross-ecosystem source of truth so PHP and
+TS implementations cannot drift.
+
+### Added
+
+- `UserSubject` class with static `fromUserId(userId: string): string`,
+  exported from a new `src/identity/` folder. Returns
+  `'sub_' + userId.replaceAll('-', '')`. Byte-identical with the
+  PHP SDK counterpart (`Ospp\Protocol\ValueObjects\UserSubject::
+  fromUserId`).
+- New top-level export in `src/index.ts`.
+
+### Verification
+
+- 8 unit tests in `tests/identity/UserSubject.test.ts` covering
+  canonical csms-server vectors plus cross-language byte-equality
+  vectors (empty, single hyphen, multi-hyphen, UTF-8 multibyte).
+- Cross-language proof: identical UTF-8 hex output on all 8 vectors
+  vs `ospp-sdk-php v0.5.3` `UserSubject::fromUserId`. The unicode
+  vector `user-é-moji🎉` → `sub_userémoji🎉` produces the same
+  byte sequence `7375625f75736572c3a96d6f6a69f09f8e89` in both SDKs,
+  pinning UTF-8-safe behavior (no surrogate / continuation-byte
+  drift).
+- Full suite: 817/817 vitest passing; `tsc` build clean.
+
+---
+
 ## 0.5.2 — 2026-06-07
 
 Enum-drift sync release. Coordinated with `ospp-sdk-php v0.5.2`. `spec`
