@@ -106,6 +106,9 @@ export { DiagnosticsStateMachine, canTransition as canDiagnosticsTransition, DIA
 // Topics
 export { toServerTopic, toStationTopic, SERVER_WILDCARD_TOPIC, serverSharedTopic, extractStationId } from './topics/TopicBuilder.js';
 
+// Identity
+export { UserSubject } from './identity/UserSubject.js';
+
 // Crypto — pure JS only
 export { canonicalize } from './crypto/CanonicalJsonSerializer.js';
 export {
