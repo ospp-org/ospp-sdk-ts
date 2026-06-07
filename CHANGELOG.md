@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.5.2 — 2026-06-07
+
+Enum-drift sync release. Coordinated with `ospp-sdk-php v0.5.2`. `spec`
+is **NOT** bumped — codes 2014-2017 have been in `07-errors.md §3.2`
+since the `v0.4.2` spec release; the SDK enums simply missed sync. Same
+historical-drift pattern as the `v0.5.1` schema sync release.
+
+### Added
+
+- `OsppErrorCode.OFFLINE_PASS_REVOKED = 2014` (`Error`, non-recoverable,
+  401). Individual pass revocation; distinct from `2004
+  OFFLINE_EPOCH_REVOKED` (batch by epoch bump).
+- `OsppErrorCode.OFFLINE_ORG_MISMATCH = 2015` (`Error`, non-recoverable,
+  403). Pass `organization_id` ≠ reporting station's `organization_id`.
+- `OsppErrorCode.OFFLINE_USER_MISMATCH = 2016` (`Error`, non-recoverable,
+  401). Pass `user_id` ≠ envelope `userId`.
+- `OsppErrorCode.OFFLINE_RECEIPT_MISMATCH = 2017` (`Critical`,
+  non-recoverable, 401). Signed receipt field disagrees with cross-
+  check target. Severity elevated to `Critical` per spec — receipt-
+  body tampering is a stronger integrity violation.
+- `OSPP_ERROR_REGISTRY` extended with 4 metadata entries placed in a
+  new `v0.5.2 spec v0.4.2 §3.2 additions` sub-section for diff clarity.
+
+### Verification
+
+- `npm test`: `Test Files 23 passed (23) / Tests 808 passed (808)`.
+- `--filter tests/enums/OsppErrorCode.test.ts`: `51 passed`.
+- `npm run build`: clean.
+- RED-first: prior to the enum addition, the four code-specific tests
+  + the count assertions produced 6 failures in the focused suite —
+  see commit `76d9415` for the captured output.
+
+### Migration
+
+- Consumers that exhaustively type-narrow on `OsppErrorCode` (e.g.
+  `switch (code)` chains) MUST add arms for the 4 new codes or fall
+  through to a default. The discriminant `code` keeps existing arms
+  type-safe; adding the 4 is purely additive.
+
+### Coordinated with
+
+- `ospp-sdk-php v0.5.2` — parallel addition of the same 4 cases +
+  metadata in `OsppErrorCode` PHP enum.
+
+### Known follow-up
+
+- `CAPABILITY_NOT_SUPPORTED = 6008` was added to `ospp-sdk-php` at its
+  `v0.4.3` for csms-server admin-action coverage but never propagated
+  to this TS SDK. Separate Phase B SDK-asymmetry finding, not addressed
+  in this release.
+
 ## 0.5.1 — 2026-06-07
 
 Schema-vendoring sync release. Coordinated with `ospp-sdk-php v0.5.1`.
