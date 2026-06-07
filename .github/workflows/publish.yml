@@ -1,0 +1,59 @@
+# Publish @ospp/protocol to npm on tag push.
+#
+# Closes the asymmetry with ospp-sdk-php, which Packagist auto-publishes
+# from GitHub tags via webhook. npm has no equivalent — without this
+# workflow, a `git push --tags` lands on GitHub but never reaches the
+# npm registry (the gap that left v0.5.0..v0.5.2 unpublished for weeks
+# until manual catch-up on 2026-06-07).
+#
+# REQUIRED REPO SECRET — NPM_TOKEN
+# Set in Settings → Secrets and variables → Actions → New repository secret.
+# Generate a Granular Access Token at https://www.npmjs.com/settings/<user>/tokens
+# with:
+#   - Permissions: Read and write (on @ospp/protocol package)
+#   - Expiration: as policy dictates (renewable)
+# This workflow CANNOT publish until the secret is set; the publish step
+# will fail with a 401 from the npm registry.
+#
+# Provenance: `--provenance` attaches a signed SLSA attestation linking
+# the tarball to this workflow run + the source commit. Free for public
+# packages on GitHub-hosted runners. Requires `id-token: write` permission.
+
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Build, test, and publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # Re-runs the same test suite the CI workflow already ran on main
+      # before this tag was cut. Cheap reproducibility insurance: catches
+      # the rare case where the tag points at a commit that no longer
+      # builds/tests cleanly under the resolved lockfile state.
+      - run: npm test
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
