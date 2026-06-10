@@ -43,15 +43,23 @@ describe('sign', () => {
     expect(typeof sig).toBe('string');
   });
 
-  it('should produce valid signatures on repeated calls', () => {
-    // Note: Node.js uses random nonces, not RFC 6979.
-    // RFC 6979 deterministic nonces are a spec requirement for station firmware
-    // (secure elements), not enforceable at the Node.js crypto API level.
+  it('should produce byte-identical signatures on repeated calls (RFC 6979)', () => {
+    // OSPP spec/06-security.md §4.3 + §6.2 MUST: all software-based ECDSA
+    // signing uses RFC 6979 deterministic nonces. The same (key, message)
+    // pair MUST therefore produce a byte-identical DER signature on every
+    // invocation. This unlocks reproducible test vectors and signed examples.
     const sig1 = sign(privateKey, SAMPLE_DATA);
     const sig2 = sign(privateKey, SAMPLE_DATA);
-    // Both must verify, even if different (random nonce)
+    expect(sig1).toBe(sig2);
     expect(verify(publicKey, SAMPLE_DATA, sig1)).toBe(true);
     expect(verify(publicKey, SAMPLE_DATA, sig2)).toBe(true);
+  });
+
+  it('should remain byte-identical across many invocations (RFC 6979)', () => {
+    const first = sign(privateKey, SAMPLE_DATA);
+    for (let i = 0; i < 10; i++) {
+      expect(sign(privateKey, SAMPLE_DATA)).toBe(first);
+    }
   });
 });
 

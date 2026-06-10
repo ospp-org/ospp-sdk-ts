@@ -1,6 +1,6 @@
 {
   "name": "@ospp/protocol",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "OSPP Protocol TypeScript SDK",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,13 @@
     "url": "https://github.com/ospp-org/ospp-sdk-ts/issues"
   },
   "homepage": "https://github.com/ospp-org/ospp-sdk-ts#readme",
-  "keywords": ["ospp", "mqtt", "protocol", "typescript", "sdk"],
+  "keywords": [
+    "ospp",
+    "mqtt",
+    "protocol",
+    "typescript",
+    "sdk"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -43,6 +49,7 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@noble/curves": "^2.2.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1"
   },
