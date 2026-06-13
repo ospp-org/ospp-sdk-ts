@@ -13,12 +13,16 @@ const RES = MessageType.RESPONSE;
 const EVT = MessageType.EVENT;
 
 describe('ALWAYS_EXEMPT', () => {
-  it('should contain exactly 2 entries', () => {
-    expect(ALWAYS_EXEMPT.size).toBe(2);
+  it('should contain exactly 3 entries', () => {
+    expect(ALWAYS_EXEMPT.size).toBe(3);
   });
 
   it('should contain BootNotification REQUEST', () => {
     expect(ALWAYS_EXEMPT.has(`${OsppAction.BOOT_NOTIFICATION}:${REQ}`)).toBe(true);
+  });
+
+  it('should contain BootNotification RESPONSE', () => {
+    expect(ALWAYS_EXEMPT.has(`${OsppAction.BOOT_NOTIFICATION}:${RES}`)).toBe(true);
   });
 
   it('should contain ConnectionLost EVENT', () => {
@@ -27,14 +31,13 @@ describe('ALWAYS_EXEMPT', () => {
 });
 
 describe('CRITICAL_MESSAGE_TYPES', () => {
-  it('should contain exactly 32 entries', () => {
-    expect(CRITICAL_MESSAGE_TYPES.size).toBe(32);
+  it('should contain exactly 31 entries', () => {
+    expect(CRITICAL_MESSAGE_TYPES.size).toBe(31);
   });
 });
 
 describe('isCritical — YES entries (spec §5.6)', () => {
   const criticalEntries: [OsppAction, MessageType][] = [
-    [OsppAction.BOOT_NOTIFICATION, RES],
     [OsppAction.AUTHORIZE_OFFLINE_PASS, REQ],
     [OsppAction.AUTHORIZE_OFFLINE_PASS, RES],
     [OsppAction.RESERVE_BAY, REQ],
@@ -68,8 +71,8 @@ describe('isCritical — YES entries (spec §5.6)', () => {
     [OsppAction.TRIGGER_MESSAGE, RES],
   ];
 
-  it('should have 32 critical entries listed', () => {
-    expect(criticalEntries).toHaveLength(32);
+  it('should have 31 critical entries listed', () => {
+    expect(criticalEntries).toHaveLength(31);
   });
 
   for (const [action, msgType] of criticalEntries) {
@@ -82,6 +85,7 @@ describe('isCritical — YES entries (spec §5.6)', () => {
 describe('isCritical — NO entries (spec §5.6)', () => {
   const exemptEntries: [OsppAction, MessageType][] = [
     [OsppAction.BOOT_NOTIFICATION, REQ],
+    [OsppAction.BOOT_NOTIFICATION, RES],
     [OsppAction.HEARTBEAT, REQ],
     [OsppAction.HEARTBEAT, RES],
     [OsppAction.STATUS_NOTIFICATION, EVT],
@@ -98,8 +102,8 @@ describe('isCritical — NO entries (spec §5.6)', () => {
     [OsppAction.DATA_TRANSFER, RES],
   ];
 
-  it('should have 15 exempt entries listed', () => {
-    expect(exemptEntries).toHaveLength(15);
+  it('should have 16 exempt entries listed', () => {
+    expect(exemptEntries).toHaveLength(16);
   });
 
   for (const [action, msgType] of exemptEntries) {
@@ -109,9 +113,9 @@ describe('isCritical — NO entries (spec §5.6)', () => {
   }
 });
 
-describe('isCritical — 32 YES + 15 NO = 47 total', () => {
+describe('isCritical — 31 YES + 16 NO = 47 total', () => {
   it('should cover all 47 message types', () => {
-    expect(32 + 15).toBe(47);
+    expect(31 + 16).toBe(47);
   });
 });
 
@@ -175,9 +179,9 @@ describe('BootNotification — split classification', () => {
     expect(requiresHmac(OsppAction.BOOT_NOTIFICATION, REQ, 'All')).toBe(false);
   });
 
-  it('RESPONSE is critical (contains session key)', () => {
+  it('RESPONSE is always exempt (session key delivered in this message)', () => {
     expect(requiresHmac(OsppAction.BOOT_NOTIFICATION, RES, 'None')).toBe(false);
-    expect(requiresHmac(OsppAction.BOOT_NOTIFICATION, RES, 'Critical')).toBe(true);
-    expect(requiresHmac(OsppAction.BOOT_NOTIFICATION, RES, 'All')).toBe(true);
+    expect(requiresHmac(OsppAction.BOOT_NOTIFICATION, RES, 'Critical')).toBe(false);
+    expect(requiresHmac(OsppAction.BOOT_NOTIFICATION, RES, 'All')).toBe(false);
   });
 });

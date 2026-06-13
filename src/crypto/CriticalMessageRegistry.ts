@@ -4,9 +4,9 @@
  * Source: spec/06-security.md §5.6 — Message Signing Classification.
  *
  * 47 message types total:
- *   32 require HMAC in Critical mode (YES)
- *   15 are exempt in Critical mode (NO)
- *    2 are always exempt regardless of mode (BootNotification REQ, ConnectionLost)
+ *   31 require HMAC in Critical mode (YES)
+ *   16 are exempt in Critical mode (NO)
+ *    3 are always exempt regardless of mode (BootNotification REQ, BootNotification RES, ConnectionLost)
  */
 
 import { OsppAction } from '../actions/OsppAction.js';
@@ -31,17 +31,16 @@ function key(action: OsppAction, messageType: MessageType): SigningKey {
 /** Messages exempt from HMAC in ALL modes, including "All". */
 export const ALWAYS_EXEMPT: ReadonlySet<SigningKey> = new Set<SigningKey>([
   key(OsppAction.BOOT_NOTIFICATION, MessageType.REQUEST),   // No session key yet
+  key(OsppAction.BOOT_NOTIFICATION, MessageType.RESPONSE),  // Delivers the key that would verify it; MAC void, mTLS protects
   key(OsppAction.CONNECTION_LOST, MessageType.EVENT),        // Broker-generated LWT
 ]);
 
 // ---------------------------------------------------------------------------
-// Critical: require HMAC in "Critical" mode (32 of 47)
+// Critical: require HMAC in "Critical" mode (31 of 47)
 // ---------------------------------------------------------------------------
 
 /** Message types that require HMAC in "Critical" mode. */
 export const CRITICAL_MESSAGE_TYPES: ReadonlySet<SigningKey> = new Set<SigningKey>([
-  // BootNotification RES (REQ is always-exempt)
-  key(OsppAction.BOOT_NOTIFICATION, MessageType.RESPONSE),
   // AuthorizeOfflinePass
   key(OsppAction.AUTHORIZE_OFFLINE_PASS, MessageType.REQUEST),
   key(OsppAction.AUTHORIZE_OFFLINE_PASS, MessageType.RESPONSE),

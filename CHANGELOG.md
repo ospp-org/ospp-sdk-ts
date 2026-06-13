@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.5 — 2026-06-13
+
+BootNotification HMAC exemption. Coordinated with `ospp-sdk-php v0.5.5`
+(lockstep, ADR-011) and `spec` §5.6. `spec` is **NOT** bumped
+(classification correction, no schema change). No wire change — `mac`
+is already optional in the envelope schema.
+
+### Changed
+
+- `BootNotification` RESPONSE moved from `CRITICAL_MESSAGE_TYPES` into
+  `ALWAYS_EXEMPT`, so the whole action is now exempt from HMAC in **every**
+  `MessageSigningMode` (the REQUEST was already always-exempt). Its MAC is
+  cryptographically void — the `sessionKey` that would verify the RESPONSE
+  is delivered *in* that message; mTLS protects delivery, not HMAC. Counts
+  move 32→31 critical, 15→16 exempt, 2→3 always-exempt.
+
+### Verification
+
+- Full suite 819 vitest passing; `tsc` build clean. RED-first pins
+  `requiresHmac(BootNotification, RESPONSE, mode) === false` for None,
+  Critical, and All.
+
+---
+
 ## 0.5.4 — 2026-06-11
 
 ECDSA deterministic-nonce hardening. Coordinated with `ospp-sdk-php v0.5.4`
