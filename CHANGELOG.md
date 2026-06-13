@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.5.4 — 2026-06-11
+
+ECDSA deterministic-nonce hardening. Coordinated with `ospp-sdk-php v0.5.4`
+(lockstep — matching RFC 6979 + low-s policy). `spec` is **NOT** bumped:
+RFC 6979 is already mandated by §4.3/§6.2; this brings the implementation
+into compliance. No wire change — the DER signature encoding is unchanged.
+
+### Fixed
+
+- ECDSA signing replaced `node:crypto`'s random-nonce ECDSA (a spec-MUST
+  violation, and non-reproducible across runs) with `@noble/curves` p256,
+  which uses RFC 6979 deterministic nonces by default
+  (`p256.sign(message, scalar, { format: 'der', prehash: true })`). Also
+  corrects a stale docstring that claimed "Node uses RFC 6979 by default",
+  which `EcdsaSigner.test.ts` had already contradicted in-place. PEM/DER/
+  KeyObject inputs are accepted via Node JWK export → 32-byte scalar.
+  Verify is unchanged (nonce-agnostic; backward-compatible with pre-0.5.4
+  signatures).
+
+### Verification
+
+- New unit tests assert byte-identical determinism (single pair + 10×
+  loop), cross-verified against `node:crypto`.
+- Full suite: 818/818 vitest passing.
+
+---
+
 ## 0.5.3 — 2026-06-07
 
 UserSub derivation lift. Coordinated with `ospp-sdk-php v0.5.3`. `spec`
