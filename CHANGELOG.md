@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.6 — 2026-06-15
+
+Version alignment with `ospp-sdk-php v0.5.6` (lockstep, ADR-011). **No code
+change** — `CAPABILITY_NOT_SUPPORTED` (6008) was never present in this TS SDK
+(it was a PHP-only orphan); PHP removed it in v0.5.6, so the two SDKs now match
+exactly. `spec` is **NOT** bumped (6008 was never in the spec). No wire change.
+
+### Changed
+
+- Version bump only, to keep the sibling SDKs at the same version per ADR-011.
+  `OsppErrorCode` is unchanged — the 6xxx range was already 6000-6007 (no 6008).
+
+### Verification
+
+- Full suite 819 vitest passing; `tsc` build clean — confirms the bump
+  introduced no change.
+
+---
+
 ## 0.5.5 — 2026-06-13
 
 BootNotification HMAC exemption. Coordinated with `ospp-sdk-php v0.5.5`
