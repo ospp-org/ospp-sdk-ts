@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.7 — 2026-06-18
+
+Version alignment with `ospp-sdk-php v0.5.7` (lockstep, ADR-011). **No code
+change** — the v0.5.7 fix (left-pad the OpenSSL-stripped P-256 private scalar
+to 32 bytes) is PHP-only. This TS SDK extracts `d` via Node's JWK export, which
+pads to the fixed 32-byte field width (empirically confirmed on the very key
+that breaks PHP), so it never had the strip bug. `spec` is **NOT** bumped (no
+spec change). No wire change.
+
+### Changed
+
+- Version bump only, to keep the sibling SDKs at the same version per ADR-011.
+  `EcdsaSigner` is unchanged — `extractP256Scalar` already requires a 32-byte
+  `d` and Node's JWK `d` is fixed-width, so no short-scalar path exists in TS.
+
+### Verification
+
+- Full suite 837 vitest passing; `tsc` build clean — confirms the bump
+  introduced no change.
+
+---
+
 ## 0.5.6 — 2026-06-15
 
 Version alignment with `ospp-sdk-php v0.5.6` (lockstep, ADR-011). **No code
