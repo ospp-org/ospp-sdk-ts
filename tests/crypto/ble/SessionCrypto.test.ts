@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createPublicKey } from 'node:crypto'; // test-only: convert the vendored server PEM → raw point
 import {
   validatePublicKey,
   ecdhSharedX,
@@ -12,6 +13,9 @@ import {
   nonce96,
   sealFrame,
   openFrame,
+  verifyStationIdentity,
+  StationIdentityError,
+  type StationIdentityCert,
 } from '../../../src/crypto/ble/SessionCrypto';
 
 /**
@@ -56,6 +60,7 @@ interface Vector {
   specRef: string;
   keys: Record<string, KeyEntry>;
   scenarios: Scenario[];
+  stationIdentity: { cert: StationIdentityCert; canonicalBodyUtf8: string };
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -63,6 +68,13 @@ const vector = JSON.parse(
   readFileSync(join(here, '..', 'fixtures', 'ble-handshake-keyschedule.json'), 'utf-8'),
 ) as Vector;
 const keys = vector.keys;
+
+// Server signing public key as raw uncompressed SEC1 — converted from the vendored
+// PEM in Node FOR THE TEST; the SDK verifyStationIdentity takes raw bytes (browser-safe).
+const serverPubPem = readFileSync(join(here, '..', 'fixtures', 'server-test-pub.pem'), 'utf-8');
+const _jwk = createPublicKey(serverPubPem).export({ format: 'jwk' }) as { x: string; y: string };
+const _b64u = (s: string): Uint8Array => Uint8Array.from(Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+const serverPubRaw = new Uint8Array([0x04, ..._b64u(_jwk.x), ..._b64u(_jwk.y)]);
 
 const b64ToBytes = (b: string): Uint8Array => Uint8Array.from(Buffer.from(b, 'base64'));
 const hexToBytes = (h: string): Uint8Array => Uint8Array.from(Buffer.from(h, 'hex'));
@@ -346,5 +358,70 @@ describe('SessionCrypto.sealFrame / openFrame (Pin 6+7 / §6.5.3)', () => {
     const mutated = Uint8Array.from(pt);
     mutated[0] ^= 0x01;
     expect(toBase64(sealFrame(fKey, fFrame.counter, mutated, fAad))).not.toBe(fFrame.frame.ct);
+  });
+});
+
+describe('SessionCrypto.verifyStationIdentity (§6.5.2 / Pin 8)', () => {
+  const validCert = (): StationIdentityCert => ({ ...vector.stationIdentity.cert });
+
+  it('accepts a valid StationIdentity cert under the server public key', () => {
+    expect(() => verifyStationIdentity(validCert(), serverPubRaw)).not.toThrow();
+  });
+
+  it('accepts the optional stationId match when it agrees', () => {
+    const cert = validCert();
+    expect(() => verifyStationIdentity(cert, serverPubRaw, { expectedStationId: cert.stationId })).not.toThrow();
+  });
+
+  it('rejects under a valid-but-wrong public key (signature does not verify)', () => {
+    const wrong = hexToBytes(keys.stationStatic.publicKeyUncompressedHex); // a valid P-256 point, not the signer
+    expect(() => verifyStationIdentity(validCert(), wrong)).toThrow();
+  });
+
+  it('rejects a wrong signatureAlgorithm', () => {
+    expect(() => verifyStationIdentity({ ...validCert(), signatureAlgorithm: 'ECDSA-P384-SHA384' }, serverPubRaw)).toThrow();
+  });
+
+  it('rejects a malformed stationPubKey (Pin 2: not 44-char compressed-SEC1 Base64)', () => {
+    expect(() => verifyStationIdentity({ ...validCert(), stationPubKey: 'too-short' }, serverPubRaw)).toThrow();
+  });
+
+  it('rejects a structurally invalid validity window (expiresAt <= issuedAt)', () => {
+    const cert = validCert();
+    expect(() => verifyStationIdentity({ ...cert, expiresAt: cert.issuedAt }, serverPubRaw)).toThrow();
+  });
+
+  it('rejects a tampered signature', () => {
+    const cert = validCert();
+    const sig = Buffer.from(cert.signature, 'base64');
+    sig[sig.length - 1] ^= 0x01;
+    expect(() => verifyStationIdentity({ ...cert, signature: sig.toString('base64') }, serverPubRaw)).toThrow();
+  });
+
+  it('rejects an expectedStationId mismatch', () => {
+    expect(() => verifyStationIdentity(validCert(), serverPubRaw, { expectedStationId: 'stn_wrong' })).toThrow();
+  });
+
+  it('absolute freshness is a RUNTIME gate: rejects an expired cert only when a clock is supplied', () => {
+    // The vector cert is timeless; supply a clock past expiresAt to exercise the runtime gate
+    // (the vector itself cannot prove absolute freshness — that lands at B5 with a real clock).
+    const cert = validCert();
+    expect(() => verifyStationIdentity(cert, serverPubRaw, { now: Date.parse(cert.expiresAt) + 1 })).toThrow();
+    expect(() => verifyStationIdentity(cert, serverPubRaw, { now: Date.parse(cert.issuedAt) + 1000 })).not.toThrow();
+  });
+
+  it('throws StationIdentityError with code 2013 BLE_AUTH_FAILED on failure (§6.5.2)', () => {
+    try {
+      verifyStationIdentity({ ...validCert(), signatureAlgorithm: 'X' }, serverPubRaw);
+      throw new Error('expected verifyStationIdentity to throw');
+    } catch (e) {
+      expect(e).toBeInstanceOf(StationIdentityError);
+      expect((e as StationIdentityError).code).toBe(2013);
+    }
+  });
+
+  it('bite: a one-byte change in the signed body (stationId) fails verification', () => {
+    const cert = validCert();
+    expect(() => verifyStationIdentity({ ...cert, stationId: `${cert.stationId}x` }, serverPubRaw)).toThrow();
   });
 });

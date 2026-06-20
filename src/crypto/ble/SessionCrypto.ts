@@ -25,6 +25,8 @@ import { concatBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 import { hkdf, expand } from '@noble/hashes/hkdf.js';
 import { hmac } from '@noble/hashes/hmac.js';
 import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
+import { canonicalize } from '../CanonicalJsonSerializer.js';
+import { OsppErrorCode } from '../../enums/OsppErrorCode.js';
 
 /**
  * Pin 2 / §6.5.2 — public-key validation (Normative).
@@ -282,4 +284,128 @@ export function openFrame(
   aad: Uint8Array,
 ): Uint8Array {
   return chacha20poly1305(key, nonce96(counter), aad).decrypt(sealed);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §6.5.2 — StationIdentity certificate verification (Pin 8)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CERT_SIGNATURE_ALGORITHM = 'ECDSA-P256-SHA256';
+const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** Browser-safe standard-alphabet Base64 (RFC 4648) decode to bytes. */
+function base64ToBytes(b64: string): Uint8Array {
+  const clean = b64.replace(/[^A-Za-z0-9+/]/g, '');
+  const out = new Uint8Array((clean.length * 3) >> 2);
+  let acc = 0;
+  let bits = 0;
+  let o = 0;
+  for (let i = 0; i < clean.length; i++) {
+    const v = B64_ALPHABET.indexOf(clean[i]);
+    if (v < 0) throw new Error('invalid base64 character');
+    acc = (acc << 6) | v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = (acc >>> bits) & 0xff;
+      acc &= (1 << bits) - 1;
+    }
+  }
+  return o === out.length ? out : out.subarray(0, o);
+}
+
+/** The StationIdentity certificate (§6.5.2), carried in Challenge [MSG-030]. */
+export interface StationIdentityCert {
+  stationId: string;
+  organizationId: string;
+  /** Static BLE ECDH public key — compressed SEC1, 44-char Base64 (Pin 2). */
+  stationPubKey: string;
+  issuedAt: string;
+  expiresAt: string;
+  signatureAlgorithm: string;
+  /** Base64 DER ECDSA-P256-SHA256 signature over the OSPP-canonical body (Pin 8). */
+  signature: string;
+}
+
+/**
+ * A StationIdentity verification failure, carrying the §6.5.2 error code
+ * (2013 BLE_AUTH_FAILED). The caller aborts the handshake.
+ */
+export class StationIdentityError extends Error {
+  readonly code: number = OsppErrorCode.BLE_AUTH_FAILED;
+  constructor(reason: string) {
+    super(`StationIdentity verification failed: ${reason}`);
+    this.name = 'StationIdentityError';
+  }
+}
+
+function fail(reason: string): never {
+  throw new StationIdentityError(reason);
+}
+
+/**
+ * §6.5.2 / Pin 8 — verify a StationIdentity certificate. All failures throw
+ * StationIdentityError (2013 BLE_AUTH_FAILED).
+ *
+ *   1. signatureAlgorithm === "ECDSA-P256-SHA256"
+ *   2. stationPubKey is a 44-char compressed-SEC1 Base64 key (Pin 2) AND a valid
+ *      P-256 curve point
+ *   3. structural validity window: issuedAt < expiresAt
+ *   4. (opts.now) absolute freshness now < expiresAt — a RUNTIME gate; production
+ *      callers MUST pass a clock. A timeless conformance vector cannot prove this.
+ *   5. (opts.expectedStationId) stationId binds to the out-of-band station id
+ *   6. ECDSA-P256-SHA256 signature verifies under serverPublicKey over the OSPP
+ *      Canonical Form (§4.8 / Pin 8) of body = cert MINUS {signature, signatureAlgorithm}
+ *
+ * Browser-safe: reuses the pure-JS `canonicalize` (Pin 8) and @noble/curves
+ * `p256.verify` — NOT EcdsaSigner.verify (node:crypto). Mirrors verify-ble-crypto.mjs.
+ * `serverPublicKey` is the trusted server signing key as raw SEC1 bytes (PEM/JWK
+ * decoding is a higher-layer concern). Returns the verified cert.
+ */
+export function verifyStationIdentity(
+  cert: StationIdentityCert,
+  serverPublicKey: Uint8Array,
+  opts?: { expectedStationId?: string; now?: number },
+): StationIdentityCert {
+  if (cert.signatureAlgorithm !== CERT_SIGNATURE_ALGORITHM) {
+    fail(`unexpected signatureAlgorithm '${cert.signatureAlgorithm}'`);
+  }
+  if (!/^[A-Za-z0-9+/]{44}$/.test(cert.stationPubKey)) {
+    fail('stationPubKey is not a 44-char compressed-SEC1 Base64 key (Pin 2)');
+  }
+  try {
+    validatePublicKey(base64ToBytes(cert.stationPubKey));
+  } catch {
+    fail('stationPubKey is not a valid P-256 curve point');
+  }
+  const issued = Date.parse(cert.issuedAt);
+  const expires = Date.parse(cert.expiresAt);
+  if (Number.isNaN(issued) || Number.isNaN(expires)) {
+    fail('issuedAt/expiresAt is not a valid ISO 8601 timestamp');
+  }
+  if (!(issued < expires)) {
+    fail('issuedAt is not strictly before expiresAt');
+  }
+  if (opts?.now !== undefined && !(opts.now < expires)) {
+    fail('certificate has expired (now >= expiresAt)');
+  }
+  if (opts?.expectedStationId !== undefined && cert.stationId !== opts.expectedStationId) {
+    fail(`stationId '${cert.stationId}' does not match expected '${opts.expectedStationId}'`);
+  }
+  const { signature, signatureAlgorithm, ...body } = cert;
+  void signatureAlgorithm; // excluded from the signed body
+  const canonicalBytes = utf8ToBytes(canonicalize(body as Record<string, unknown>));
+  let ok = false;
+  try {
+    ok = p256.verify(base64ToBytes(signature), canonicalBytes, serverPublicKey, {
+      prehash: true,
+      format: 'der',
+    });
+  } catch {
+    ok = false;
+  }
+  if (!ok) {
+    fail('ECDSA-P256-SHA256 signature does not verify under the server public key');
+  }
+  return cert;
 }
