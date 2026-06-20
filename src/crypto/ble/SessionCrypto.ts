@@ -45,3 +45,51 @@ export function validatePublicKey(pub: Uint8Array): ReturnType<typeof p256.Point
   }
   return point;
 }
+
+/**
+ * Pin 1 — left-pad a big-endian byte string to exactly 32 bytes.
+ *
+ * Applied UNCONDITIONALLY to every ECDH shared-secret X (06-security.md §6.5
+ * Pin 1): a no-op when the value is already full-width, a correction when a
+ * backend strips leading zero bytes. This is the byte-parity guarantee with
+ * PHP `openssl_pkey_derive` / mbedTLS (which can return < 32 bytes for ~1/256 of
+ * shared secrets — the EC-scalar 0.5.7 class). Mirrors ble-crypto.mjs leftPad32.
+ *
+ * @throws if the input is wider than 32 bytes.
+ */
+export function leftPad32(x: Uint8Array): Uint8Array {
+  if (x.length > 32) {
+    throw new Error(`leftPad32: input ${x.length} > 32 bytes`);
+  }
+  const out = new Uint8Array(32);
+  out.set(x, 32 - x.length);
+  return out;
+}
+
+/**
+ * Pin 1 / §6.5 — ECDH P-256 shared secret, encoded as the X-coordinate of the
+ * shared point, big-endian, exactly 32 bytes, zero-left-padded.
+ *
+ * @noble/curves `getSharedSecret` returns the shared point in compressed SEC1
+ * form (33 bytes: `0x02`/`0x03` prefix ‖ 32-byte X). Pin 1: strip the prefix,
+ * take the X coordinate only, and `leftPad32` it unconditionally. (Tolerant of a
+ * 65-byte uncompressed or bare 32-byte return across @noble versions.) Mirrors
+ * the @noble normalisation documented in ble-crypto.mjs `ecdhSharedX`.
+ *
+ * Inputs are raw bytes: `priv` = 32-byte scalar, `peerPub` = compressed or
+ * uncompressed SEC1 public key (validate it first with `validatePublicKey`).
+ */
+export function ecdhSharedX(priv: Uint8Array, peerPub: Uint8Array): Uint8Array {
+  const shared = p256.getSharedSecret(priv, peerPub);
+  let x: Uint8Array;
+  if (shared.length === 33) {
+    x = shared.subarray(1); // 0x02/0x03 ‖ X → X
+  } else if (shared.length === 65) {
+    x = shared.subarray(1, 33); // 0x04 ‖ X ‖ Y → X
+  } else if (shared.length === 32) {
+    x = shared; // already X-only
+  } else {
+    throw new Error(`ecdhSharedX: unexpected @noble shared-secret length ${shared.length}`);
+  }
+  return leftPad32(x);
+}

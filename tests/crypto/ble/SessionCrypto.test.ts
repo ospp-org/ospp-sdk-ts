@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { validatePublicKey } from '../../../src/crypto/ble/SessionCrypto';
+import { validatePublicKey, ecdhSharedX, leftPad32 } from '../../../src/crypto/ble/SessionCrypto';
 
 /**
  * BLE SessionCrypto — validated against the spec handshake oracle
@@ -38,6 +38,13 @@ const keys = vector.keys;
 
 const b64ToBytes = (b: string): Uint8Array => Uint8Array.from(Buffer.from(b, 'base64'));
 const hexToBytes = (h: string): Uint8Array => Uint8Array.from(Buffer.from(h, 'hex'));
+const toHex = (u8: Uint8Array): string => Buffer.from(u8).toString('hex');
+
+// Per scenario, which app/station ephemeral key pair is in play (stationStatic is shared).
+const SCENARIO_KEYS: Record<string, { appEph: string; stationEph: string }> = {
+  full: { appEph: 'appEphemeralFull', stationEph: 'stationEphemeralFull' },
+  minimal: { appEph: 'appEphemeralMinimal', stationEph: 'stationEphemeralMinimal' },
+};
 
 const KEY_LABELS = [
   'stationStatic',
@@ -91,5 +98,66 @@ describe('SessionCrypto.validatePublicKey (Pin 2 / §6.5.2)', () => {
     }
     // A no-op validator would reject 0; the curve/field check must catch mutations.
     expect(rejected).toBeGreaterThan(0);
+  });
+});
+
+describe('SessionCrypto.leftPad32 (Pin 1 — unconditional 32-byte width)', () => {
+  it('is a no-op (32-byte copy) on a full-width input', () => {
+    const out = leftPad32(hexToBytes('ff'.repeat(32)));
+    expect(out.length).toBe(32);
+    expect(toHex(out)).toBe('ff'.repeat(32));
+  });
+
+  it('left-pads a short (high-zero-byte) value — the ~1/256 EC-scalar parity case', () => {
+    const out = leftPad32(hexToBytes('ab'.repeat(31))); // 31-byte big-endian value
+    expect(out.length).toBe(32);
+    expect(out[0]).toBe(0x00);
+    expect(toHex(out)).toBe('00' + 'ab'.repeat(31));
+  });
+
+  it('rejects an over-width (>32-byte) input', () => {
+    expect(() => leftPad32(hexToBytes('ab'.repeat(33)))).toThrow();
+  });
+});
+
+describe('SessionCrypto.ecdhSharedX (Pin 1 / §6.5)', () => {
+  for (const scenario of vector.scenarios) {
+    const map = SCENARIO_KEYS[scenario.scenario];
+    const appPriv = hexToBytes(keys[map.appEph].privateKeyHex);
+    const appPub = b64ToBytes(keys[map.appEph].publicKeyCompressedBase64);
+    const statStaticPriv = hexToBytes(keys.stationStatic.privateKeyHex);
+    const statStaticPub = b64ToBytes(keys.stationStatic.publicKeyCompressedBase64);
+    const statEphPriv = hexToBytes(keys[map.stationEph].privateKeyHex);
+    const statEphPub = b64ToBytes(keys[map.stationEph].publicKeyCompressedBase64);
+
+    describe(`scenario ${scenario.scenario}`, () => {
+      it('es = ECDH(appEphemeralPriv, stationStaticPub) reproduces esHex — both directions agree', () => {
+        expect(toHex(ecdhSharedX(appPriv, statStaticPub))).toBe(scenario.ecdh.esHex); // app side
+        expect(toHex(ecdhSharedX(statStaticPriv, appPub))).toBe(scenario.ecdh.esHex); // station side
+      });
+
+      it('ee = ECDH(appEphemeralPriv, stationEphemeralPub) reproduces eeHex — both directions agree', () => {
+        expect(toHex(ecdhSharedX(appPriv, statEphPub))).toBe(scenario.ecdh.eeHex); // app side
+        expect(toHex(ecdhSharedX(statEphPriv, appPub))).toBe(scenario.ecdh.eeHex); // station side
+      });
+    });
+  }
+
+  it('output is exactly 32 bytes (Pin 1, left-padded X)', () => {
+    const x = ecdhSharedX(
+      hexToBytes(keys.appEphemeralFull.privateKeyHex),
+      b64ToBytes(keys.stationStatic.publicKeyCompressedBase64),
+    );
+    expect(x.length).toBe(32);
+  });
+
+  it('bite: a mutated private key diverges from the vector es', () => {
+    const full = vector.scenarios.find((s) => s.scenario === 'full')!;
+    const appPriv = hexToBytes(keys.appEphemeralFull.privateKeyHex);
+    const statStaticPub = b64ToBytes(keys.stationStatic.publicKeyCompressedBase64);
+    expect(toHex(ecdhSharedX(appPriv, statStaticPub))).toBe(full.ecdh.esHex); // sanity: real key matches
+    const mutated = Uint8Array.from(appPriv);
+    mutated[mutated.length - 1] ^= 0x01; // flip the low bit (stays a valid scalar)
+    expect(toHex(ecdhSharedX(mutated, statStaticPub))).not.toBe(full.ecdh.esHex);
   });
 });
