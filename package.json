@@ -49,7 +49,9 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@noble/ciphers": "^2.2.0",
     "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1"
   },
