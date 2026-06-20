@@ -205,3 +205,28 @@ export function deriveSessionKeys(params: DeriveSessionKeysParams): BleSessionKe
   const sessionKeyConfirmation = hmac(sha256, sessionKey, SESSION_CONFIRM_LABEL);
   return { sessionKey, kAppToStation, kStationToApp, sessionKeyConfirmation };
 }
+
+/** §6.5.1 message-type label, length-prefixed into the sessionProof input (verbatim). */
+const SESSION_PROOF_TYPE = 'OfflineAuthRequest';
+
+/**
+ * §6.5.1 / ble-handshake.md §4.1 — sessionProof (Normative).
+ *
+ *   sessionProof = HMAC-SHA256( SessionKey,
+ *                    LP("OfflineAuthRequest") ‖ LP(passId) ‖ LP(decimal(counter)) )
+ *
+ * Proves the app holds THIS handshake's SessionKey and binds the OfflineAuthRequest
+ * to the session. `decimal(counter)` is the counter as its shortest base-10 ASCII
+ * string — NOT a U64BE binary (that is the AEAD nonce's encoding, Pin 5). The
+ * length-prefix (lp) makes (type, passId, counter) injective (closes finding N1's
+ * empty-concatenation ambiguity). Returns the raw 32-byte HMAC; Base64-encode it
+ * for the on-wire `sessionProof` field. Mirrors generate-ble-vectors.mjs.
+ */
+export function sessionProof(
+  sessionKey: Uint8Array,
+  passId: string,
+  counter: number | bigint,
+): Uint8Array {
+  const message = concatBytes(lp(SESSION_PROOF_TYPE), lp(passId), lp(String(counter)));
+  return hmac(sha256, sessionKey, message);
+}

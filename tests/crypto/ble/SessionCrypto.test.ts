@@ -8,6 +8,7 @@ import {
   leftPad32,
   transcriptHash,
   deriveSessionKeys,
+  sessionProof,
 } from '../../../src/crypto/ble/SessionCrypto';
 
 /**
@@ -38,6 +39,15 @@ interface Scenario {
     kStationToAppHex: string;
     sessionKeyConfirmationBase64: string;
   };
+  sessionProof: { passId: string; counter: number; sessionProofBase64: string; messageHex: string };
+  aeadFrames: Array<{
+    direction: string;
+    keyRef: string;
+    counter: number;
+    nonce96Hex: string;
+    plaintextUtf8: string;
+    frame: { n: number; ct: string };
+  }>;
 }
 interface Vector {
   specRef: string;
@@ -245,5 +255,26 @@ describe('SessionCrypto.deriveSessionKeys (Pin 3 / §6.5)', () => {
     expect(toHex(deriveSessionKeys({ ...params, deviceId: params.deviceId + 'x' }).sessionKey)).not.toBe(
       full.keySchedule.sessionKeyHex,
     );
+  });
+});
+
+describe('SessionCrypto.sessionProof (§6.5.1 / ble-handshake §4.1)', () => {
+  for (const scenario of vector.scenarios) {
+    it(`scenario ${scenario.scenario}: reproduces sessionProofBase64`, () => {
+      // Reproduction proves decimal(counter) = String(counter) ASCII (NOT U64BE):
+      // a U64BE counter encoding would not match this Base64.
+      const sk = hexToBytes(scenario.keySchedule.sessionKeyHex);
+      const { passId, counter } = scenario.sessionProof;
+      expect(toBase64(sessionProof(sk, passId, counter))).toBe(scenario.sessionProof.sessionProofBase64);
+    });
+  }
+
+  it('bite: a mutated counter or passId changes the proof', () => {
+    const full = vector.scenarios.find((s) => s.scenario === 'full')!;
+    const sk = hexToBytes(full.keySchedule.sessionKeyHex);
+    const { passId, counter, sessionProofBase64 } = full.sessionProof;
+    expect(toBase64(sessionProof(sk, passId, counter))).toBe(sessionProofBase64); // sanity
+    expect(toBase64(sessionProof(sk, passId, counter + 1))).not.toBe(sessionProofBase64);
+    expect(toBase64(sessionProof(sk, `${passId}x`, counter))).not.toBe(sessionProofBase64);
   });
 });
