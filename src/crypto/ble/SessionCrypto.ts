@@ -230,3 +230,21 @@ export function sessionProof(
   const message = concatBytes(lp(SESSION_PROOF_TYPE), lp(passId), lp(String(counter)));
   return hmac(sha256, sessionKey, message);
 }
+
+/** U64BE(n) — unsigned 64-bit big-endian (the Pin 5 AEAD nonce counter). */
+function u64be(n: number | bigint): Uint8Array {
+  const out = new Uint8Array(8);
+  new DataView(out.buffer).setBigUint64(0, BigInt(n), false);
+  return out;
+}
+
+/**
+ * Pin 5 / §6.5.3 — AEAD frame nonce.
+ *   nonce96(counter) = 0x00000000 ‖ U64BE(counter)        // 12 bytes
+ * Per-direction 64-bit frame counter, starting at 0 and incrementing by 1 per
+ * frame. (Distinct from the sessionProof counter, which is decimal ASCII.)
+ * Mirrors ble-crypto.mjs.
+ */
+export function nonce96(counter: number | bigint): Uint8Array {
+  return concatBytes(new Uint8Array(4), u64be(counter));
+}

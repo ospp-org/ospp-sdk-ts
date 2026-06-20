@@ -9,6 +9,7 @@ import {
   transcriptHash,
   deriveSessionKeys,
   sessionProof,
+  nonce96,
 } from '../../../src/crypto/ble/SessionCrypto';
 
 /**
@@ -276,5 +277,26 @@ describe('SessionCrypto.sessionProof (§6.5.1 / ble-handshake §4.1)', () => {
     expect(toBase64(sessionProof(sk, passId, counter))).toBe(sessionProofBase64); // sanity
     expect(toBase64(sessionProof(sk, passId, counter + 1))).not.toBe(sessionProofBase64);
     expect(toBase64(sessionProof(sk, `${passId}x`, counter))).not.toBe(sessionProofBase64);
+  });
+});
+
+describe('SessionCrypto.nonce96 (Pin 5 / §6.5.3)', () => {
+  for (const scenario of vector.scenarios) {
+    for (const frame of scenario.aeadFrames) {
+      it(`${scenario.scenario}/${frame.direction}: nonce96(${frame.counter}) reproduces nonce96Hex`, () => {
+        expect(toHex(nonce96(frame.counter))).toBe(frame.nonce96Hex);
+      });
+    }
+  }
+
+  it('is 12 bytes = 0x00000000 ‖ U64BE(counter)', () => {
+    const n = nonce96(1);
+    expect(n.length).toBe(12);
+    expect(toHex(n)).toBe('000000000000000000000001');
+    expect(toHex(nonce96(258))).toBe('000000000000000000000102'); // 0x102 in the low bytes
+  });
+
+  it('bite: a different counter yields a different nonce', () => {
+    expect(toHex(nonce96(5))).not.toBe(toHex(nonce96(6)));
   });
 });
