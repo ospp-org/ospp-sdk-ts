@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { validatePublicKey, ecdhSharedX, leftPad32 } from '../../../src/crypto/ble/SessionCrypto';
+import { validatePublicKey, ecdhSharedX, leftPad32, transcriptHash } from '../../../src/crypto/ble/SessionCrypto';
 
 /**
  * BLE SessionCrypto — validated against the spec handshake oracle
@@ -22,7 +22,16 @@ interface KeyEntry {
 }
 interface Scenario {
   scenario: string;
+  hello: { wireBase64: string; message: { deviceId: string; appNonce: string } };
+  challenge: { wireBase64: string; message: { stationNonce: string } };
+  transcript: { transcriptHashHex: string };
   ecdh: { esHex: string; eeHex: string };
+  keySchedule: {
+    sessionKeyHex: string;
+    kAppToStationHex: string;
+    kStationToAppHex: string;
+    sessionKeyConfirmationBase64: string;
+  };
 }
 interface Vector {
   specRef: string;
@@ -159,5 +168,27 @@ describe('SessionCrypto.ecdhSharedX (Pin 1 / §6.5)', () => {
     const mutated = Uint8Array.from(appPriv);
     mutated[mutated.length - 1] ^= 0x01; // flip the low bit (stays a valid scalar)
     expect(toHex(ecdhSharedX(mutated, statStaticPub))).not.toBe(full.ecdh.esHex);
+  });
+});
+
+describe('SessionCrypto.transcriptHash (Pin 4 / §6.5)', () => {
+  for (const scenario of vector.scenarios) {
+    it(`scenario ${scenario.scenario}: reproduces transcriptHashHex from RAW wire octets`, () => {
+      // Pin 4: hash the raw reassembled wire bytes (wireBase64) — NOT a re-serialised
+      // / canonicalised form of the JSON message.
+      const hello = b64ToBytes(scenario.hello.wireBase64);
+      const challenge = b64ToBytes(scenario.challenge.wireBase64);
+      expect(toHex(transcriptHash(hello, challenge))).toBe(scenario.transcript.transcriptHashHex);
+    });
+  }
+
+  it('bite: a byte flip in the hello wire bytes changes the transcript', () => {
+    const full = vector.scenarios.find((s) => s.scenario === 'full')!;
+    const hello = b64ToBytes(full.hello.wireBase64);
+    const challenge = b64ToBytes(full.challenge.wireBase64);
+    expect(toHex(transcriptHash(hello, challenge))).toBe(full.transcript.transcriptHashHex); // sanity
+    const mutated = Uint8Array.from(hello);
+    mutated[0] ^= 0x01;
+    expect(toHex(transcriptHash(mutated, challenge))).not.toBe(full.transcript.transcriptHashHex);
   });
 });

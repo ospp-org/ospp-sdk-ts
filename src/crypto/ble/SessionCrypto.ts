@@ -20,6 +20,8 @@
  */
 
 import { p256 } from '@noble/curves/nist.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { concatBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 
 /**
  * Pin 2 / §6.5.2 — public-key validation (Normative).
@@ -92,4 +94,40 @@ export function ecdhSharedX(priv: Uint8Array, peerPub: Uint8Array): Uint8Array {
     throw new Error(`ecdhSharedX: unexpected @noble shared-secret length ${shared.length}`);
   }
   return leftPad32(x);
+}
+
+/** U16BE(n) — unsigned 16-bit big-endian length prefix (Pin 3 / Pin 4). */
+function u16be(n: number): Uint8Array {
+  if (!Number.isInteger(n) || n < 0 || n > 0xffff) {
+    throw new Error(`u16be: out of range: ${n}`);
+  }
+  return new Uint8Array([(n >> 8) & 0xff, n & 0xff]);
+}
+
+/**
+ * LP(x) = U16BE(byteLength(x)) ‖ x — the single length-prefix used by the HKDF
+ * `info` (Pin 3), the handshake transcript (Pin 4), and the sessionProof
+ * (§6.5.1). Length-prefixing makes concatenations injective (closes finding
+ * N23). Strings are UTF-8 encoded. Mirrors ble-crypto.mjs `lp`.
+ */
+export function lp(x: Uint8Array | string): Uint8Array {
+  const bytes = typeof x === 'string' ? utf8ToBytes(x) : x;
+  return concatBytes(u16be(bytes.length), bytes);
+}
+
+/**
+ * Pin 4 / §6.5 — handshake transcript hash.
+ *
+ *   transcriptHash = SHA-256( LP16(helloBytes) ‖ LP16(challengeBytes) )
+ *
+ * Hashes the RAW, fully-reassembled wire octets of each message exactly as
+ * transmitted/received (the bytes off ble-transport, before AEAD framing). An
+ * implementation MUST NOT parse the JSON and re-serialise / canonicalise / re-
+ * order it — the deliberate opposite of Pin 8. Binding this into the key
+ * schedule `info` makes the SessionKey depend on every handshake field, so any
+ * tampering fails at the first AEAD frame or the sessionProof check. Mirrors
+ * ble-crypto.mjs.
+ */
+export function transcriptHash(helloBytes: Uint8Array, challengeBytes: Uint8Array): Uint8Array {
+  return sha256(concatBytes(lp(helloBytes), lp(challengeBytes)));
 }
