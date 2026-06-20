@@ -118,3 +118,23 @@ export {
   requiresHmac,
   type MessageSigningMode,
 } from './crypto/CriticalMessageRegistry.js';
+
+// Crypto — BLE SessionCrypto (§6.5; browser/RN-safe @noble pipeline, validated
+// byte-identically against the spec conformance corpus).
+export {
+  validatePublicKey,
+  leftPad32,
+  ecdhSharedX,
+  lp,
+  transcriptHash,
+  deriveSessionKeys,
+  sessionProof,
+  nonce96,
+  sealFrame,
+  openFrame,
+  verifyStationIdentity,
+  StationIdentityError,
+  type DeriveSessionKeysParams,
+  type BleSessionKeys,
+  type StationIdentityCert,
+} from './crypto/ble/SessionCrypto.js';
