@@ -2,7 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { validatePublicKey, ecdhSharedX, leftPad32, transcriptHash } from '../../../src/crypto/ble/SessionCrypto';
+import {
+  validatePublicKey,
+  ecdhSharedX,
+  leftPad32,
+  transcriptHash,
+  deriveSessionKeys,
+} from '../../../src/crypto/ble/SessionCrypto';
 
 /**
  * BLE SessionCrypto — validated against the spec handshake oracle
@@ -48,6 +54,7 @@ const keys = vector.keys;
 const b64ToBytes = (b: string): Uint8Array => Uint8Array.from(Buffer.from(b, 'base64'));
 const hexToBytes = (h: string): Uint8Array => Uint8Array.from(Buffer.from(h, 'hex'));
 const toHex = (u8: Uint8Array): string => Buffer.from(u8).toString('hex');
+const toBase64 = (u8: Uint8Array): string => Buffer.from(u8).toString('base64');
 
 // Per scenario, which app/station ephemeral key pair is in play (stationStatic is shared).
 const SCENARIO_KEYS: Record<string, { appEph: string; stationEph: string }> = {
@@ -190,5 +197,53 @@ describe('SessionCrypto.transcriptHash (Pin 4 / §6.5)', () => {
     const mutated = Uint8Array.from(hello);
     mutated[0] ^= 0x01;
     expect(toHex(transcriptHash(mutated, challenge))).not.toBe(full.transcript.transcriptHashHex);
+  });
+});
+
+describe('SessionCrypto.deriveSessionKeys (Pin 3 / §6.5)', () => {
+  const build = (s: Scenario) => ({
+    es: hexToBytes(s.ecdh.esHex),
+    ee: hexToBytes(s.ecdh.eeHex),
+    appNonce: b64ToBytes(s.hello.message.appNonce),
+    stationNonce: b64ToBytes(s.challenge.message.stationNonce),
+    deviceId: s.hello.message.deviceId,
+    transcriptHash: hexToBytes(s.transcript.transcriptHashHex),
+  });
+
+  for (const scenario of vector.scenarios) {
+    describe(`scenario ${scenario.scenario}`, () => {
+      it('SessionKey reproduces sessionKeyHex', () => {
+        expect(toHex(deriveSessionKeys(build(scenario)).sessionKey)).toBe(scenario.keySchedule.sessionKeyHex);
+      });
+      it('directional keys reproduce kAppToStationHex / kStationToAppHex', () => {
+        const k = deriveSessionKeys(build(scenario));
+        expect(toHex(k.kAppToStation)).toBe(scenario.keySchedule.kAppToStationHex);
+        expect(toHex(k.kStationToApp)).toBe(scenario.keySchedule.kStationToAppHex);
+      });
+      it('sessionKeyConfirmation reproduces sessionKeyConfirmationBase64', () => {
+        expect(toBase64(deriveSessionKeys(build(scenario)).sessionKeyConfirmation)).toBe(
+          scenario.keySchedule.sessionKeyConfirmationBase64,
+        );
+      });
+    });
+  }
+
+  it('bite: a mutated es yields a different SessionKey AND different directional keys', () => {
+    const full = vector.scenarios.find((s) => s.scenario === 'full')!;
+    const params = build(full);
+    expect(toHex(deriveSessionKeys(params).sessionKey)).toBe(full.keySchedule.sessionKeyHex); // sanity
+    const mutatedEs = Uint8Array.from(params.es);
+    mutatedEs[0] ^= 0x01;
+    const k = deriveSessionKeys({ ...params, es: mutatedEs });
+    expect(toHex(k.sessionKey)).not.toBe(full.keySchedule.sessionKeyHex);
+    expect(toHex(k.kAppToStation)).not.toBe(full.keySchedule.kAppToStationHex);
+  });
+
+  it('bite: a mutated deviceId (Pin 3 info binding, injective LP) yields a different SessionKey', () => {
+    const full = vector.scenarios.find((s) => s.scenario === 'full')!;
+    const params = build(full);
+    expect(toHex(deriveSessionKeys({ ...params, deviceId: params.deviceId + 'x' }).sessionKey)).not.toBe(
+      full.keySchedule.sessionKeyHex,
+    );
   });
 });

@@ -22,6 +22,8 @@
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { concatBytes, utf8ToBytes } from '@noble/hashes/utils.js';
+import { hkdf, expand } from '@noble/hashes/hkdf.js';
+import { hmac } from '@noble/hashes/hmac.js';
 
 /**
  * Pin 2 / §6.5.2 — public-key validation (Normative).
@@ -130,4 +132,76 @@ export function lp(x: Uint8Array | string): Uint8Array {
  */
 export function transcriptHash(helloBytes: Uint8Array, challengeBytes: Uint8Array): Uint8Array {
   return sha256(concatBytes(lp(helloBytes), lp(challengeBytes)));
+}
+
+// Pin 3 key-schedule constants — VERBATIM from spec generate-ble-vectors.mjs /
+// 06-security.md §6.5. The _V2 salt domain-separates this ECDH construction from
+// the retired LTK one; the directional + confirmation labels are fixed ASCII.
+// Do NOT alter — cross-language byte-identity depends on these exact strings.
+const SALT_V2 = utf8ToBytes('OSPP_BLE_SESSION_V2');
+const KDF_LABEL_A2S = utf8ToBytes('OSPP-BLE-v0.6.0-key-app-to-station');
+const KDF_LABEL_S2A = utf8ToBytes('OSPP-BLE-v0.6.0-key-station-to-app');
+const SESSION_CONFIRM_LABEL = utf8ToBytes('AuthResponse_OK');
+
+export interface DeriveSessionKeysParams {
+  /** es = ECDH(appEphemeralPriv, stationStaticPub) X — 32 bytes (ecdhSharedX). */
+  es: Uint8Array;
+  /** ee = ECDH(appEphemeralPriv, stationEphemeralPub) X — 32 bytes (ecdhSharedX). */
+  ee: Uint8Array;
+  /** appNonce — 32 decoded bytes from Hello. */
+  appNonce: Uint8Array;
+  /** stationNonce — 32 decoded bytes from Challenge. */
+  stationNonce: Uint8Array;
+  /** Client device identity from Hello (UTF-8; length-prefixed into `info`). */
+  deviceId: string;
+  /** Pin 4 transcript hash — 32 bytes (transcriptHash). */
+  transcriptHash: Uint8Array;
+}
+
+export interface BleSessionKeys {
+  /** 32-byte master session key (also keys sessionProof + the confirmation). */
+  sessionKey: Uint8Array;
+  /** 32-byte AEAD key for app→station frames (§6.5.3). */
+  kAppToStation: Uint8Array;
+  /** 32-byte AEAD key for station→app frames (§6.5.3). */
+  kStationToApp: Uint8Array;
+  /** HMAC-SHA256(SessionKey, "AuthResponse_OK"), carried in AuthResponse. */
+  sessionKeyConfirmation: Uint8Array;
+}
+
+/**
+ * Pin 3 / §6.5 — BLE session key schedule, directional sub-keys, and key
+ * confirmation. Mirrors spec generate-ble-vectors.mjs (constants verbatim):
+ *
+ *   IKM        = es ‖ ee ‖ appNonce ‖ stationNonce          (4 × 32 = 128 bytes)
+ *   salt       = UTF8("OSPP_BLE_SESSION_V2")
+ *   info       = LP(deviceId) ‖ LP(transcriptHash)           (Pin 3, injective — N23)
+ *   SessionKey = HKDF-SHA256(IKM, salt, info, 32)
+ *   k_app→stn  = HKDF-Expand(SessionKey, "OSPP-BLE-v0.6.0-key-app-to-station", 32)
+ *   k_stn→app  = HKDF-Expand(SessionKey, "OSPP-BLE-v0.6.0-key-station-to-app", 32)
+ *   confirm    = HMAC-SHA256(SessionKey, "AuthResponse_OK")
+ *
+ * Browser-safe (@noble/hashes + Uint8Array). The 256-bit inputs (es/ee, both
+ * nonces, transcriptHash) MUST be exactly 32 bytes.
+ */
+export function deriveSessionKeys(params: DeriveSessionKeysParams): BleSessionKeys {
+  const { es, ee, appNonce, stationNonce, deviceId, transcriptHash: transcript } = params;
+  for (const [name, value] of [
+    ['es', es],
+    ['ee', ee],
+    ['appNonce', appNonce],
+    ['stationNonce', stationNonce],
+    ['transcriptHash', transcript],
+  ] as const) {
+    if (value.length !== 32) {
+      throw new Error(`deriveSessionKeys: ${name} must be 32 bytes (got ${value.length})`);
+    }
+  }
+  const ikm = concatBytes(es, ee, appNonce, stationNonce);
+  const info = concatBytes(lp(deviceId), lp(transcript));
+  const sessionKey = hkdf(sha256, ikm, SALT_V2, info, 32);
+  const kAppToStation = expand(sha256, sessionKey, KDF_LABEL_A2S, 32);
+  const kStationToApp = expand(sha256, sessionKey, KDF_LABEL_S2A, 32);
+  const sessionKeyConfirmation = hmac(sha256, sessionKey, SESSION_CONFIRM_LABEL);
+  return { sessionKey, kAppToStation, kStationToApp, sessionKeyConfirmation };
 }
