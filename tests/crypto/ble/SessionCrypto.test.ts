@@ -10,6 +10,8 @@ import {
   deriveSessionKeys,
   sessionProof,
   nonce96,
+  sealFrame,
+  openFrame,
 } from '../../../src/crypto/ble/SessionCrypto';
 
 /**
@@ -66,6 +68,7 @@ const b64ToBytes = (b: string): Uint8Array => Uint8Array.from(Buffer.from(b, 'ba
 const hexToBytes = (h: string): Uint8Array => Uint8Array.from(Buffer.from(h, 'hex'));
 const toHex = (u8: Uint8Array): string => Buffer.from(u8).toString('hex');
 const toBase64 = (u8: Uint8Array): string => Buffer.from(u8).toString('base64');
+const utf8 = (s: string): Uint8Array => Uint8Array.from(Buffer.from(s, 'utf-8'));
 
 // Per scenario, which app/station ephemeral key pair is in play (stationStatic is shared).
 const SCENARIO_KEYS: Record<string, { appEph: string; stationEph: string }> = {
@@ -298,5 +301,50 @@ describe('SessionCrypto.nonce96 (Pin 5 / §6.5.3)', () => {
 
   it('bite: a different counter yields a different nonce', () => {
     expect(toHex(nonce96(5))).not.toBe(toHex(nonce96(6)));
+  });
+});
+
+describe('SessionCrypto.sealFrame / openFrame (Pin 6+7 / §6.5.3)', () => {
+  const keyOf = (s: Scenario, keyRef: string): Uint8Array =>
+    hexToBytes(keyRef === 'kAppToStation' ? s.keySchedule.kAppToStationHex : s.keySchedule.kStationToAppHex);
+
+  for (const scenario of vector.scenarios) {
+    const aad = hexToBytes(scenario.transcript.transcriptHashHex); // Pin 7: AAD = transcriptHash
+    for (const frame of scenario.aeadFrames) {
+      const key = keyOf(scenario, frame.keyRef);
+      const plaintext = utf8(frame.plaintextUtf8);
+      it(`${scenario.scenario}/${frame.direction}: sealFrame reproduces frame.ct (Pin 6)`, () => {
+        expect(toBase64(sealFrame(key, frame.counter, plaintext, aad))).toBe(frame.frame.ct);
+      });
+      it(`${scenario.scenario}/${frame.direction}: openFrame round-trips`, () => {
+        const sealed = sealFrame(key, frame.counter, plaintext, aad);
+        expect(toHex(openFrame(key, frame.counter, sealed, aad))).toBe(toHex(plaintext));
+      });
+    }
+  }
+
+  const full = vector.scenarios.find((s) => s.scenario === 'full')!;
+  const fFrame = full.aeadFrames[0];
+  const fKey = keyOf(full, fFrame.keyRef);
+  const fAad = hexToBytes(full.transcript.transcriptHashHex);
+
+  it('AAD = transcriptHash binds the frame: a wrong AAD makes openFrame throw (Pin 7)', () => {
+    const sealed = sealFrame(fKey, fFrame.counter, utf8(fFrame.plaintextUtf8), fAad);
+    expect(() => openFrame(fKey, fFrame.counter, sealed, new Uint8Array(32))).toThrow();
+  });
+
+  it('openFrame rejects a tampered tag (AEAD integrity)', () => {
+    const sealed = sealFrame(fKey, fFrame.counter, utf8(fFrame.plaintextUtf8), fAad);
+    const tampered = Uint8Array.from(sealed);
+    tampered[tampered.length - 1] ^= 0x01;
+    expect(() => openFrame(fKey, fFrame.counter, tampered, fAad)).toThrow();
+  });
+
+  it('bite: a mutated plaintext yields a different ct', () => {
+    const pt = utf8(fFrame.plaintextUtf8);
+    expect(toBase64(sealFrame(fKey, fFrame.counter, pt, fAad))).toBe(fFrame.frame.ct); // sanity
+    const mutated = Uint8Array.from(pt);
+    mutated[0] ^= 0x01;
+    expect(toBase64(sealFrame(fKey, fFrame.counter, mutated, fAad))).not.toBe(fFrame.frame.ct);
   });
 });

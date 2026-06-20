@@ -24,6 +24,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { concatBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 import { hkdf, expand } from '@noble/hashes/hkdf.js';
 import { hmac } from '@noble/hashes/hmac.js';
+import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
 
 /**
  * Pin 2 / §6.5.2 — public-key validation (Normative).
@@ -247,4 +248,38 @@ function u64be(n: number | bigint): Uint8Array {
  */
 export function nonce96(counter: number | bigint): Uint8Array {
   return concatBytes(new Uint8Array(4), u64be(counter));
+}
+
+/**
+ * Pin 6+7 / §6.5.3 — seal a BLE AEAD frame.
+ *
+ * ChaCha20-Poly1305 IETF (RFC 8439, 12-byte nonce; Pin 6), nonce = nonce96(counter)
+ * (Pin 5), AAD = transcriptHash (Pin 7 — binds every frame to this handshake).
+ * Returns ciphertext ‖ 16-byte Poly1305 tag (the on-wire frame `ct`, Base64-encoded
+ * at the message layer). Mirrors ble-crypto.mjs chachaPolySeal. Browser-safe
+ * (@noble/ciphers — no node:crypto).
+ */
+export function sealFrame(
+  key: Uint8Array,
+  counter: number | bigint,
+  plaintext: Uint8Array,
+  aad: Uint8Array,
+): Uint8Array {
+  return chacha20poly1305(key, nonce96(counter), aad).encrypt(plaintext);
+}
+
+/**
+ * Pin 6+7 / §6.5.3 — open a BLE AEAD frame. Inverse of sealFrame: verifies the
+ * Poly1305 tag against (key, nonce96(counter), aad=transcriptHash) and THROWS on
+ * any authentication failure — a tampered ciphertext/tag or a wrong transcriptHash
+ * (Pin 7). Never returns unauthenticated plaintext. Mirrors ble-crypto.mjs
+ * chachaPolyOpen.
+ */
+export function openFrame(
+  key: Uint8Array,
+  counter: number | bigint,
+  sealed: Uint8Array,
+  aad: Uint8Array,
+): Uint8Array {
+  return chacha20poly1305(key, nonce96(counter), aad).decrypt(sealed);
 }
