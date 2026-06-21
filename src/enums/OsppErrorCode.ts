@@ -1,7 +1,8 @@
 /**
- * All 106 standard OSPP error codes with static metadata.
+ * All 107 standard OSPP error codes with static metadata.
  *
- * Source: spec/07-errors.md §3.1–§3.6 (v0.4.2: 102 → 106 with 2014-2017 additions).
+ * Source: spec/07-errors.md §3.1–§3.6 (v0.4.2: 102 → 106 with 2014-2017 additions;
+ * v0.6.2: → 107 with 2018 SERVER_AUTH_NONCE_MISMATCH).
  *
  * Ranges:
  *   1000–1999  Transport
@@ -89,6 +90,8 @@ export enum OsppErrorCode {
   OFFLINE_ORG_MISMATCH      = 2015,
   OFFLINE_USER_MISMATCH     = 2016,
   OFFLINE_RECEIPT_MISMATCH  = 2017,
+  // spec v0.6.2 07-errors.md §3.2 — BLE Partial-A ServerSignedAuth anti-replay nonce check
+  SERVER_AUTH_NONCE_MISMATCH = 2018,
 
   // --- Session & Bay (3xxx) ---
   SESSION_GENERIC           = 3000,
@@ -245,6 +248,13 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.OFFLINE_ORG_MISMATCH]:      meta(2015, 'OFFLINE_ORG_MISMATCH',      'Error',    false, 403, 'Auth'),
   [OsppErrorCode.OFFLINE_USER_MISMATCH]:     meta(2016, 'OFFLINE_USER_MISMATCH',     'Error',    false, 403, 'Auth'),
   [OsppErrorCode.OFFLINE_RECEIPT_MISMATCH]:  meta(2017, 'OFFLINE_RECEIPT_MISMATCH',  'Critical', false, 422, 'Auth'),
+  // ── v0.6.2 spec 07-errors.md §3.2 addition ─────────────────────────────
+  //   2018 SERVER_AUTH_NONCE_MISMATCH → 401. ServerSignedAuth (Partial A) replay
+  //   at the BLE handshake: the auth is REJECTED (station refuses + disconnects),
+  //   so — unlike 2017 (auth succeeded → 422) — this is a rejected credential.
+  //   Mirrors 2005 counter-replay / the JWT-rejection family. Cross-SDK aligned
+  //   with ospp-sdk-php v0.6.2.
+  [OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH]: meta(2018, 'SERVER_AUTH_NONCE_MISMATCH', 'Critical', false, 401, 'Auth'),
 
   // ── Session & Bay (3xxx) ──────────────────────────────────────────────
   [OsppErrorCode.SESSION_GENERIC]:           meta(3000, 'SESSION_GENERIC',           'Error',    true,  500, 'Session'),

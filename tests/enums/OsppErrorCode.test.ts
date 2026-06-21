@@ -11,10 +11,10 @@ describe('OsppErrorCode', () => {
     (v): v is number => typeof v === 'number',
   );
 
-  it('should have exactly 106 error codes', () => {
-    // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes).
-    // Total 102 → 106.
-    expect(allCodes).toHaveLength(106);
+  it('should have exactly 107 error codes', () => {
+    // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes): 102 → 106.
+    // v0.6.2: spec 07-errors.md §3.2 added 2018 SERVER_AUTH_NONCE_MISMATCH: 106 → 107.
+    expect(allCodes).toHaveLength(107);
   });
 
   it('should have unique numeric values', () => {
@@ -29,9 +29,9 @@ describe('OsppErrorCode', () => {
       expect(byRange(1000, 1999)).toHaveLength(15);
     });
 
-    it('should have 18 auth errors (2xxx)', () => {
-      // v0.5.2: 14 → 18 (2014/2015/2016/2017).
-      expect(byRange(2000, 2999)).toHaveLength(18);
+    it('should have 19 auth errors (2xxx)', () => {
+      // v0.5.2: 14 → 18 (2014/2015/2016/2017); v0.6.2: → 19 (2018).
+      expect(byRange(2000, 2999)).toHaveLength(19);
     });
 
     it('should have 17 session/bay errors (3xxx)', () => {
@@ -50,8 +50,8 @@ describe('OsppErrorCode', () => {
       expect(byRange(6000, 6999)).toHaveLength(8);
     });
 
-    it('15 + 18 + 17 + 14 + 34 + 8 = 106', () => {
-      expect(15 + 18 + 17 + 14 + 34 + 8).toBe(106);
+    it('15 + 19 + 17 + 14 + 34 + 8 = 107', () => {
+      expect(15 + 19 + 17 + 14 + 34 + 8).toBe(107);
     });
   });
 
@@ -112,6 +112,27 @@ describe('OsppErrorCode', () => {
       expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_ORG_MISMATCH].httpStatus).toBe(403);
       expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_USER_MISMATCH].httpStatus).toBe(403);
       expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_RECEIPT_MISMATCH].httpStatus).toBe(422);
+    });
+  });
+
+  describe('v0.6.2 code (spec 07-errors.md §3.2)', () => {
+    it('should expose SERVER_AUTH_NONCE_MISMATCH = 2018 with Critical severity, non-recoverable', () => {
+      // spec 07-errors.md:245 — BLE Partial-A ServerSignedAuth anti-replay
+      // (signed appNonce != Hello.appNonce). Critical, recoverable=false.
+      expect(OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH).toBe(2018);
+      const meta = OSPP_ERROR_REGISTRY[OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH];
+      expect(meta.text).toBe('SERVER_AUTH_NONCE_MISMATCH');
+      expect(meta.severity).toBe('Critical');
+      expect(meta.recoverable).toBe(false);
+      expect(meta.category).toBe('Auth');
+    });
+
+    it('has httpStatus 401 aligned cross-SDK with ospp-sdk-php v0.6.2', () => {
+      // 2018 → 401 (NOT 422 like 2017). The ServerSignedAuth replay is REJECTED
+      // at the BLE handshake (station refuses + disconnects) — auth does NOT
+      // succeed, unlike 2017 (auth succeeded, only a receipt cross-check failed).
+      // Mirrors the 2005 counter-replay / JWT-rejection family.
+      expect(OSPP_ERROR_REGISTRY[OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH].httpStatus).toBe(401);
     });
   });
 });

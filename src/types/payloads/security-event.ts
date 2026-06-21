@@ -6,6 +6,7 @@ export type SecurityEventType =
   | 'CertificateError'
   | 'UnauthorizedAccess'
   | 'OfflinePassRejected'
+  | 'ServerSignedAuthReplay'
   | 'TamperDetected'
   | 'BruteForceAttempt'
   | 'FirmwareIntegrityFailure'
