@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.6.2 — 2026-06-23
+
+Version alignment with `ospp-sdk-php v0.6.2` (lockstep, ADR-011) — **publishes
+the package.json version bump that the v0.6.0/v0.6.1/v0.6.2 release commits
+missed**. Those commits aligned `.spec-ref` to the spec tag but never bumped
+`package.json` (it stayed at `0.5.7`), so the tag-push publish workflow ran
+`npm publish` against `0.5.7` and got a 403 "cannot publish over previously
+published versions" — leaving npm frozen at `0.5.7` while git carried v0.6.x
+tags (decoupled). This commit bumps `package.json` + `package-lock.json` to
+`0.6.2` so the publish workflow can ship the cumulative 0.6.x content to npm.
+
+The schema/code content (`src/schemas`, test-vectors, enums) was already at
+v0.6.2 on these tags — only the package version field was stale. No wire
+change beyond what the 0.6.x spec already defined.
+
+### Changed
+
+- `package.json` + `package-lock.json` version `0.5.7` → `0.6.2` (version field
+  only; no dependency changes).
+
+### Included (cumulative 0.6.0 → 0.6.2, never reached npm under 0.5.7)
+
+- **Auth-form (Partial A) TransactionEvent** — `transaction-event-request`
+  schema `oneOf` carrying `{authId, sessionId}` (vs pass-form `offlinePassId`),
+  the `transaction-event-request-auth-form` test vector, and the
+  `server-signed-auth-claims` schema (landed v0.6.1).
+- **Enum catch-up (v0.6.2)** — `SecurityEventType.ServerSignedAuthReplay` +
+  error `2018 SERVER_AUTH_NONCE_MISMATCH`, aligned to the spec schema.
+
+### Verification
+
+- `tsc` build clean; full vitest suite green — confirms the version bump is
+  inert to behavior (no code touched, only the version field).
+
 ## 0.5.7 — 2026-06-18
 
 Version alignment with `ospp-sdk-php v0.5.7` (lockstep, ADR-011). **No code
