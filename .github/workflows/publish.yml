@@ -43,6 +43,26 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
+      # Guard against the npm-403 trap: a tag push where package.json was
+      # never bumped to match the tag. `npm publish` reads the version from
+      # package.json (NOT the tag), so a stale package.json silently
+      # republishes an already-published version and npm rejects it with a
+      # 403 — after wasting the whole build+test. This cost ~2 days at
+      # v0.6.0/v0.6.1 (tags cut without a package.json bump). Runs BEFORE
+      # npm ci/build/test so the mismatch fails loud and fast.
+      - name: Guard — package.json version matches release tag
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          expected="${tag#v}"
+          actual="$(node -p "require('./package.json').version")"
+          if [ "$actual" != "$expected" ]; then
+            echo "ERROR: package.json version '$actual' does not match release tag '$tag' (expected version '$expected')." >&2
+            echo "Fix: bump package.json + package-lock.json + CHANGELOG to '$expected' BEFORE tagging, then move/re-push the tag." >&2
+            exit 1
+          fi
+          echo "OK — package.json version '$actual' matches release tag '$tag'."
+
       - run: npm ci
 
       - run: npm run build
