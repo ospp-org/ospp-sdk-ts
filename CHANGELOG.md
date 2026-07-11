@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0 — 2026-07-10
+
+TLS 1.2 floor (lockstep, ADR-011). Re-vendors `src/schemas/provisioning-response.schema.json`
+at spec **v0.7.0**: the MQTT `tlsVersion` field widens from `["1.3"]` to
+`["1.2","1.3"]` (default `"1.3"` → `"1.2"`) with floor semantics (the minimum
+version the station must support; the broker accepts it or higher). Lowers the
+MQTT/mTLS transport floor from TLS-1.3-only to TLS 1.2+ (TLS 1.3 recommended),
+admitting TLS-1.2-capped cellular modems (e.g. SIMCom A7608E-H); sub-1.2
+rejected, 0-RTT forbidden, mTLS unchanged. `.spec-ref` → `v0.7.0`.
+
+No TS code change — the SDK ships no generated `tlsVersion` type (schemas are
+copied to `dist/`, not compiled), and 0.7.0 adds no new error code
+(provisioning-token §2 reuses existing 401 codes). Also **removes the dead
+`lint` script**: it invoked `eslint`, which was never a declared dependency (no
+eslint in `devDependencies`, no eslint config, not run by CI) — a script that
+cannot run is not a gate. The real gates are `build` (tsc) + `test` (vitest),
+both green (tsc clean, vitest 905/905).
+
 ## 0.6.2 — 2026-06-23
 
 Version alignment with `ospp-sdk-php v0.6.2` (lockstep, ADR-011) — **publishes
