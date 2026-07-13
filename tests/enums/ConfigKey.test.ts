@@ -8,8 +8,8 @@ import {
 describe('ConfigKey', () => {
   const allKeys = Object.values(ConfigKey);
 
-  it('should have exactly 41 keys', () => {
-    expect(allKeys).toHaveLength(41);
+  it('should have exactly 29 keys', () => {
+    expect(allKeys).toHaveLength(29);
   });
 
   it('should have unique PascalCase string values', () => {
@@ -24,28 +24,28 @@ describe('ConfigKey', () => {
     const byProfile = (profile: ConfigProfile) =>
       Object.values(CONFIG_KEY_REGISTRY).filter((m) => m.profile === profile);
 
-    it('should have 12 Core keys', () => {
-      expect(byProfile('Core')).toHaveLength(12);
+    it('should have 9 Core keys', () => {
+      expect(byProfile('Core')).toHaveLength(9);
     });
 
     it('should have 6 Transaction keys', () => {
       expect(byProfile('Transaction')).toHaveLength(6);
     });
 
-    it('should have 7 Security keys', () => {
-      expect(byProfile('Security')).toHaveLength(7);
+    it('should have 6 Security keys', () => {
+      expect(byProfile('Security')).toHaveLength(6);
     });
 
-    it('should have 12 Offline/BLE keys', () => {
-      expect(byProfile('OfflineBLE')).toHaveLength(12);
+    it('should have 4 Offline/BLE keys', () => {
+      expect(byProfile('OfflineBLE')).toHaveLength(4);
     });
 
     it('should have 4 Device Management keys', () => {
       expect(byProfile('DeviceMgmt')).toHaveLength(4);
     });
 
-    it('12 + 6 + 7 + 12 + 4 = 41', () => {
-      expect(12 + 6 + 7 + 12 + 4).toBe(41);
+    it('9 + 6 + 6 + 4 + 4 = 29', () => {
+      expect(9 + 6 + 6 + 4 + 4).toBe(29);
     });
   });
 });
@@ -94,7 +94,6 @@ describe('CONFIG_KEY_REGISTRY', () => {
       ConfigKey.TIME_ZONE,
       ConfigKey.PROTOCOL_VERSION,
       ConfigKey.FIRMWARE_VERSION,
-      ConfigKey.SECURITY_PROFILE,
       ConfigKey.CERTIFICATE_SERIAL_NUMBER,
       ConfigKey.DIAGNOSTICS_UPLOAD_URL,
     ];
@@ -116,13 +115,10 @@ describe('CONFIG_KEY_REGISTRY', () => {
     const checks: [ConfigKey, string | null][] = [
       [ConfigKey.HEARTBEAT_INTERVAL_SECONDS, '30'],
       [ConfigKey.CONNECTION_TIMEOUT, '60'],
-      [ConfigKey.LOCALE, 'en-US'],
-      [ConfigKey.METER_VALUES_INTERVAL, '15'],
-      [ConfigKey.MAX_SESSION_DURATION_SECONDS, '600'],
-      [ConfigKey.RESERVATION_DEFAULT_TTL, '180'],
-      [ConfigKey.SECURITY_PROFILE, '2'],
+      [ConfigKey.METER_VALUES_INTERVAL, '60'],
+      [ConfigKey.MAX_SESSION_DURATION_SECONDS, '900'],
+      [ConfigKey.RESERVATION_DEFAULT_TTL, '300'],
       [ConfigKey.MESSAGE_SIGNING_MODE, 'Critical'],
-      [ConfigKey.BLE_MTU_PREFERRED, '247'],
       [ConfigKey.LOG_LEVEL, 'Info'],
       [ConfigKey.AUTO_REBOOT_ENABLED, 'false'],
       [ConfigKey.FIRMWARE_VERSION, null],
