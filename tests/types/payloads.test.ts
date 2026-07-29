@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'path';
+import { SchemaValidator } from '../../src/validation/SchemaValidator';
 
 // Import every payload type to verify they compile and are assignable
 import type { BootNotificationRequest, BootNotificationResponse } from '../../src/types/payloads/boot-notification';
@@ -309,25 +311,27 @@ describe('TransactionEvent payloads', () => {
     expect(retry.status).toBe('RetryLater');
   });
 
-  it('should accept Deferred response with required reason (spec 0.5.0 §4.2)', () => {
-    const deferred: TransactionEventResponse = {
-      status: 'Deferred',
-      reason: 'Transaction counter gap detected: expected 7, received 9 (gap size 2). Reconciliation deferred until operator-manual unblock per spec §4.2:52.',
-    };
-    expect(deferred.status).toBe('Deferred');
-    if (deferred.status === 'Deferred') {
-      expect(deferred.reason).toMatch(/counter gap/);
-    }
-  });
+  it('Deferred is retired — the wire schema rejects it (spec 0.9.0)', () => {
+    // INVERTED from two v0.5.0 cases that pinned Deferred's semantics: held
+    // server-side, no auto-resend, awaiting operator-manual unblock. Spec
+    // 0.9.0 retired the value together with the txCounter gap-blocking rule it
+    // existed to express; the unblock it waited for was never implemented in
+    // any repository, so a Deferred transaction's money could not be settled.
+    //
+    // Asserted at RUNTIME against the vendored schema, deliberately, not with
+    // @ts-expect-error. This repo's tsconfig excludes `tests`, and `vitest run`
+    // does not typecheck, so a type-level assertion in this file would be
+    // checked by nothing and would pass whether or not the arm came back. The
+    // schema is the wire contract and it is executable.
+    const validator = new SchemaValidator(join(__dirname, '..', '..', 'src', 'schemas'));
 
-  it('Deferred is distinct from RetryLater in the discriminated union', () => {
-    // OSPP v0.5.0 reconciliation.md §4.2 step 4: distinct station behaviors.
-    // RetryLater = back-off-and-resend (transient server condition);
-    // Deferred = held server-side, NO auto-resend, awaits operator-manual
-    // unblock OR arrival of the missing in-sequence transactions.
-    const deferred: TransactionEventResponse = { status: 'Deferred', reason: 'gap detected' };
+    const deferred = { status: 'Deferred', reason: 'counter gap detected' };
+    expect(validator.validate('transaction-event-response', deferred).valid).toBe(false);
+
+    // Positive control: the same assertion must not be passing because the
+    // schema key is wrong or the validator rejects everything.
     const retry: TransactionEventResponse = { status: 'RetryLater', reason: 'server busy' };
-    expect(deferred.status).not.toBe(retry.status);
+    expect(validator.validate('transaction-event-response', retry).valid).toBe(true);
   });
 });
 
