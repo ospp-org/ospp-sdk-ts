@@ -33,6 +33,13 @@ export type BootNotificationResponse =
   | (BootNotificationResponseBase & {
       status: 'Rejected';
       retryInterval: number;
+      // Required when status is Rejected: boot-notification-response.schema.json
+      // makes `retryInterval`, `errorCode` and `errorText` a single `then.required`
+      // group. They were absent here — not even optional — so the spec's own
+      // Rejected vectors did not type-check. Same shape as every other Rejected
+      // variant in the SDK (reserve-bay.ts:14).
+      errorCode: number;
+      errorText: string;
       supportedVersions?: string[];
     })
   | (BootNotificationResponseBase & {

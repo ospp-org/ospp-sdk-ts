@@ -68,15 +68,22 @@ describe('BootNotification payloads', () => {
     }
   });
 
-  it('should accept Rejected response with retryInterval', () => {
+  it('should accept Rejected response with retryInterval, errorCode and errorText', () => {
+    // The schema requires all three together when status is Rejected; this test
+    // previously omitted errorCode/errorText and so enshrined a shape the spec's
+    // own Rejected vectors contradict.
     const res: BootNotificationResponse = {
       status: 'Rejected',
       serverTime: '2026-01-30T12:00:00.000Z',
       heartbeatIntervalSec: 30,
       retryInterval: 60,
+      errorCode: 2001,
+      errorText: 'STATION_NOT_REGISTERED',
     };
     if (res.status === 'Rejected') {
       expect(res.retryInterval).toBe(60);
+      expect(res.errorCode).toBe(2001);
+      expect(res.errorText).toBe('STATION_NOT_REGISTERED');
     }
   });
 

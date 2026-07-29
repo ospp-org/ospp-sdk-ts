@@ -180,8 +180,14 @@ export type ConnectionType = 'Ethernet' | 'Wifi' | 'Cellular';
 export interface NetworkInfo {
   /** Connection type. */
   connectionType: ConnectionType;
-  /** Signal strength in dBm (null/omitted for Ethernet). */
-  signalStrength?: number;
+  /**
+   * Signal strength in dBm (null/omitted for Ethernet).
+   *
+   * `null` is explicit in the schema (`"type": ["integer", "null"]`), not merely
+   * absence, and the spec's canonical BootNotification example sends it that way.
+   * Declaring this `number | undefined` made that example fail to compile.
+   */
+  signalStrength?: number | null;
 }
 
 // ---------------------------------------------------------------------------
