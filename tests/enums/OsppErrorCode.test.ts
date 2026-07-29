@@ -11,10 +11,13 @@ describe('OsppErrorCode', () => {
     (v): v is number => typeof v === 'number',
   );
 
-  it('should have exactly 107 error codes', () => {
+  it('should have exactly 114 error codes', () => {
     // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes): 102 → 106.
     // v0.6.2: spec 07-errors.md §3.2 added 2018 SERVER_AUTH_NONCE_MISMATCH: 106 → 107.
-    expect(allCodes).toHaveLength(107);
+    // v0.8.0: spec 07-errors.md added the seven provisioning-identity codes —
+    //         2019 (§3.2) and 4015-4020 (§3.4): 107 → 114. Matches the spec's
+    //         own stated "Total: 114 standard error codes" (07-errors.md §1.1).
+    expect(allCodes).toHaveLength(114);
   });
 
   it('should have unique numeric values', () => {
@@ -29,17 +32,18 @@ describe('OsppErrorCode', () => {
       expect(byRange(1000, 1999)).toHaveLength(15);
     });
 
-    it('should have 19 auth errors (2xxx)', () => {
-      // v0.5.2: 14 → 18 (2014/2015/2016/2017); v0.6.2: → 19 (2018).
-      expect(byRange(2000, 2999)).toHaveLength(19);
+    it('should have 20 auth errors (2xxx)', () => {
+      // v0.5.2: 14 → 18 (2014/2015/2016/2017); v0.6.2: → 19 (2018); v0.8.0: → 20 (2019).
+      expect(byRange(2000, 2999)).toHaveLength(20);
     });
 
     it('should have 17 session/bay errors (3xxx)', () => {
       expect(byRange(3000, 3999)).toHaveLength(17);
     });
 
-    it('should have 14 payment/credit errors (4xxx)', () => {
-      expect(byRange(4000, 4999)).toHaveLength(14);
+    it('should have 20 payment/credit errors (4xxx)', () => {
+      // v0.8.0: 14 → 20 with 4015-4020. 4.01x filled to 4019; 4020 opened 4.02x.
+      expect(byRange(4000, 4999)).toHaveLength(20);
     });
 
     it('should have 34 hardware/software errors (5xxx)', () => {
@@ -50,8 +54,8 @@ describe('OsppErrorCode', () => {
       expect(byRange(6000, 6999)).toHaveLength(8);
     });
 
-    it('15 + 19 + 17 + 14 + 34 + 8 = 107', () => {
-      expect(15 + 19 + 17 + 14 + 34 + 8).toBe(107);
+    it('15 + 20 + 17 + 20 + 34 + 8 = 114', () => {
+      expect(15 + 20 + 17 + 20 + 34 + 8).toBe(114);
     });
   });
 

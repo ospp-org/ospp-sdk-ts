@@ -1,8 +1,9 @@
 /**
- * All 107 standard OSPP error codes with static metadata.
+ * All 114 standard OSPP error codes with static metadata.
  *
  * Source: spec/07-errors.md §3.1–§3.6 (v0.4.2: 102 → 106 with 2014-2017 additions;
- * v0.6.2: → 107 with 2018 SERVER_AUTH_NONCE_MISMATCH).
+ * v0.6.2: → 107 with 2018 SERVER_AUTH_NONCE_MISMATCH; v0.8.0: → 114 with the seven
+ * provisioning-identity codes 2019 and 4015–4020).
  *
  * Ranges:
  *   1000–1999  Transport
@@ -92,6 +93,9 @@ export enum OsppErrorCode {
   OFFLINE_RECEIPT_MISMATCH  = 2017,
   // spec v0.6.2 07-errors.md §3.2 — BLE Partial-A ServerSignedAuth anti-replay nonce check
   SERVER_AUTH_NONCE_MISMATCH = 2018,
+  // spec v0.8.0 07-errors.md §3.2 — the provisioning token did not authenticate
+  // (not_found / expired / superseded / revoked, discriminated in details.reason)
+  PROVISIONING_TOKEN_INVALID = 2019,
 
   // --- Session & Bay (3xxx) ---
   SESSION_GENERIC           = 3000,
@@ -128,6 +132,15 @@ export enum OsppErrorCode {
   CERTIFICATE_TYPE_MISMATCH = 4012,
   RENEWAL_DENIED            = 4013,
   KEYPAIR_GENERATION_FAILED = 4014,
+
+  // --- Provisioning (4.01x tail + 4.02x) — spec v0.8.0 07-errors.md §3.4 ---
+  // 4.01x filled to 4019; 4020 opened the 4.02x "Provisioning Errors" sub-range.
+  PROVISIONING_KEY_MISMATCH   = 4015,
+  PROVISIONING_KEY_REUSE      = 4016,
+  PROVISIONING_REQUEST_INVALID = 4017,
+  PROVISIONING_TOKEN_CONSUMED = 4018,
+  PUBLIC_KEY_INVALID          = 4019,
+  BAY_COUNT_MISMATCH          = 4020,
 
   // --- Station Hardware (5.0xx) ---
   HARDWARE_GENERIC          = 5000,
@@ -255,6 +268,10 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   //   Mirrors 2005 counter-replay / the JWT-rejection family. Cross-SDK aligned
   //   with ospp-sdk-php v0.6.2.
   [OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH]: meta(2018, 'SERVER_AUTH_NONCE_MISMATCH', 'Critical', false, 401, 'Auth'),
+  // v0.8.0 §3.2: "HTTP `401 Unauthorized`". not_found answers here rather than with a
+  // distinct status deliberately — separating unknown from known-but-dead would let an
+  // unauthenticated caller test token values for existence.
+  [OsppErrorCode.PROVISIONING_TOKEN_INVALID]: meta(2019, 'PROVISIONING_TOKEN_INVALID', 'Error',    false, 401, 'Auth'),
 
   // ── Session & Bay (3xxx) ──────────────────────────────────────────────
   [OsppErrorCode.SESSION_GENERIC]:           meta(3000, 'SESSION_GENERIC',           'Error',    true,  500, 'Session'),
@@ -290,6 +307,20 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.CERTIFICATE_TYPE_MISMATCH]: meta(4012, 'CERTIFICATE_TYPE_MISMATCH', 'Warning',  true,  422, 'Payment'),
   [OsppErrorCode.RENEWAL_DENIED]:            meta(4013, 'RENEWAL_DENIED',            'Error',    false, 403, 'Payment'),
   [OsppErrorCode.KEYPAIR_GENERATION_FAILED]: meta(4014, 'KEYPAIR_GENERATION_FAILED', 'Critical', false, 500, 'Payment'),
+  // ── Provisioning (v0.8.0 §3.4) ────────────────────────────────────────
+  // Each httpStatus is the one its registry row states verbatim, not inferred.
+  // 4015 "HTTP `409 Conflict`"            — state conflict with an existing binding
+  // 4016 "HTTP `422 Unprocessable Entity`" — defect visible without stored state
+  // 4017 "HTTP `400 Bad Request`"          — schema validation on the body
+  // 4018 "HTTP `409 Conflict`"             — token authenticated but already consumed
+  // 4019 "both answer `400 Bad Request`"   — bare-key counterpart of 4010, same status by symmetry
+  // 4020 "HTTP `422 Unprocessable Entity`" — well-formed body, value inconsistent with stored state
+  [OsppErrorCode.PROVISIONING_KEY_MISMATCH]:  meta(4015, 'PROVISIONING_KEY_MISMATCH',  'Error',    false, 409, 'Payment'),
+  [OsppErrorCode.PROVISIONING_KEY_REUSE]:     meta(4016, 'PROVISIONING_KEY_REUSE',     'Error',    true,  422, 'Payment'),
+  [OsppErrorCode.PROVISIONING_REQUEST_INVALID]: meta(4017, 'PROVISIONING_REQUEST_INVALID', 'Error', true, 400, 'Payment'),
+  [OsppErrorCode.PROVISIONING_TOKEN_CONSUMED]: meta(4018, 'PROVISIONING_TOKEN_CONSUMED', 'Error',  true,  409, 'Payment'),
+  [OsppErrorCode.PUBLIC_KEY_INVALID]:         meta(4019, 'PUBLIC_KEY_INVALID',         'Error',    true,  400, 'Payment'),
+  [OsppErrorCode.BAY_COUNT_MISMATCH]:         meta(4020, 'BAY_COUNT_MISMATCH',         'Error',    true,  422, 'Payment'),
 
   // ── Station Hardware (5.0xx) ──────────────────────────────────────────
   [OsppErrorCode.HARDWARE_GENERIC]:          meta(5000, 'HARDWARE_GENERIC',          'Warning',  true,  500, 'Hardware'),
