@@ -1,5 +1,126 @@
 # Changelog
 
+## 0.10.0 — 2026-07-29
+
+**SDK-pair release against spec `v0.9.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.10.0**, from the same spec pin. The spec is **not** re-tagged —
+it already carries `v0.9.0`.
+
+`.spec-ref` **v0.8.1 → v0.9.0**.
+
+**Breaking, and the audience differs per change — read the three separately.** Spec
+`v0.9.0` carried three independent bodies of work that shared a tag because none of
+them cut one of their own. Two are breaking here, for **different** groups of
+callers:
+
+| Body | Breaks | Who has to act |
+|---|---|---|
+| `Deferred` arm removed from `TransactionEventResponse` | **producers** of that value | code that *constructs* `{ status: 'Deferred' }` |
+| `errorText` constrained to UPPER_SNAKE_CASE | **producers** of that field | code that *emits* `errorText` as prose — a previously-valid payload is now schema-invalid |
+| `provisioning-response` description | **nobody** | description text only, no validation behaviour change |
+
+Note the asymmetry with `ospp/protocol`, and it is not cosmetic: PHP models this as an
+**enum**, so retiring a case breaks *consumers* who exhaust it. TypeScript models it as
+a **discriminated union**, and removing a member does **not** break exhaustive
+narrowing — an `if (res.status === 'X')` chain simply loses a residual arm. Here the
+break falls on **construction**, not consumption.
+
+### Removed (BREAKING — code constructing the value)
+
+- **The `{ status: 'Deferred'; reason: string }` arm of `TransactionEventResponse`**,
+  and the operator-manual-unblock prose in its docblock. The union is now four arms:
+  `Accepted` | `Duplicate` | `Rejected` | `RetryLater`.
+
+  Spec 0.9.0 retired the value together with the `txCounter` gap-blocking rule it was
+  invented to express — it had no design rationale of its own, having been added to
+  the schema in spec 0.5.0 two days *after* the reference server began emitting it.
+  Its stated exit, *operator-manual unblock*, was referenced normatively in five spec
+  documents and implemented in **none**, so a transaction answered `Deferred` could
+  not be settled by any code path in any repository. `RetryLater` is now the only
+  non-terminal status.
+
+  **Reading code is unaffected.** Narrowing on `res.status` keeps compiling; the
+  `Deferred` branch simply becomes unreachable and can be deleted. **Constructing**
+  the value no longer type-checks. Within this repository the only constructors were
+  two test cases — `src/` declares the union and re-exports the type and never builds,
+  narrows, or switches over it.
+
+### Changed (BREAKING — producers of `errorText`)
+
+- **Vendored `src/schemas/` and `src/test-vectors/` re-vendored from spec `v0.9.0`.**
+  17 schemas and 5 vectors changed. Only one schema and one vector belong to the
+  `Deferred` retirement; the rest are the two bodies that rode along in the tag:
+
+  | Origin | Files | Change |
+  |---|--:|---|
+  | `Deferred` retirement | 1 schema + 1 vector | `mqtt/transaction-event-response.schema.json` — `status` enum 5 → 4 **and** the fourth `allOf` branch that required `reason` on `Deferred`; the deferred vector moves `valid/` → `invalid/` |
+  | `errorText` enforcement | 15 schemas + 5 vectors | `pattern: ^[A-Z][A-Z0-9_]+$` wherever `errorText` pairs with `errorCode` (16 declarations); 8 also gained corrected descriptions; 5 invalid vectors now carry the registry name of the code they already declared |
+  | provisioning trust anchor | 1 schema | `provisioning-response.schema.json` — `stationCaChain` description no longer names `brokerRootCa` as the universal anchor. **Description only** |
+
+- **`errorText` is a machine-readable name and is now enforced as one.** Spec §1.3 has
+  always defined it as *"Machine-readable error name in UPPER_SNAKE_CASE (e.g.
+  `BAY_BUSY`)"*, but only one of the sixteen schemas declaring it enforced that shape.
+  A payload that put prose in `errorText` and validated before will now fail
+  validation. Emit the registry name; prose belongs in `errorDescription`.
+
+### Verification
+
+- **The schema-identity gate RAN**, and that is the claim — not its exit code.
+  `scripts/check-schemas.sh` cloned `ospp-org/spec` at `v0.9.0`, checked out
+  `7a448ed`, and reported *"OK — vendored src/schemas/ are byte-identical to spec
+  v0.9.0"*. **Falsified before being trusted:** mutating one vendored schema makes it
+  report `DRIFT detected` and name the file. Restored, re-run green.
+
+- **The test lock almost shipped hollow, and the near-miss is the useful part.** The
+  natural inversion for a removed union member is `@ts-expect-error` on an assignment
+  — and in this repository that assertion is checked by **nothing**: `tsconfig.json`
+  excludes `tests`, there is only one tsconfig, and `npm test` is `vitest run`, which
+  does not typecheck. Verified: `npx tsc --noEmit` exits 0 without ever reading the
+  test file. The lock would have passed whether or not the arm came back.
+
+  Replaced with a **runtime** assertion against the vendored schema — the wire
+  contract, and executable: `{ status: 'Deferred' }` must fail
+  `transaction-event-response` validation, with a positive control asserting
+  `RetryLater` still validates, so the test cannot pass because the schema key is
+  wrong or the validator rejects everything. Proven non-hollow: re-adding `Deferred`
+  to the vendored schema fails the case by name, then reverted.
+
+- **A second lock came free with the re-vendor.** `SchemaValidator.test.ts` discovers
+  vectors dynamically and asserts every `invalid/` vector fails, so vendoring the
+  spec's new invalid deferred vector pins the retirement by corpus as well as by the
+  explicit case. Vector count stays **306** because it is −1 valid / +1 invalid, and
+  both trees are byte-identical to spec `v0.9.0`.
+
+- **Suite:** `vitest run` → **28 files, 900 tests passed**. Baseline measured on the
+  clean tree before any edit: 28 files, 901 tests. The single-test delta is exact —
+  two `Deferred` cases became one inversion, and `SchemaValidator.test.ts` stays at
+  250 because the vector moved rather than vanished. `npm run build` (tsc over
+  `src/`): exit 0.
+
+- **One artifact was excluded rather than committed.** `cp -r` from the spec brought
+  `src/schemas/README.md`, a file this repository has never carried and which
+  `check-schemas.sh` explicitly `--exclude`s. It was caught in `git status`, not by
+  the gate — the gate is configured to ignore it, so it would have passed review
+  invisibly.
+
+### Migration
+
+```diff
+  if (res.status === 'Accepted')    { /* ... */ }
+  else if (res.status === 'Duplicate')  { /* ... */ }
+  else if (res.status === 'Rejected')   { /* ... */ }
+  else if (res.status === 'RetryLater') { /* ... */ }
+- else if (res.status === 'Deferred')   { /* remove — unreachable */ }
+```
+
+A server still emitting `Deferred` is emitting a value the wire schema no longer
+admits and no station can act on. There is no replacement status: the condition that
+produced it — a `txCounter` discontinuity — is now settled normally and raised as an
+operator alert on the **station**.
+
+---
+
 ## 0.9.0 — 2026-07-29
 
 Error-code parity with `ospp-sdk-php` at the same version, plus two hand-written
