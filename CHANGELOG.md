@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.9.0 — 2026-07-29
+
+Error-code parity with `ospp-sdk-php` at the same version, plus two hand-written
+types corrected against the schemas vendored beside them. **The version jumps
+`0.7.0` → `0.9.0` deliberately**: the two SDKs implement one contract, and a
+consumer must be able to tell which pair is coherent. There is no 0.8.x on npm.
+
+`.spec-ref` → **v0.8.1**. The vendored schemas are unchanged and remain
+byte-identical to that tag; 0.8.1 corrected §4.4's endpoint rows and §3.4
+registry text, not the schemas.
+
+### Added
+
+- **Seven error codes: 107 → 114**, matching the spec's own stated total.
+  `2019 PROVISIONING_TOKEN_INVALID` (§3.2) and `4015`–`4020` (§3.4:
+  `PROVISIONING_KEY_MISMATCH`, `PROVISIONING_KEY_REUSE`,
+  `PROVISIONING_REQUEST_INVALID`, `PROVISIONING_TOKEN_CONSUMED`,
+  `PUBLIC_KEY_INVALID`, `BAY_COUNT_MISMATCH`). `ospp-sdk-php` has carried all
+  seven since v0.8.0; this closes the gap in the other direction. Range counts
+  are now 15 / 20 / 17 / 20 / 34 / 8.
+- **A gate that type-checks the spec's own vectors against the hand-written
+  types** (`npm run check:vector-types`). Both release gates `diff -rq` the
+  vendored schema trees, so `src/types/` sat outside every gate — which is how
+  the two defects below survived with the schemas byte-perfect the whole time.
+
+### Fixed — consumer-visible type changes
+
+- **`BootNotificationResponse`, `Rejected` variant now requires `errorCode`
+  and `errorText`.** They were absent entirely — not optional — while
+  `boot-notification-response.schema.json` makes `retryInterval`, `errorCode`
+  and `errorText` a single `then.required` group for that status. It was the
+  only `Rejected` variant in the SDK missing them, and the SDK's own test had
+  enshrined the omission.
+
+  **This is the change most likely to be noticed.** Code that *constructs* a
+  Rejected BootNotification response will no longer compile until it supplies
+  both fields — which is the point: it was emitting responses the schema
+  rejects. Code that only *reads* such responses is unaffected.
+
+- **`NetworkInfo.signalStrength` is now `number | null`.** The schema says
+  `["integer","null"]` and the spec's canonical BootNotification example sends
+  `null`, so that example could not be assigned to the type. Widening a field
+  does not break existing readers unless they had already excluded `null`.
+
+Proof for both, the spec's vectors compiled under `tsc --strict`: `TS2353` on
+`errorCode` for both Rejected vectors and `TS2322` on `null` for the canonical
+example before; exit 0 after.
+
+### Note — `httpStatus` is an SDK extension, not the contract
+
+The registry's `httpStatus` field is **not** derived from the specification and
+should not be treated as protocol. `07-errors.md` §4.4 states that *"the status
+is not a property of the code"*, that §2.4's table *"assigns no code a fixed
+status"*, and that one code can honestly appear with more than one status —
+§2.4's own table lists `2008` under both `401` and `403`.
+
+This SDK and `ospp-sdk-php` **disagree on 51 of the 114** codes here. Everything
+else in the two registries is identical: code numbers, names, `severity`,
+`recoverable`, the category partition, and the vendored schemas. Recorded in the
+spec's `KNOWN-ISSUES.md` as one finding together with `category`, which has the
+same cause. Use the status a server actually returned; do not use this field to
+decide one.
+
 ## 0.7.0 — 2026-07-10
 
 TLS 1.2 floor (lockstep, ADR-011). Re-vendors `src/schemas/provisioning-response.schema.json`
