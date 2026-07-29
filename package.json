@@ -45,7 +45,8 @@
   "scripts": {
     "build": "tsc && copyfiles -u 1 \"src/schemas/**/*.schema.json\" dist",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:vector-types": "node scripts/check-vector-types.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

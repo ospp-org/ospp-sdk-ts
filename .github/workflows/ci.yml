@@ -26,6 +26,27 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  # The schemas job below proves the vendored SCHEMAS match the spec. Nothing
+  # proved the hand-written types in src/types/ still describe those schemas —
+  # they sit outside every gate. Two had drifted silently (v0.9.0): the
+  # BootNotification Rejected variant lacked errorCode/errorText, and
+  # signalStrength could not hold the null its schema permits. This job assigns
+  # the spec's own vectors to the SDK types and fails if a type is narrower.
+  # Seeded with the BootNotification vectors; see the script header for what
+  # full coverage would require.
+  vector-types:
+    name: Spec vectors type-check against SDK types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Type-check spec vectors against src/types/
+        run: npm run check:vector-types
+
   schemas:
     name: Schema byte-identity gate
     runs-on: ubuntu-latest
