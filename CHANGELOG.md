@@ -1,5 +1,97 @@
 # Changelog
 
+## 0.11.0 — 2026-07-30
+
+**SDK-pair release against spec `v0.10.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.11.0**, from the same spec pin.
+
+`.spec-ref` **v0.9.0 → v0.10.0**.
+
+> **Breaking for code that puts a bay status on the wire — and NOT by removing an enum
+> member.** Spec `v0.10.0` removed `Unknown` from `bay-status.schema.json`. **`BayStatus`
+> keeps all seven members.** Read the next section before changing any code.
+
+### Added
+
+- **`ReportableBayStatus`** — `Exclude<BayStatus, BayStatus.UNKNOWN>`. The six states that
+  may appear in a message. Derived from `BayStatus` rather than re-listed, so the two
+  cannot drift.
+
+- **`isReportableBayStatus(status)`** — runtime narrowing to the above. The type alias is
+  erased at runtime, so a value parsed from JSON, or read out of a bay's current state,
+  needs this before it can be trusted as wire-legal.
+
+- **`npm run typecheck`** (`tsconfig.test.json`) — type-checks `src/`, `tests/` **and**
+  `scripts/`. See *The gap this release closes* below.
+
+### Changed
+
+- **`StatusNotificationPayload.status` and `.previousStatus` are now `ReportableBayStatus`**
+  instead of `BayStatus`. These are the only two typed wire slots that carried it; this SDK
+  ships no BLE payload types, so `ble/available-services` needs nothing here.
+
+  **`BayStatus` keeps all seven members**, and for a different reason than in
+  `ospp/protocol`. There, the enum is lowercase-backed and is the *domain* vocabulary. Here
+  the values *are* the wire strings — but the enum is also the state type of
+  `BayStateMachine`, whose default initial state is `UNKNOWN`, which the spec **requires**
+  (`01-architecture.md` §7.3, First Boot step 1: *"All bays initialize to Unknown"*).
+  Removing the member would delete the FSM's starting state.
+
+  So the vocabulary splits rather than shrinks: `BayStatus` is what a party **holds**,
+  `ReportableBayStatus` is what a party may **send**.
+
+- **`BayStateMachine` is untouched** — still seven states, still 23 transitions, still
+  defaulting to `UNKNOWN`. It models the FSM, and the FSM did not change.
+
+### Vendored
+
+- `src/schemas/common/bay-status.schema.json` — enum 7 → 6 values. One file of 85.
+- `src/test-vectors/valid/core/status-notification-unknown.json` →
+  `invalid/core/`, unmodified and byte-identical to the spec's copy. Counts match the spec
+  exactly: valid 157 → 156, invalid 149 → 150, total **306** unchanged. The vector loader
+  globs both directories and decides pass/fail by location, so no test edit was needed.
+
+### What breaks
+
+| Caller | Breaks | What to do |
+|---|:---:|---|
+| Assigns into `StatusNotificationPayload.status` / `.previousStatus` | **yes** | `BayStatus.UNKNOWN` no longer assignable. If you were reading a bay machine's current state into a payload, gate on `isReportableBayStatus()` — that pattern is the bug this release exists to prevent. |
+| Holds, compares or switches on `BayStatus` | no | All seven members remain. |
+| Uses `BayStateMachine` | no | Unchanged, including its `UNKNOWN` default. |
+| Parses a StatusNotification off the wire | **yes, at runtime** | The vendored schema now rejects `Unknown`; `SchemaValidator` will fail such a payload. |
+
+### The gap this release closes
+
+`tsconfig.json` excludes `tests`, and `npm test` is `vitest run`, which transpiles via
+esbuild without type-checking. **Nothing in this repository had ever type-checked a test
+file.** That is a silent gap, not merely a missing one: a stale enum reference compiles to
+`undefined` rather than failing, so a comparison against it becomes a permanently-false
+branch that no test notices.
+
+`npm run typecheck` closes it. The tree is clean. Demonstrated rather than asserted — with
+`BayStatus.UNKNOWN` injected into a `StatusNotificationPayload`:
+
+```
+npm run typecheck  ->  error TS2322: Type 'BayStatus.UNKNOWN' is not assignable
+                       to type 'ReportableBayStatus'
+npx vitest run     ->  63 passed
+```
+
+It also found a real, pre-existing defect on its first run: a comment in
+`tests/types/payloads.test.ts` reading *"not with / `@ts-expect-error`. This repo's tsconfig
+excludes tests…"* — prose explaining why the author had **not** used the directive.
+TypeScript reads a comment line beginning with those two words as a directive regardless of
+what follows, so it was a live, unsatisfied `@ts-expect-error` that nothing had ever
+evaluated. Reworded.
+
+### Fixed
+
+- `package-lock.json` carried `"version": "0.9.0"` while `package.json` said `0.10.0` — the
+  0.10.0 release bumped only the manifest. Both now read `0.11.0`.
+
+---
+
 ## 0.10.0 — 2026-07-29
 
 **SDK-pair release against spec `v0.9.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
