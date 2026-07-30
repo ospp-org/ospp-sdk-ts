@@ -10,7 +10,11 @@
 export { OsppAction } from './actions/OsppAction.js';
 
 // Enums
-export { BayStatus } from './enums/BayStatus.js';
+export {
+  BayStatus,
+  isReportableBayStatus,
+  type ReportableBayStatus,
+} from './enums/BayStatus.js';
 export { BootReason } from './enums/BootReason.js';
 export { SessionEndReason } from './enums/SessionEndReason.js';
 export { MessageType } from './enums/MessageType.js';

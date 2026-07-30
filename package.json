@@ -44,6 +44,7 @@
   ],
   "scripts": {
     "build": "tsc && copyfiles -u 1 \"src/schemas/**/*.schema.json\" dist",
+    "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "check:vector-types": "node scripts/check-vector-types.mjs"

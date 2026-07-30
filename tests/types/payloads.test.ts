@@ -318,11 +318,17 @@ describe('TransactionEvent payloads', () => {
     // existed to express; the unblock it waited for was never implemented in
     // any repository, so a Deferred transaction's money could not be settled.
     //
-    // Asserted at RUNTIME against the vendored schema, deliberately, not with
-    // @ts-expect-error. This repo's tsconfig excludes `tests`, and `vitest run`
-    // does not typecheck, so a type-level assertion in this file would be
-    // checked by nothing and would pass whether or not the arm came back. The
-    // schema is the wire contract and it is executable.
+    // Asserted at RUNTIME against the vendored schema, deliberately, rather than
+    // with a type-level directive. When this was written, `tsconfig.json` excluded
+    // `tests` and `vitest run` did not typecheck, so a type-level assertion here
+    // would have been checked by nothing and would have passed whether or not the
+    // arm came back. The schema is the wire contract and it is executable.
+    //
+    // 0.11.0 added `npm run typecheck` (tsconfig.test.json), which does check this
+    // tree — and its first run reported the sentence above as an unused directive,
+    // because a comment line beginning with the two words TypeScript reserves is a
+    // directive no matter what follows it. Reworded, and left as the illustration:
+    // the gate found something on the day it was introduced.
     const validator = new SchemaValidator(join(__dirname, '..', '..', 'src', 'schemas'));
 
     const deferred = { status: 'Deferred', reason: 'counter gap detected' };

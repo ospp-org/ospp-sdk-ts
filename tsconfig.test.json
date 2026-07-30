@@ -1,0 +1,37 @@
+{
+  // Type-checks the TEST tree, which tsconfig.json deliberately excludes.
+  //
+  // Why this file exists. `tsconfig.json` sets "exclude": ["node_modules", "dist",
+  // "tests"] and `npm test` is `vitest run`, which transpiles via esbuild and does not
+  // type-check. Between them, nothing in this repository ever type-checked a test file.
+  // That is not merely a missing gate — it is a silent one: a test referring to an enum
+  // member that no longer exists compiles to `undefined` rather than failing, so
+  // `expect(BayStatus.GONE).toBe('Gone')` fails with a readable message while
+  // `if (x === BayStatus.GONE)` becomes a permanently-false branch that no test notices.
+  //
+  // Introduced in 0.11.0, when `StatusNotificationPayload.status` narrowed from
+  // `BayStatus` to `ReportableBayStatus`. Assigning `BayStatus.UNKNOWN` into that slot is
+  // exactly the error the excluded tree could not report.
+  //
+  // noEmit only — this never produces output. Run via `npm run typecheck`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Widened from "./src". Nothing is emitted, so rootDir only serves to reject
+    // the very files this config exists to check.
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"],
+    // Bundler resolution, matching how vitest actually resolves these files. The
+    // shipped config uses NodeNext, which requires explicit `.js` on every relative
+    // import; the test tree has never carried them, because nothing ever type-checked
+    // it. Rewriting ~28 files' imports to satisfy a checker that is not the one
+    // running them would be churn for no gain — this models the real resolver, so the
+    // errors it reports are real type errors rather than resolution noise.
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
