@@ -15,7 +15,7 @@ export {
   isReportableBayStatus,
   type ReportableBayStatus,
 } from './enums/BayStatus.js';
-export { BootReason } from './enums/BootReason.js';
+export { BootReason, bootReasonNamesAnActualBoot } from './enums/BootReason.js';
 export { SessionEndReason } from './enums/SessionEndReason.js';
 export { MessageType } from './enums/MessageType.js';
 export { MessageSource } from './enums/MessageSource.js';
@@ -86,7 +86,7 @@ export type { ConnectionLostPayload } from './types/payloads/connection-lost.js'
 export type { SecurityEventPayload, SecurityEventType, SecurityEventSeverity } from './types/payloads/security-event.js';
 export type { ChangeConfigurationRequest, ChangeConfigurationResponse, ChangeConfigurationResult, ChangeConfigurationResultStatus, ConfigKeyValue } from './types/payloads/change-configuration.js';
 export type { GetConfigurationRequest, GetConfigurationResponse, ConfigurationEntry } from './types/payloads/get-configuration.js';
-export type { ResetRequest, ResetResponse, ResetType } from './types/payloads/reset.js';
+export type { ResetRequest, ResetResponse } from './types/payloads/reset.js';
 export type { UpdateFirmwareRequest, UpdateFirmwareResponse } from './types/payloads/update-firmware.js';
 export type { FirmwareStatusNotificationPayload, FirmwareNotificationStatus } from './types/payloads/firmware-status-notification.js';
 export type { GetDiagnosticsRequest, GetDiagnosticsResponse } from './types/payloads/get-diagnostics.js';

@@ -548,11 +548,13 @@ describe('GetConfiguration payloads', () => {
 // ── Reset ───────────────────────────────────────────────────────────────
 
 describe('Reset payloads', () => {
-  it('should accept Soft and Hard types', () => {
-    const soft: ResetRequest = { type: 'Soft' };
-    const hard: ResetRequest = { type: 'Hard' };
-    expect(soft.type).toBe('Soft');
-    expect(hard.type).toBe('Hard');
+  it('carries an optional force flag and nothing else', () => {
+    // There is exactly one reset operation and it is a reboot. `Soft`/`Hard`
+    // are gone with the `type` field that carried them (reset.md §5.1).
+    const idle: ResetRequest = {};
+    const forced: ResetRequest = { force: true };
+    expect(idle.force).toBeUndefined();
+    expect(forced.force).toBe(true);
   });
 
   it('should accept Accepted response', () => {
