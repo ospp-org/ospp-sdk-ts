@@ -115,6 +115,8 @@ export enum OsppErrorCode {
   BAY_RESERVED              = 3014,
   PAYLOAD_INVALID           = 3015,
   ACTIVE_SESSIONS_PRESENT   = 3016,
+  PROGRAM_NOT_DECLARED      = 3017,
+  TOPOLOGY_MISMATCH         = 3018,
 
   // --- Payment & Credit (4xxx) ---
   PAYMENT_GENERIC           = 4000,
@@ -291,6 +293,13 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.BAY_RESERVED]:              meta(3014, 'BAY_RESERVED',              'Warning',  true,  409, 'Session'),
   [OsppErrorCode.PAYLOAD_INVALID]:           meta(3015, 'PAYLOAD_INVALID',           'Error',    false, 400, 'Session'),
   [OsppErrorCode.ACTIVE_SESSIONS_PRESENT]:   meta(3016, 'ACTIVE_SESSIONS_PRESENT',   'Warning',  true,  409, 'Session'),
+  // 3017/3018 are MQTT-only -- BootNotification and StartService, neither a REST
+  // endpoint -- so §2.4's HTTP status table does not list them and httpStatus here
+  // is an SDK extension with no clause behind it. 3017 follows the registry's own
+  // stated analogy, "one code per identifier KIND", where 3005/3006/3012 are 404.
+  // 3018 is a disagreement between two declarations, which is 409's shape.
+  [OsppErrorCode.PROGRAM_NOT_DECLARED]:      meta(3017, 'PROGRAM_NOT_DECLARED',      'Error',    false, 404, 'Session'),
+  [OsppErrorCode.TOPOLOGY_MISMATCH]:         meta(3018, 'TOPOLOGY_MISMATCH',         'Error',    true,  409, 'Session'),
 
   // ── Payment & Credit (4xxx) ───────────────────────────────────────────
   [OsppErrorCode.PAYMENT_GENERIC]:           meta(4000, 'PAYMENT_GENERIC',           'Error',    true,  500, 'Payment'),
