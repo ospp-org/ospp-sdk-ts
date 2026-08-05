@@ -3,9 +3,17 @@
   "bayNumber": 3,
   "status": "Finishing",
   "previousStatus": "Occupied",
-  "services": [
+  "programs": [
     {
-      "serviceId": "svc_basic",
+      "programNumber": 1,
+      "available": false
+    },
+    {
+      "programNumber": 2,
+      "available": false
+    },
+    {
+      "programNumber": 3,
       "available": false
     }
   ]

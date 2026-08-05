@@ -3,9 +3,17 @@
   "bayNumber": 2,
   "status": "Occupied",
   "previousStatus": "Reserved",
-  "services": [
+  "programs": [
     {
-      "serviceId": "svc_premium",
+      "programNumber": 1,
+      "available": false
+    },
+    {
+      "programNumber": 2,
+      "available": false
+    },
+    {
+      "programNumber": 3,
       "available": false
     }
   ]

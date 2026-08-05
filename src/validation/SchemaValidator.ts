@@ -36,7 +36,21 @@ export class SchemaValidator {
     // strictRequired: false — spec schemas use allOf/if/then with required
     // properties defined at the top-level properties, not inside then blocks.
     // Ajv strict mode rejects this pattern; the schemas are spec-authored and correct.
-    this.ajv = new Ajv2020({ strict: true, strictRequired: false, allErrors: true });
+    //
+    // strictTypes: false — same reason, one level deeper. boot-notification-response
+    // narrows an already-declared object from inside a `then` branch:
+    //   allOf[].then.properties.details.required = ["expected", "declared"]
+    // `details` carries its `type: "object"` at the top-level `properties`, so the
+    // branch restates only what it narrows. Ajv's strictTypes wants the type repeated
+    // at every site that mentions the keyword. Draft 2020-12 does not, and the spec's
+    // own verifier accepts the corpus 316/316. An SDK stricter than the spec would
+    // reject a conforming server's response, so the lint gives way, not the schema.
+    this.ajv = new Ajv2020({
+      strict: true,
+      strictRequired: false,
+      strictTypes: false,
+      allErrors: true,
+    });
     addFormats(this.ajv);
     this.loadCommonSchemas();
   }

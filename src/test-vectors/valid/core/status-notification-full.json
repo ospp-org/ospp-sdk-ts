@@ -3,18 +3,18 @@
   "bayNumber": 3,
   "status": "Faulted",
   "previousStatus": "Available",
-  "services": [
+  "programs": [
     {
-      "serviceId": "svc_premium",
-      "available": false
-    },
-    {
-      "serviceId": "svc_deluxe",
-      "available": false
-    },
-    {
-      "serviceId": "svc_auxiliary",
+      "programNumber": 1,
       "available": true
+    },
+    {
+      "programNumber": 2,
+      "available": false
+    },
+    {
+      "programNumber": 3,
+      "available": false
     }
   ],
   "errorCode": 5008,

@@ -101,7 +101,15 @@ export type { DataTransferRequest, DataTransferResponse, DataTransferStatus } fr
 export type { TriggerMessageRequest, TriggerMessageResponse, TriggerableMessage, TriggerMessageStatus } from './types/payloads/trigger-message.js';
 
 // State machines
-export { BayStateMachine, canTransition as canBayTransition, BAY_TRANSITIONS } from './state-machines/BayStateMachine.js';
+export { EffectedBy } from './enums/EffectedBy.js';
+export {
+  BayStateMachine,
+  canTransition as canBayTransition,
+  allowedTransitions as allowedBayTransitions,
+  transitionCount as bayTransitionCount,
+  BAY_STATION_TRANSITIONS,
+  BAY_SERVER_TRANSITIONS,
+} from './state-machines/BayStateMachine.js';
 export { SessionStateMachine, canTransition as canSessionTransition, isTerminal as isSessionTerminal, SESSION_TRANSITIONS, type SessionState } from './state-machines/SessionStateMachine.js';
 export { ReservationStateMachine, canTransition as canReservationTransition, isTerminal as isReservationTerminal, RESERVATION_TRANSITIONS, type ReservationState } from './state-machines/ReservationStateMachine.js';
 export { FirmwareStateMachine, canTransition as canFirmwareTransition, FIRMWARE_TRANSITIONS, type FirmwareState } from './state-machines/FirmwareStateMachine.js';
