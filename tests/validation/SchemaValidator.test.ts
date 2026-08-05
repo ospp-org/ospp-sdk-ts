@@ -25,7 +25,9 @@ function deriveSchemaKey(fileName: string): string | undefined {
   const name = fileName.replace(/\.json$/, '');
   const parts = name.split('-');
 
-  for (let len = parts.length; len >= 2; len--) {
+  // Down to ONE part: `hello`, `receipt` and `challenge` are single-word schema
+  // names, and a loop that stops at two never reaches them.
+  for (let len = parts.length; len >= 1; len--) {
     const candidate = parts.slice(0, len).join('-');
     if (ALL_KEYS.includes(candidate)) {
       return candidate;
@@ -45,6 +47,9 @@ interface TestVector {
   category: string;
 }
 
+/** Vectors that resolved to no schema key. Never silently dropped. */
+const unmapped: string[] = [];
+
 function discoverTestVectors(baseDir: string): TestVector[] {
   const vectors: TestVector[] = [];
 
@@ -62,13 +67,15 @@ function discoverTestVectors(baseDir: string): TestVector[] {
   }
 
   for (const category of categories) {
-    if (category === 'offline') continue;
-
+    // `offline` is the BLE corpus. SchemaPath maps only MQTT keys, so those
+    // vectors have nowhere to resolve to and are recorded as unmapped rather
+    // than dropped -- see the coverage assertion below. Skipping them silently
+    // is how 306 vendored vectors read as full coverage while 61 never ran.
     const categoryDir = join(baseDir, category);
     const files = readdirSync(categoryDir).filter((f) => f.endsWith('.json'));
 
     for (const file of files) {
-      const schemaKey = deriveSchemaKey(file);
+      const schemaKey = category === 'offline' ? undefined : deriveSchemaKey(file);
       if (schemaKey) {
         vectors.push({
           filePath: join(categoryDir, file),
@@ -76,6 +83,8 @@ function discoverTestVectors(baseDir: string): TestVector[] {
           schemaKey,
           category,
         });
+      } else {
+        unmapped.push(`${category}/${file}`);
       }
     }
   }
@@ -85,6 +94,24 @@ function discoverTestVectors(baseDir: string): TestVector[] {
 
 const validVectors = discoverTestVectors(join(TEST_VECTORS_ROOT, 'valid'));
 const invalidVectors = discoverTestVectors(join(TEST_VECTORS_ROOT, 'invalid'));
+
+describe('vector coverage', () => {
+  it('vendors the whole corpus', () => {
+    // 160 valid + 156 invalid = 316, the count the spec's own verify-schemas.py
+    // reports. A truncated vendored copy would make every test below pass
+    // vacuously.
+    expect(validVectors.length + invalidVectors.length + unmapped.length).toBe(316);
+  });
+
+  it('leaves exactly the BLE corpus unmapped, and names it', () => {
+    // SchemaPath maps MQTT keys only, so the BLE `offline` vectors resolve to
+    // nothing here. ospp-sdk-php DOES validate them, against schemas/ble/*.
+    // Naming them is the point: the previous `if (schemaKey)` dropped 61
+    // vectors without a word, so coverage read as complete when it was not.
+    expect(unmapped.every((v) => v.startsWith('offline/'))).toBe(true);
+    expect(unmapped.length).toBe(61);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Tests

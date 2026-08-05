@@ -60,7 +60,21 @@ export type BootNotificationResponse =
   | (BootNotificationResponseBase & {
       status: 'Accepted';
       configuration?: Record<string, string>;
-      sessionKey?: string;
+      /**
+       * REQUIRED on every Accepted response, unconditionally (§5.3). It was
+       * previously conditional on `MessageSigningMode` — which is station
+       * configuration, not a field of this message, so the condition was not
+       * expressible in JSON Schema and would have stayed prose forever. It was
+       * OPTIONAL in this type, which is precisely the shape §5.3 calls
+       * malformed.
+       *
+       * A station that receives Accepted WITHOUT it MUST treat the response as
+       * malformed: log `1005`, stay in `Booting`, retry per CORE-011. It MUST
+       * NOT fall back to unsigned operation — a station that proceeds keyless
+       * can sign nothing, has everything it sends rejected, and is named as the
+       * suspect in the resulting MAC-failure events.
+       */
+      sessionKey: string;
     })
   | (BootNotificationResponseBase & {
       status: 'Rejected';
@@ -78,4 +92,23 @@ export type BootNotificationResponse =
       status: 'Pending';
       retryInterval: number;
       configuration?: Record<string, string>;
+      /**
+       * REQUIRED on every Pending response too, and leaving it out would have
+       * been fatal. A Pending station ANSWERS server commands; every command is
+       * signed; both the sending and the receiving path fail closed on a
+       * missing key. Withhold it and the server may not send, the station may
+       * not accept, and it may not answer — the repair channel the Pending
+       * window exists for would be closed by the signing rules landed in the
+       * same arc (boot-notification.md §5.3).
+       */
+      sessionKey: string;
+      /** Present when the reason is `3018 TOPOLOGY_MISMATCH`. */
+      errorCode?: number;
+      errorText?: string;
+      /**
+       * REQUIRED on a Pending response carrying 3018, absent otherwise. "A
+       * station held out of service for a reason nobody can see is a station
+       * nobody can repair."
+       */
+      details?: BootTopologyMismatchDetails;
     });

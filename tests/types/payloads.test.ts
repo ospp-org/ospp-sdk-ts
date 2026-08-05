@@ -90,14 +90,19 @@ describe('BootNotification payloads', () => {
   });
 
   it('should accept Pending response with retryInterval', () => {
+    // sessionKey is REQUIRED on Pending too: a Pending station answers signed
+    // commands, and without a key the repair channel the window exists for
+    // would be closed (boot-notification.md §5.3).
     const res: BootNotificationResponse = {
       status: 'Pending',
       serverTime: '2026-01-30T12:00:00.000Z',
       heartbeatIntervalSec: 30,
       retryInterval: 30,
+      sessionKey: 'dGVzdGtleQ==',
     };
     if (res.status === 'Pending') {
       expect(res.retryInterval).toBe(30);
+      expect(res.sessionKey).toBe('dGVzdGtleQ==');
     }
   });
 
@@ -106,11 +111,13 @@ describe('BootNotification payloads', () => {
       status: 'Accepted',
       serverTime: '2026-01-30T12:00:00.000Z',
       heartbeatIntervalSec: 30,
+      sessionKey: 'dGVzdGtleQ==',
     };
     if (res.status === 'Accepted') {
-      // TypeScript narrows: sessionKey is accessible
-      const _key: string | undefined = res.sessionKey;
-      expect(_key).toBeUndefined();
+      // TypeScript narrows, and sessionKey is REQUIRED rather than optional --
+      // an Accepted without one is malformed (boot-notification.md §5.3).
+      const _key: string = res.sessionKey;
+      expect(_key).toBe('dGVzdGtleQ==');
     }
   });
 });
