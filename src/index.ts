@@ -36,6 +36,10 @@ export {
   type ConfigValueType,
 } from './enums/ConfigKey.js';
 
+// Types — the wire protocol version. Negotiation is exact match: the station
+// declares one, the server holds a set, membership decides (VERSIONING.md).
+export { ProtocolVersion } from './types/ProtocolVersion.js';
+
 // Types — envelope
 export {
   type OsppEnvelope,
