@@ -123,6 +123,15 @@ export { UserSubject } from './identity/UserSubject.js';
 
 // Crypto — pure JS only
 export { canonicalize } from './crypto/CanonicalJsonSerializer.js';
+// Message MAC. Browser-safe on purpose: everything on the wire is signed
+// (§5.6), so a STATION verifies an inbound MAC on every message it receives,
+// and station-side code imports the package root rather than /server.
+export {
+  computeMac,
+  verifyMac,
+  signMessage,
+  isUsableSessionKey,
+} from './crypto/MessageMac.js';
 export {
   STRUCTURAL_EXEMPTIONS,
   DEFAULT_MESSAGE_SIGNING_MODE,
