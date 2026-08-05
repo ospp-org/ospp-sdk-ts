@@ -1,7 +1,7 @@
 /**
  * Firmware Update State Machine — 10 states, governs OTA update process.
  *
- * Source: spec/05-state-machines.md §5.
+ * Source: spec/05-state-machines.md §6.
  * Initial state: Idle.
  * Terminal state: Activated.
  * Failed always transitions back to Idle (rollback complete).

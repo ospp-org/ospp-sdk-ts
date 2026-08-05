@@ -1,7 +1,7 @@
 /**
  * Reservation State Machine — 5 states, governs bay reservation lifecycle.
  *
- * Source: spec/05-state-machines.md §3.
+ * Source: spec/05-state-machines.md §4.
  * Initial state: Pending (ReserveBay sent).
  * Terminal states: Active, Expired, Cancelled.
  */

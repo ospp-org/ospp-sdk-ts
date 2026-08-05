@@ -1,5 +1,5 @@
 /**
- * Bay operational states as defined in spec/05-state-machines.md §1.2.
+ * Bay operational states as defined in spec/05-state-machines.md §2.2.
  *
  * Every bay MUST be in exactly one of these 7 states at all times.
  * The station MUST send a StatusNotification EVENT on every state transition.
@@ -43,7 +43,7 @@ export enum BayStatus {
  * `BayStatus` is the FSM's vocabulary — seven states. This is the wire's — six. Use it
  * for any field that is serialised or parsed; use `BayStatus` for state a party merely
  * holds. Spec v0.10.0 removed `Unknown` from `bay-status.schema.json`
- * (05-state-machines.md §1.2).
+ * (05-state-machines.md §2.2).
  *
  * Derived with `Exclude` rather than re-listed, so the two cannot drift.
  */

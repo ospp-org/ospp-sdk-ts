@@ -1,5 +1,163 @@
 # Changelog
 
+## 0.12.0 — 2026-08-05
+
+**SDK-pair release against spec `v0.11.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.12.0**, from the same spec pin.
+
+`.spec-ref` **v0.10.0 → v0.11.0**.
+
+> **BREAKING — this release implements a contract that breaks every consumer built against
+> the previous one.** Spec `v0.11.0` breaks the wire in five places at once and folds them
+> into a single `protocolVersion` move to `0.3.0`. Types are deleted rather than deprecated,
+> because in each case there is no correct narrower thing for the old symbol to mean. There
+> is no compatibility window and no shim.
+>
+> **Deploy order is not a preference.** A receiver must accept a new form before any sender
+> emits it. Two items are a total fleet outage if enforced early: exact-match version
+> negotiation, and MAC enforcement. Read *Breaking changes, and the order they must ship in*
+> in the spec's CHANGELOG before deploying any of this.
+
+### Added
+
+- **`StationState` + `StationStateMachine`** — the station's own machine, six states, and
+  the **outermost** one: every other machine on a station is scoped inside it. Neither SDK
+  had it. `Pending`, `Rejected` and `Accepted` previously existed here only as inline string
+  literals inside the `BootNotificationResponse` union, unexported, with nothing reading
+  `response.status` at all.
+
+  `Pending` and `Rejected` are **restricted** states and differ in exactly one respect —
+  whether the station answers commands. The rows are predicates, not prose. The load-bearing
+  one: `Pending` **holds** a session key and `Rejected` does not, so the repair channel the
+  `Pending` window exists for is actually usable. A test pins the two against each other —
+  no state may answer a command in a state where it holds no key.
+
+  There is no edge from a restricted state to `Operational`. A station leaves one only by
+  re-sending BootNotification and being `Accepted`; the server cannot promote it in place.
+
+- **`ProtocolVersion`** — a type this SDK did not previously have at all, with
+  `isSupportedBy(set)`. An empty set accepts nothing rather than silently accepting every
+  station.
+
+- **Topology types** — `bays[]`, each entry carrying `bayNumber` and that bay's
+  `programNumbers`. Comparison is by **set**, in both directions: order carries no meaning,
+  so a station that re-orders its declaration between boots must not be held out of service,
+  and a bay present on one side only is a mismatch whichever side it is on. Labels are never
+  compared — a corrected typo in a firmware constant must not put a station into `Pending`.
+  Bounds (64 bays, 32 programs) are asserted against the vendored schema rather than
+  transcribed from it.
+
+- **`3017 PROGRAM_NOT_DECLARED`** and **`3018 TOPOLOGY_MISMATCH`**; registry total 114 → 116.
+
+- **`EffectedBy`** — the canonical bay table's party column.
+
+- **`canonical-json-vectors.json`** — eleven shared cross-language vectors, byte-identical
+  with the sibling copy in `ospp/protocol`, pinning the exact canonical string both SDKs
+  must produce.
+
+### Changed
+
+- **`BayStateMachine.canTransition` now requires the party** as an argument rather than
+  defaulting to one. The default *was* the merge that let the two SDKs implement different
+  halves of the same table. Twenty `Station` rows, six `Server`, twenty-six in all; a
+  station is held to the twenty and MUST NOT effect a `Server` row.
+
+- **`sessionKey` is REQUIRED on both `Accepted` and `Pending`** BootNotification responses.
+  It was optional on `Accepted` — precisely the shape `boot-notification.md` §5.3 calls
+  malformed — and absent from `Pending`, which would have closed the repair channel.
+
+- **Signing default is `All`**, and the config key moves Dynamic → Static: the mode is bound
+  to the session key, which is issued at boot.
+
+- **`MessageSigningRegistry` replaces `CriticalMessageRegistry`**, holding only the three
+  structural exemptions and keying on `(action, messageType)` rather than on `action` alone.
+  The old axis could not tell the BootNotification REQUEST from its RESPONSE, and the two
+  are exempt for different reasons — one precedes the key, one carries it.
+
+### Removed
+
+- **`ResetType`** — deleted, not narrowed. `Hard`/`Soft` are gone; one reboot operation
+  remains, carrying an optional `force`. No value of the message clears credentials: OSPP
+  keeps no bootstrap credential, so a remote wipe would leave the station unreachable by
+  every channel it has.
+
+- **`SigningMode.Critical`** — with everything signed it selected nothing, and the 47-row
+  per-message classification table goes with it.
+
+- **`bayCount` / `bayIds`** from the wire types, with no compatibility window; **`services[]`
+  on StatusNotification becomes `programs[]`**. Programs are physical operations the firmware
+  owns with ordinals fixed at manufacture; services are minted by the server. The old shape
+  required a station to name a server-minted service in the very message CORE-004 demands at
+  first boot, so a conforming first boot was impossible.
+
+### Fixed
+
+- **A station could not verify an inbound MAC at all.** `computeMac`, `verifyMac` and
+  `signMessage` shipped only from the Node-only `@ospp/protocol/server` subpath, because they
+  were built on `node:crypto` and the root entry is asserted browser-safe. Station and app
+  code imports the root. So the reference implementation could not verify an inbound MAC from
+  the entry point its own consumers use — for the whole class of message this release has just
+  made universal.
+
+  That is packaging, not cryptography. The implementation moves to `MessageMac.ts` on
+  `@noble/hashes`, the same pure-JS pipeline `SessionCrypto` already validates byte-identically
+  against the spec's conformance corpus. `HmacSigner.ts` re-exports it, so `/server` keeps every
+  symbol it had, and `dist/index.js` still passes the transitive browser-safety walk. The golden
+  HMAC vectors pass unchanged — output is byte-identical to the `node:crypto` implementation it
+  replaces.
+
+  Two pieces had to be written rather than borrowed, and both matter: **base64 decode is
+  strict** (Node's decoder silently skips characters outside the alphabet, which is what let a
+  garbage session key decode to zero bytes and become the empty HMAC key — this one returns
+  `null`), and **constant-time compare**, since `crypto.timingSafeEqual` is Node-only and §5.5
+  requires it.
+
+- **MAC handling fails closed in both directions.** Signing with an undecodable key raises;
+  verification without a key returns `false`. Previously a degraded key still produced a
+  well-formed MAC, so two peers both holding garbage verified each other successfully, and
+  anyone who knew the key was invalid could forge with the empty one.
+
+- **61 vendored vectors were dropped in silence.** The corpus was 306 and only 245 ever ran:
+  the whole BLE `offline` category by an explicit `continue`, and fifteen more because the
+  filename-prefix search stopped at two parts and `hello`, `receipt` and `challenge` are
+  single-word schema names. Coverage read as complete because nothing counted what was
+  missing. Unmapped vectors are now collected and asserted — the corpus is **316**, and
+  exactly 61 resolve to no MQTT schema key, all of them `offline/`, which `ospp/protocol`
+  validates against `schemas/ble/*`. The split is now stated rather than implied.
+
+- **Stale spec cross-references.** Spec `v0.11.0` inserted the station machine as
+  `05-state-machines.md` §1 and renumbered every machine under it. Five docblocks in `src/`
+  still cited pre-insertion numbers — `BayStatus` (×2) pointed at §1.2, which is now the
+  **station's** states, while meaning the bay's; `SessionStateMachine` §2 → §3,
+  `ReservationStateMachine` §3 → §4, `FirmwareStateMachine` §5 → §6. Nothing looked broken,
+  which is why they survived.
+
+### Vendored
+
+- `src/schemas/` — byte-identical to spec `v0.11.0`, 86 files, verified through
+  `scripts/check-schemas.sh`'s own clone path.
+- `src/test-vectors/` — 316 vectors, byte-identical to the tag's
+  `conformance/test-vectors/`.
+- `tests/crypto/fixtures/signing-classification.json` — `specRef` was a sentence explaining
+  that the tag did not yet exist; it now reads `v0.11.0`. Byte-identity with the
+  `ospp/protocol` copy is preserved.
+
+### What breaks
+
+| Caller | Breaks | What to do |
+|---|:---:|---|
+| Imports `ResetType` | **yes** | Deleted. One reboot operation, optional `force`. |
+| Calls `SigningMode.Critical` or `CriticalMessageRegistry` | **yes** | Use `MessageSigningRegistry`; the default is now `All`. |
+| Calls `canTransition(from, to)` on a bay | **yes** | Pass the party — `EffectedBy.STATION` or `EffectedBy.SERVER`. There is deliberately no default. |
+| Builds a BootNotification with `bayCount` / `bayIds` | **yes** | Declare `bays[]`, each with `bayNumber` + `programNumbers`. |
+| Reads `services[]` off a StatusNotification | **yes** | Now `programs[]`, and the set MUST EQUAL the bay's declaration. |
+| Constructs a `BootNotificationResponse` | **yes** | `sessionKey` is required on `Accepted` **and** `Pending`. |
+| Relies on a MAC being produced from an invalid key | **yes** | Signing now raises; verification returns `false`. This was a forgery path. |
+| Imports `computeMac` / `verifyMac` from `/server` | no | Still exported there, unchanged. Now also available from the root entry. |
+
+---
+
 ## 0.11.0 — 2026-07-30
 
 **SDK-pair release against spec `v0.10.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),

@@ -1,7 +1,7 @@
 /**
  * Session State Machine — 6 states, governs session lifecycle.
  *
- * Source: spec/05-state-machines.md §2.
+ * Source: spec/05-state-machines.md §3.
  * Initial state: Pending (session initiated).
  * Terminal states: Completed, Failed.
  */
