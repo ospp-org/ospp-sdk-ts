@@ -45,7 +45,7 @@ describe('BootNotification payloads', () => {
       stationModel: 'SSP-3000',
       stationVendor: 'AcmeCorp',
       serialNumber: 'SN-001',
-      bayCount: 2,
+      bays: [{ bayNumber: 1, programNumbers: [1, 2] }],
       uptimeSeconds: 120,
       pendingOfflineTransactions: 0,
       timezone: 'Europe/London',
@@ -217,6 +217,7 @@ describe('StartService payloads', () => {
       sessionId: 'sess_a1b2c3d4e5',
       bayId: 'bay_c1d2e3f4a5b6',
       serviceId: 'svc_eco',
+      programNumber: 2,
       durationSeconds: 300,
       sessionSource: 'WebPayment',
       reservationId: 'rsv_a1b2c3d4e5f6',
@@ -227,10 +228,16 @@ describe('StartService payloads', () => {
   it('should accept Rejected response with error', () => {
     const res: StartServiceResponse = {
       status: 'Rejected',
-      errorCode: 3001,
-      errorText: 'BAY_BUSY',
+      errorCode: 3017,
+      errorText: 'PROGRAM_NOT_DECLARED',
+      // REQUIRED when Rejected: the operator reading the rejection sees WHICH
+      // ordinal was refused without correlating against the request.
+      programNumber: 9,
     };
-    expect(res.errorCode).toBe(3001);
+    if (res.status === 'Rejected') {
+      expect(res.errorCode).toBe(3017);
+      expect(res.programNumber).toBe(9);
+    }
   });
 });
 
@@ -363,9 +370,9 @@ describe('StatusNotification payload', () => {
       bayId: 'bay_c1d2e3f4a5b6',
       bayNumber: 1,
       status: BayStatus.AVAILABLE,
-      services: [{ serviceId: 'svc_eco', available: true }],
+      programs: [{ programNumber: 1, available: true }],
     };
-    expect(payload.services).toHaveLength(1);
+    expect(payload.programs).toHaveLength(1);
   });
 
   it('should accept optional previousStatus and error fields', () => {
@@ -374,7 +381,7 @@ describe('StatusNotification payload', () => {
       bayNumber: 1,
       status: BayStatus.FAULTED,
       previousStatus: BayStatus.OCCUPIED,
-      services: [{ serviceId: 'svc_eco', available: false }],
+      programs: [{ programNumber: 1, available: false }],
       errorCode: 5001,
       errorText: 'PUMP_SYSTEM',
     };
@@ -671,8 +678,8 @@ describe('UpdateServiceCatalog payloads', () => {
     const req: UpdateServiceCatalogRequest = {
       catalogVersion: '2.1',
       services: [
-        { serviceId: 'svc_eco', serviceName: 'Eco Wash', pricingType: 'PerMinute', priceCreditsPerMinute: 10, available: true },
-        { serviceId: 'svc_premium', serviceName: 'Premium', pricingType: 'Fixed', priceCreditsFixed: 50, available: true },
+        { serviceId: 'svc_eco', serviceName: 'Eco Wash', pricingType: 'PerMinute', priceCreditsPerMinute: 10, available: true, bindings: [{ bayNumber: 1, programNumber: 1 }] },
+        { serviceId: 'svc_premium', serviceName: 'Premium', pricingType: 'Fixed', priceCreditsFixed: 50, available: true, bindings: [{ bayNumber: 1, programNumber: 2 }] },
       ],
     };
     expect(req.services).toHaveLength(2);

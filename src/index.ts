@@ -40,6 +40,20 @@ export {
 // declares one, the server holds a set, membership decides (VERSIONING.md).
 export { ProtocolVersion } from './types/ProtocolVersion.js';
 
+// Types — topology. The station declares its bays and, per bay, its programs.
+export {
+  MAX_BAYS_PER_STATION,
+  MAX_PROGRAMS_PER_BAY,
+  sameProgramSet,
+  topologyMatches,
+  type BayTopology,
+  type BayDeclaration,
+  type ProgramDeclaration,
+  type BayAssignment,
+  type ServiceBinding,
+  type ProgramStatus,
+} from './types/topology.js';
+
 // Types — envelope
 export {
   type OsppEnvelope,
@@ -75,7 +89,7 @@ export type {
 } from './types/common.js';
 
 // Types — payloads
-export type { BootNotificationRequest, BootNotificationResponse } from './types/payloads/boot-notification.js';
+export type { BootNotificationRequest, BootNotificationResponse, BootTopologyMismatchDetails } from './types/payloads/boot-notification.js';
 export type { AuthorizeOfflinePassRequest, AuthorizeOfflinePassResponse } from './types/payloads/authorize-offline-pass.js';
 export type { ReserveBayRequest, ReserveBayResponse } from './types/payloads/reserve-bay.js';
 export type { CancelReservationRequest, CancelReservationResponse } from './types/payloads/cancel-reservation.js';
@@ -83,7 +97,7 @@ export type { StartServiceRequest, StartServiceResponse } from './types/payloads
 export type { StopServiceRequest, StopServiceResponse } from './types/payloads/stop-service.js';
 export type { TransactionEventRequest, TransactionEventResponse } from './types/payloads/transaction-event.js';
 export type { HeartbeatRequest, HeartbeatResponse } from './types/payloads/heartbeat.js';
-export type { StatusNotificationPayload, BayServiceStatus } from './types/payloads/status-notification.js';
+export type { StatusNotificationPayload } from './types/payloads/status-notification.js';
 export type { MeterValuesPayload } from './types/payloads/meter-values.js';
 export type { SessionEndedPayload } from './types/payloads/session-ended.js';
 export type { ConnectionLostPayload } from './types/payloads/connection-lost.js';

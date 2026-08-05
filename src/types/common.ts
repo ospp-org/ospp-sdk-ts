@@ -1,3 +1,4 @@
+import type { ServiceBinding } from './topology.js';
 /**
  * Common types reused across multiple OSPP message payloads.
  *
@@ -105,6 +106,20 @@ export interface ServiceItem {
   priceLocalFixed?: number;
   /** Whether this service is currently available. */
   available: boolean;
+  /**
+   * Where this commercial service physically runs: one entry per (bay, program)
+   * pair it is bound to, 1..64 of them.
+   *
+   * The binding is created on the SERVER by an operator; the station never
+   * originates it and only receives it here. This is what lets the station act
+   * OFFLINE, where no StartService command exists to carry the ordinal — BLE
+   * start requests name a serviceId, and this is the only mapping from that to
+   * a physical program.
+   *
+   * One program MAY carry several services, so two catalog entries MAY name the
+   * same (bayNumber, programNumber); the reverse is also allowed.
+   */
+  bindings: ServiceBinding[];
 }
 
 // ---------------------------------------------------------------------------

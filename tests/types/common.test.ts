@@ -90,6 +90,7 @@ describe('ServiceItem', () => {
       pricingType: 'PerMinute',
       priceCreditsPerMinute: 10,
       available: true,
+      bindings: [{ bayNumber: 1, programNumber: 1 }],
     };
     expect(svc.pricingType).toBe('PerMinute');
     expect(svc.priceCreditsPerMinute).toBe(10);
@@ -102,6 +103,7 @@ describe('ServiceItem', () => {
       pricingType: 'Fixed',
       priceCreditsFixed: 50,
       available: false,
+      bindings: [{ bayNumber: 1, programNumber: 1 }],
     };
     expect(svc.pricingType).toBe('Fixed');
     expect(svc.priceCreditsFixed).toBe(50);
@@ -115,6 +117,7 @@ describe('ServiceItem', () => {
       priceCreditsPerMinute: 5,
       priceLocalPerMinute: 100,
       available: true,
+      bindings: [{ bayNumber: 1, programNumber: 1 }],
     };
     expect(svc.priceLocalPerMinute).toBe(100);
   });
