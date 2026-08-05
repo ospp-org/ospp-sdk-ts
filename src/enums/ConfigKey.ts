@@ -115,7 +115,7 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
   // ── Security ──────────────────────────────────────────────────────────
   [ConfigKey.CERTIFICATE_SERIAL_NUMBER]:    km('CertificateSerialNumber',     'string',  null,    'R',  'Static',  'Security'),
   [ConfigKey.AUTHORIZATION_CACHE_ENABLED]:  km('AuthorizationCacheEnabled',   'boolean', 'true',  'RW', 'Dynamic', 'Security'),
-  [ConfigKey.MESSAGE_SIGNING_MODE]:         km('MessageSigningMode',          'string',  'Critical', 'RW', 'Dynamic', 'Security'),
+  [ConfigKey.MESSAGE_SIGNING_MODE]:         km('MessageSigningMode',          'string',  'All',      'RW', 'Static',  'Security'),
   [ConfigKey.OFFLINE_PASS_PUBLIC_KEY]:      km('OfflinePassPublicKey',        'string',  null,    'W',  'Dynamic', 'Security'),
   [ConfigKey.CERTIFICATE_RENEWAL_THRESHOLD_DAYS]: km('CertificateRenewalThresholdDays', 'integer', '30', 'RW', 'Dynamic', 'Security'),
   [ConfigKey.CERTIFICATE_RENEWAL_ENABLED]:  km('CertificateRenewalEnabled',   'boolean', 'true',  'RW', 'Dynamic', 'Security'),

@@ -118,7 +118,8 @@ describe('CONFIG_KEY_REGISTRY', () => {
       [ConfigKey.METER_VALUES_INTERVAL, '60'],
       [ConfigKey.MAX_SESSION_DURATION_SECONDS, '900'],
       [ConfigKey.RESERVATION_DEFAULT_TTL, '300'],
-      [ConfigKey.MESSAGE_SIGNING_MODE, 'Critical'],
+      // spec/08-configuration.md §3: default "All", Static not Dynamic.
+      [ConfigKey.MESSAGE_SIGNING_MODE, 'All'],
       [ConfigKey.LOG_LEVEL, 'Info'],
       [ConfigKey.AUTO_REBOOT_ENABLED, 'false'],
       [ConfigKey.FIRMWARE_VERSION, null],

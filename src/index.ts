@@ -124,12 +124,14 @@ export { UserSubject } from './identity/UserSubject.js';
 // Crypto — pure JS only
 export { canonicalize } from './crypto/CanonicalJsonSerializer.js';
 export {
-  ALWAYS_EXEMPT,
-  CRITICAL_MESSAGE_TYPES,
-  isCritical,
-  requiresHmac,
+  STRUCTURAL_EXEMPTIONS,
+  DEFAULT_MESSAGE_SIGNING_MODE,
+  isStructurallyExempt,
+  allStructuralExemptions,
+  requiresMac,
+  requiresMacVerification,
   type MessageSigningMode,
-} from './crypto/CriticalMessageRegistry.js';
+} from './crypto/MessageSigningRegistry.js';
 
 // Crypto — BLE SessionCrypto (§6.5; browser/RN-safe @noble pipeline, validated
 // byte-identically against the spec conformance corpus).

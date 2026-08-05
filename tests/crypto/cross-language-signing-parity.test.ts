@@ -3,37 +3,44 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
-  ALWAYS_EXEMPT,
-  CRITICAL_MESSAGE_TYPES,
-  requiresHmac,
-} from '../../src/crypto/CriticalMessageRegistry';
+  STRUCTURAL_EXEMPTIONS,
+  requiresMac,
+  requiresMacVerification,
+  DEFAULT_MESSAGE_SIGNING_MODE,
+} from '../../src/crypto/MessageSigningRegistry';
 import { OsppAction } from '../../src/actions/OsppAction';
 import { MessageType } from '../../src/enums/MessageType';
 
 /**
  * Cross-language signing-classification parity (sdk-ts side).
  *
- * The shared fixture signing-classification.json is BYTE-IDENTICAL with ospp-sdk-php
- * (tests/Contract/Crypto/fixtures/signing-classification.json) and encodes spec §5.6 as data.
+ * The shared fixture signing-classification.json is BYTE-IDENTICAL with
+ * ospp-sdk-php (tests/Contract/Crypto/fixtures/signing-classification.json) and
+ * encodes spec §5.6 as data.
  *
- * sdk-ts keys its registry by (action, messageType) — the SAME axis as the spec — so it asserts the
- * 31 critical + 3 always-exempt rows directly. ospp-sdk-php keys by action only and asserts the
- * collapsed projection of the same fixture. Both SDKs pinned to one fixture ⇒ a change to the
- * Critical set in one language that is not mirrored in the other turns one repo's suite RED.
+ * It is now EXHAUSTIVE — all 47 message types, each with the answer
+ * `requiresMac` must give in `All` mode — because §5.6 removed per-message
+ * judgement entirely. Both SDKs assert every row, so a signing rule implemented
+ * in one language and not the other turns one repo's suite RED.
  *
- * It also asserts the intentional asymmetry from the TS side: the three PHP REST-only actions
- * (IssueOfflinePass / RevokeOfflinePass / WebPaymentAuthorization) are absent from sdk-ts entirely.
+ * It also asserts the intentional asymmetry from the TS side: the three PHP
+ * REST-only actions (IssueOfflinePass / RevokeOfflinePass /
+ * WebPaymentAuthorization) are absent from sdk-ts entirely.
  */
 
 interface ClassificationRow {
   action: string;
   messageType: string;
+  signedInAll: boolean;
 }
 
 interface Classification {
-  criticalInCriticalMode: ClassificationRow[];
-  alwaysExempt: ClassificationRow[];
+  modes: string[];
+  defaultMode: string;
+  structuralExemptions: { action: string; messageType: string }[];
+  totals: { messageTypes: number; signedInAll: number; structurallyExempt: number };
   phpApiOnlySuperset: string[];
+  messages: ClassificationRow[];
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -41,49 +48,62 @@ const classification = JSON.parse(
   readFileSync(join(here, 'fixtures', 'signing-classification.json'), 'utf-8'),
 ) as Classification;
 
-const keyOf = (row: ClassificationRow): string => `${row.action}:${row.messageType}`;
+const keyOf = (row: { action: string; messageType: string }): string =>
+  `${row.action}:${row.messageType}`;
 
 describe('cross-language signing classification (parity with ospp-sdk-php)', () => {
-  it('CRITICAL_MESSAGE_TYPES equals the shared spec §5.6 critical set (31 rows)', () => {
-    const expected = classification.criticalInCriticalMode.map(keyOf).sort();
-    const actual = [...CRITICAL_MESSAGE_TYPES].sort();
-
-    expect(actual).toEqual(expected);
-    expect(actual).toHaveLength(31);
+  it('agrees on the mode vocabulary and the default', () => {
+    expect(classification.modes).toEqual(['All', 'None']);
+    expect(classification.defaultMode).toBe(DEFAULT_MESSAGE_SIGNING_MODE);
   });
 
-  it('ALWAYS_EXEMPT equals the shared spec §5.6 always-exempt set (3 rows)', () => {
-    const expected = classification.alwaysExempt.map(keyOf).sort();
-    const actual = [...ALWAYS_EXEMPT].sort();
+  it('STRUCTURAL_EXEMPTIONS equals the shared spec §5.6 set (3 rows)', () => {
+    const expected = classification.structuralExemptions.map(keyOf).sort();
+    const actual = [...STRUCTURAL_EXEMPTIONS].sort();
 
     expect(actual).toEqual(expected);
     expect(actual).toHaveLength(3);
   });
 
-  it('the 31 critical message types span the 16 wire actions shared with ospp-sdk-php', () => {
-    const distinct = new Set([...CRITICAL_MESSAGE_TYPES].map((k) => k.split(':')[0]));
-    const fromFixture = new Set(classification.criticalInCriticalMode.map((r) => r.action));
-
-    expect([...distinct].sort()).toEqual([...fromFixture].sort());
-    expect(distinct.size).toBe(16);
+  it('covers all 47 message types, 44 signed and 3 exempt', () => {
+    expect(classification.messages).toHaveLength(classification.totals.messageTypes);
+    expect(classification.totals.messageTypes).toBe(47);
+    expect(classification.messages.filter((r) => r.signedInAll)).toHaveLength(44);
+    expect(classification.messages.filter((r) => !r.signedInAll)).toHaveLength(3);
   });
 
-  it('requiresHmac is true for every spec critical message type in Critical mode', () => {
-    for (const row of classification.criticalInCriticalMode) {
+  it('requiresMac matches the fixture on EVERY row, in All mode', () => {
+    for (const row of classification.messages) {
       expect(
-        requiresHmac(row.action as OsppAction, row.messageType as MessageType, 'Critical'),
-      ).toBe(true);
+        requiresMac(row.action as OsppAction, row.messageType as MessageType, 'All'),
+        keyOf(row),
+      ).toBe(row.signedInAll);
     }
   });
 
-  it('always-exempt message types are never signed, even in All mode', () => {
-    for (const row of classification.alwaysExempt) {
-      expect(requiresHmac(row.action as OsppAction, row.messageType as MessageType, 'All')).toBe(
-        false,
-      );
+  it('requiresMac is false on every row in None mode', () => {
+    for (const row of classification.messages) {
       expect(
-        requiresHmac(row.action as OsppAction, row.messageType as MessageType, 'Critical'),
+        requiresMac(row.action as OsppAction, row.messageType as MessageType, 'None'),
+        keyOf(row),
       ).toBe(false);
+    }
+  });
+
+  /**
+   * §5.7 makes the sending and receiving paths the same condition read from two
+   * ends. A receiver that expected a MAC the sender did not owe would reject
+   * conforming traffic, so the two answers must never differ.
+   */
+  it('the send and verify sides agree on every row, in every mode', () => {
+    for (const mode of classification.modes as ('All' | 'None')[]) {
+      for (const row of classification.messages) {
+        const action = row.action as OsppAction;
+        const type = row.messageType as MessageType;
+        expect(requiresMacVerification(action, type, mode), `${keyOf(row)} in ${mode}`).toBe(
+          requiresMac(action, type, mode),
+        );
+      }
     }
   });
 
@@ -91,11 +111,8 @@ describe('cross-language signing classification (parity with ospp-sdk-php)', () 
     const tsActions = new Set<string>(Object.values(OsppAction));
 
     for (const action of classification.phpApiOnlySuperset) {
-      // Not even an action in sdk-ts…
       expect(tsActions.has(action)).toBe(false);
-      // …and therefore nowhere in the critical registry.
-      const inRegistry = [...CRITICAL_MESSAGE_TYPES].some((k) => k.startsWith(`${action}:`));
-      expect(inRegistry).toBe(false);
+      expect(classification.messages.some((r) => r.action === action)).toBe(false);
     }
   });
 });
