@@ -119,6 +119,19 @@ export type { DataTransferRequest, DataTransferResponse, DataTransferStatus } fr
 export type { TriggerMessageRequest, TriggerMessageResponse, TriggerableMessage, TriggerMessageStatus } from './types/payloads/trigger-message.js';
 
 // State machines
+export { StationState } from './enums/StationState.js';
+export {
+  StationStateMachine,
+  canTransition as canStationTransition,
+  allowedTransitions as allowedStationTransitions,
+  isRestricted as isStationRestricted,
+  mayReceiveCommands,
+  mayAnswerCommands,
+  maySendUnsolicited,
+  mayStartNewService,
+  holdsSessionKey,
+  STATION_TRANSITIONS,
+} from './state-machines/StationStateMachine.js';
 export { EffectedBy } from './enums/EffectedBy.js';
 export {
   BayStateMachine,
