@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { SessionEndReason } from '../../src/enums/SessionEndReason';
 
 describe('SessionEndReason', () => {
-  it('should have exactly 5 values', () => {
-    expect(Object.values(SessionEndReason)).toHaveLength(5);
+  it('should have exactly 6 values', () => {
+    expect(Object.values(SessionEndReason)).toHaveLength(6);
   });
 
   it('should contain exactly the spec-defined values', () => {

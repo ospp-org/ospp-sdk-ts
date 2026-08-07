@@ -60,16 +60,16 @@ describe('3018 TOPOLOGY_MISMATCH', () => {
 describe('registry totals', () => {
   /**
    * "3xxx is dense with no gaps, so allocation is dense and gaps are never
-   * back-filled. Registry totals move 114 -> 116."
+   * back-filled. Registry totals move 114 -> 118."
    */
-  it('is 116 codes, with a dense 3xxx range', () => {
+  it('is 118 codes, with a dense 3xxx range', () => {
     const codes = Object.values(OsppErrorCode).filter((v): v is number => typeof v === 'number');
-    expect(codes).toHaveLength(116);
+    expect(codes).toHaveLength(118);
 
     const threeK = codes.filter((c) => c >= 3000 && c < 4000).sort((a, b) => a - b);
-    const expected = Array.from({ length: 19 }, (_, i) => 3000 + i);
+    const expected = Array.from({ length: 20 }, (_, i) => 3000 + i);
     expect(threeK).toEqual(expected);
-    expect(threeK).toHaveLength(19);
+    expect(threeK).toHaveLength(20);
   });
 
   it('has a registry entry for every code', () => {

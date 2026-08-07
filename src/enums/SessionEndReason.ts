@@ -20,4 +20,19 @@ export enum SessionEndReason {
 
   /** Offline pass revoked mid-session via RevocationEpoch bump. Full refund — `creditsCharged` MUST be 0. */
   DEAUTHORIZED = 'Deauthorized',
+
+  /**
+   * An operator ended the session deliberately — a Reset carrying `force: true`,
+   * or a station disable.
+   *
+   * spec v0.11.1 03-messages.md §5.4: the ONLY member that bills a NON-ZERO amount
+   * for a session the station did not run to completion. Every other
+   * non-completion reason here mandates zero, and `Deauthorized` reads as the
+   * nearest alternative while carrying "Session MUST be billed at zero" — so
+   * reusing it delivers a wash and charges nothing for it.
+   *
+   * Settled under the operator-disable policy (04-flows.md): metered from the time
+   * ACTUALLY DELIVERED, reported, and only then does the station act.
+   */
+  OPERATOR_STOPPED = 'OperatorStopped',
 }

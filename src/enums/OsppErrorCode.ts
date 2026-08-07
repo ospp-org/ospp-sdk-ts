@@ -117,6 +117,13 @@ export enum OsppErrorCode {
   ACTIVE_SESSIONS_PRESENT   = 3016,
   PROGRAM_NOT_DECLARED      = 3017,
   TOPOLOGY_MISMATCH         = 3018,
+  /**
+   * The server holds no service→program binding and cannot form a conforming
+   * StartService. The mirror of 3017, which is the STATION refusing an ordinal it
+   * was sent. Server-originated toward the requesting client; MUST NOT be
+   * transmitted to a station. spec v0.11.1 07-errors.md §3.3.
+   */
+  SERVICE_NOT_BOUND         = 3019,
 
   // --- Payment & Credit (4xxx) ---
   PAYMENT_GENERIC           = 4000,
@@ -196,6 +203,15 @@ export enum OsppErrorCode {
   SESSION_ALREADY_ACTIVE    = 6005,
   RATE_LIMIT_EXCEEDED       = 6006,
   SERVICE_DEGRADED          = 6007,
+  /**
+   * The server refused to dispatch a command it could see the station would refuse,
+   * and stopped it locally. `details.wouldBe` MUST carry the code the station would
+   * have answered. Not the station's own code: 3016 proves the message reached the
+   * station, whereas a pre-empt proves only what the server believed, and that view
+   * can be stale. A server MUST NOT pre-empt a Reset carrying `force: true`.
+   * spec v0.11.1 07-errors.md §3.6.
+   */
+  COMMAND_PRE_EMPTED        = 6008,
 }
 
 // ---------------------------------------------------------------------------
@@ -300,6 +316,7 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   // 3018 is a disagreement between two declarations, which is 409's shape.
   [OsppErrorCode.PROGRAM_NOT_DECLARED]:      meta(3017, 'PROGRAM_NOT_DECLARED',      'Error',    false, 404, 'Session'),
   [OsppErrorCode.TOPOLOGY_MISMATCH]:         meta(3018, 'TOPOLOGY_MISMATCH',         'Error',    true,  409, 'Session'),
+  [OsppErrorCode.SERVICE_NOT_BOUND]:         meta(3019, 'SERVICE_NOT_BOUND',         'Error',    true,  409, 'Session'),
 
   // ── Payment & Credit (4xxx) ───────────────────────────────────────────
   [OsppErrorCode.PAYMENT_GENERIC]:           meta(4000, 'PAYMENT_GENERIC',           'Error',    true,  500, 'Payment'),
@@ -382,4 +399,5 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.SESSION_ALREADY_ACTIVE]:    meta(6005, 'SESSION_ALREADY_ACTIVE',    'Warning',  true,  409, 'Server'),
   [OsppErrorCode.RATE_LIMIT_EXCEEDED]:       meta(6006, 'RATE_LIMIT_EXCEEDED',       'Warning',  true,  429, 'Server'),
   [OsppErrorCode.SERVICE_DEGRADED]:          meta(6007, 'SERVICE_DEGRADED',          'Info',     true,  503, 'Server'),
+  [OsppErrorCode.COMMAND_PRE_EMPTED]:        meta(6008, 'COMMAND_PRE_EMPTED',        'Warning',  true,  409, 'Server'),
 };

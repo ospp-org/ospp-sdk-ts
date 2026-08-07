@@ -11,14 +11,14 @@ describe('OsppErrorCode', () => {
     (v): v is number => typeof v === 'number',
   );
 
-  it('should have exactly 116 error codes', () => {
+  it('should have exactly 118 error codes', () => {
     // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes): 102 → 106.
     // v0.6.2: spec 07-errors.md §3.2 added 2018 SERVER_AUTH_NONCE_MISMATCH: 106 → 107.
     // v0.8.0: spec 07-errors.md added the seven provisioning-identity codes —
     //         2019 (§3.2) and 4015-4020 (§3.4): 107 → 114. Matches the spec's
     //         own stated "Total: 114 standard error codes" (07-errors.md §1.1).
-    // v0.11.0: 114 → 116 with 3017 PROGRAM_NOT_DECLARED and 3018 TOPOLOGY_MISMATCH.
-    expect(allCodes).toHaveLength(116);
+    // v0.11.0: 114 → 118 with 3017 PROGRAM_NOT_DECLARED and 3018 TOPOLOGY_MISMATCH.
+    expect(allCodes).toHaveLength(118);
   });
 
   it('should have unique numeric values', () => {
@@ -38,8 +38,8 @@ describe('OsppErrorCode', () => {
       expect(byRange(2000, 2999)).toHaveLength(20);
     });
 
-    it('should have 17 session/bay errors (3xxx)', () => {
-      expect(byRange(3000, 3999)).toHaveLength(19);
+    it('should have 20 session/bay errors (3xxx)', () => {
+      expect(byRange(3000, 3999)).toHaveLength(20);
     });
 
     it('should have 20 payment/credit errors (4xxx)', () => {
@@ -51,12 +51,12 @@ describe('OsppErrorCode', () => {
       expect(byRange(5000, 5999)).toHaveLength(34);
     });
 
-    it('should have 8 server errors (6xxx)', () => {
-      expect(byRange(6000, 6999)).toHaveLength(8);
+    it('should have 9 server errors (6xxx)', () => {
+      expect(byRange(6000, 6999)).toHaveLength(9);
     });
 
-    it('15 + 20 + 19 + 20 + 34 + 8 = 116', () => {
-      expect(15 + 20 + 19 + 20 + 34 + 8).toBe(116);
+    it('15 + 20 + 20 + 20 + 34 + 9 = 118', () => {
+      expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118);
     });
   });
 
