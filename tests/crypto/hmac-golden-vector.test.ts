@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { canonicalize } from '../../src/crypto/CanonicalJsonSerializer';
+import { canonicalizeForMac } from '../../src/crypto/CanonicalJsonSerializer';
 import { computeMac, verifyMac } from '../../src/crypto/HmacSigner';
 
 /**
@@ -43,7 +43,10 @@ describe('HMAC golden vectors (cross-language parity with ospp-sdk-php)', () => 
   for (const vector of fixture.vectors) {
     describe(vector.name, () => {
       it('canonical form matches the external oracle (and therefore ospp-sdk-php)', () => {
-        expect(canonicalize(vector.message)).toBe(vector.expectedCanonicalJson);
+        // canonicalizeForMac, matching ospp-sdk-php's MacSigner::canonicalize():
+        // expectedCanonicalJson is MAC INPUT, so §5.3 step 1 has already run.
+        // The `mac-strip` vector is the one that tells the two apart.
+        expect(canonicalizeForMac(vector.message)).toBe(vector.expectedCanonicalJson);
       });
 
       it('HMAC matches the external openssl oracle (and therefore ospp-sdk-php)', () => {

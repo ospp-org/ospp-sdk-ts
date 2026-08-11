@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalize } from '../../src/crypto/CanonicalJsonSerializer';
+import { canonicalize, canonicalizeForMac } from '../../src/crypto/CanonicalJsonSerializer';
 import { canonicalizeToBytes } from '../../src/crypto/CanonicalJsonBytes';
 
 describe('canonicalize', () => {
@@ -27,13 +27,28 @@ describe('canonicalize', () => {
       '"sessionId":"sess_a1b2c3d4","sessionSource":"MobileApp"},' +
       '"protocolVersion":"0.2.1","source":"Server","timestamp":"2026-01-30T12:00:00.000Z"}';
 
-    expect(canonicalize(message)).toBe(expected);
+    // §5.3, so canonicalizeForMac: the worked example strips `mac` before
+    // canonicalizing. Plain canonicalize() is §4.8 and keeps it.
+    expect(canonicalizeForMac(message)).toBe(expected);
+    expect(canonicalize(message)).toContain('"mac":"will-be-removed"');
   });
 
-  it('should remove mac field', () => {
-    const result = canonicalize({ b: 1, mac: 'secret', a: 2 });
-    expect(result).toBe('{"a":2,"b":1}');
-    expect(result).not.toContain('mac');
+  // Until 0.14.0 canonicalize() deleted a top-level `mac`. It no longer does:
+  // that is §5.3 step 1, not §4.8, and ospp-sdk-php never did it here either.
+  it('does NOT remove mac — canonical form is §4.8 and nothing else', () => {
+    expect(canonicalize({ b: 1, mac: 'secret', a: 2 })).toBe('{"a":2,"b":1,"mac":"secret"}');
+  });
+
+  it('canonicalizeForMac removes a top-level mac, without mutating the caller', () => {
+    const message = { b: 1, mac: 'secret', a: 2 };
+    expect(canonicalizeForMac(message)).toBe('{"a":2,"b":1}');
+    expect(message.mac).toBe('secret');
+  });
+
+  it('canonicalizeForMac removes only the TOP-LEVEL mac', () => {
+    expect(canonicalizeForMac({ mac: 'outer', payload: { mac: 'inner' } })).toBe(
+      '{"payload":{"mac":"inner"}}',
+    );
   });
 
   it('should work when mac is absent', () => {

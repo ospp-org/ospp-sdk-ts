@@ -1,5 +1,165 @@
 # Changelog
 
+## 0.14.0 — 2026-08-12
+
+**SDK-pair release against spec `v0.13.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.14.0**, from the same spec pin.
+
+`.spec-ref` **v0.11.1 → v0.13.0**.
+
+> **BREAKING — this changes MAC bytes, and both ends of a link must move together.**
+>
+> This release corrects how a message is reduced to the bytes that get signed. A peer on
+> 0.13.0 and a peer on 0.14.0 therefore compute **different MACs for the same message**, and
+> the receiver rejects what it cannot verify. This is not an optional upgrade: it requires
+> **both sides to move**, and — because a station and a server are different deployments on
+> different schedules — it requires them to move in a **coordinated window**.
+>
+> **The dangerous part is how narrow the break is.** MACs are unchanged for any message whose
+> strings are ASCII and whose object keys are ordinary identifiers — which is nearly every
+> message on a real fleet. The golden HMAC vectors in this release carry the **same
+> `expectedMac` values as 0.13.0**, unchanged. So a mixed fleet does not fail on upgrade. It
+> works, for days, until one message of an affected shape crosses the wire:
+>
+> - any signed message carrying **U+2028 or U+2029** in any string — 33 free-string sites on
+>   the signed path, including `messageId` and `action`, which are on *every* message;
+> - any message whose open objects — `DataTransfer.data` (both directions),
+>   `SecurityEvent.details`, `StartService.params` — carry keys that are **integer-like**
+>   (`"2"`, `"10"`) or **non-BMP**.
+>
+> That one message fails verification and is rejected, nothing else is affected, and nothing
+> in the failure points at a version skew. Plan the window; do not let the quiet period
+> convince you the fleet is homogeneous.
+
+### Fixed
+
+- **Object keys were sorted in UTF-16 order, not UTF-8 byte order** (`06-security.md` §4.8.1
+  step 1: "lexicographic byte ordering of the UTF-8 encoded key strings"). Two separate
+  defects wore one description, and only the first is a sorting problem:
+
+  1. `Array.prototype.sort()` compares UTF-16 code units. These disagree with UTF-8 bytes for
+     every key pair straddling the BMP boundary, because a supplementary character is a
+     surrogate pair starting `D800`–`DBFF` and therefore sorts *below* any key starting
+     `E000`–`FFFF`, while its UTF-8 encoding starts `F0` and sorts *above*. `{U+FFFD,
+     U+1D400}` is the minimal case, and this SDK emitted the two reversed.
+
+  2. **The sort was then thrown away.** JavaScript objects hold integer-like keys in ascending
+     *numeric* order ahead of every string key, whatever order they were inserted in, so
+     rebuilding a sorted object loses the sort for exactly those keys. `.sort()` correctly
+     produced `["1","10","2"]` and the rebuilt object emitted `1,2,10`. No comparator fixes
+     this — the loss happens after the comparator has run. It needs `Map`, or building the
+     string directly, and `canonicalize` now builds the string directly.
+
+  The second needs no exotic character. It is ordinary JSON, reachable wherever the protocol
+  does not constrain the keys, and it is the one likelier to have fired in production.
+
+- **`5004 ELECTRICAL_SYSTEM` was `recoverable: true`; the spec has said `false` since
+  v0.8.0** — eight spec releases. It is a §7.2 Level 3 (Faulted) entry trigger whose exit is
+  physical intervention + operator verification + station reboot. A welded relay or a lost
+  phase persists while the measured voltage reads nominal, so "power came back" does not mean
+  the fault cleared, and a welded relay may leave the bay energised after the station believes
+  it cut power. A consumer treating the fault as self-clearing could return that bay to
+  service.
+
+  It survived because the only thing checking the registry was the *other* SDK, which was
+  wrong in exactly the same way. An audit recorded `recoverable` as "identical — 0 diffs" and
+  that was true. Two implementations that agree are not evidence; they are one opinion held
+  twice. See *Added* for the gate.
+
+### Changed
+
+- **BREAKING (API, not wire): `canonicalize()` no longer strips `mac`.** Removing `mac` is
+  §5.3 step 1 — a pre-step belonging to the MAC computation — not §4.8. Canonical form is
+  defined over *any* JSON value: receipt bodies (§6.2) and OfflinePass payloads are signed and
+  have no `mac` field at all. A serializer that deletes a key named `mac` was quietly
+  corrupting any value that legitimately carried one, and it made this SDK the only one of the
+  three reference implementations to conflate the two sections — `ospp-sdk-php` keeps
+  `CanonicalJsonSerializer::serialize()` pure and strips in `MacSigner`, and the spec's own
+  `tools/canonical-form.mjs` does not mention `mac`.
+
+  **`computeMac`, `verifyMac` and `signMessage` are unaffected** — they now call
+  `canonicalizeForMac`, which strips exactly as before. MAC bytes do not change from this.
+  Migration: if you called `canonicalize(message)` on an envelope and relied on the strip, call
+  **`canonicalizeForMac(message)`**. `canonicalizeToBytes` is likewise pure now, restoring the
+  identity `canonicalizeToBytes(v) === Buffer.from(canonicalize(v), 'utf-8')`.
+
+- `canonicalize` rejects a `Map` or `Set` instead of silently canonicalizing it to `{}` — a
+  signature over nothing that still verifies is the same failure class as the empty-object bug
+  the vectors exist for.
+
+### Added
+
+- **`canonicalizeForMac(message)`** — §5.3 step 1 then §4.8. The twin of PHP's
+  `MacSigner::canonicalize()`.
+
+- **`npm run check:error-registry`** (CI job *Error registry vs spec registry*) — compares
+  every code in `OSPP_ERROR_REGISTRY` against the registry table in the spec's
+  `07-errors.md` at `.spec-ref`, on `errorText`, `severity`, `recoverable`, and the code set
+  in both directions. This is the gate whose absence let 5004 drift for eight releases: the
+  schema gate could not see the registry, because it is a Markdown table and not a schema, and
+  the spec's own `verify-protocol.sh` scrapes that table with a regex that stops before the
+  `Recoverable` column. `httpStatus` and `category` are deliberately not checked — the spec
+  declines to give a code either one.
+
+  It refuses to report a pass if it parses fewer than 100 rows, so a reformatted table fails
+  loudly instead of vacuously.
+
+- **`npm run check:crypto-vectors`** (CI job *Crypto corpus byte-identity gate*) — the script
+  existed since v0.6.0 and **nothing ever ran it**. It is wired up now because
+  `canonical-form.json` joined the corpus it guards.
+
+- **Canonical-form vectors are now VENDORED FROM THE SPEC**, byte-identical, at
+  `tests/crypto/fixtures/canonical-form.json` ←
+  `conformance/test-vectors/crypto/canonical-form.json`. Previously the canonical-form vectors
+  were two hand-maintained copies, one per SDK, whose agreement was asserted in a comment and
+  by nothing else — so both could be edited into agreeing with each other and disagreeing with
+  the spec, which is the shape of every defect in this release. The spec **recomputed** the
+  oracle values from the §4.8.1 rule text in a third implementation rather than adopting either
+  SDK's output; both SDKs reproduce all 17 byte for byte.
+
+- **A falsifiability check** (the spec's Category 20, run on the vendored copy). A corpus that
+  no longer separates right from wrong passes silently, so the suite runs the defect this SDK
+  actually shipped — `Object.keys().sort()` plus a plain-object rebuild — over the same vectors
+  and requires the corpus to **reject** it. Three vectors currently discriminate. If that count
+  ever reaches zero the test says so instead of reporting green.
+
+- **`canonical-mac-strip.json`** — the vector that would have caught the `canonicalize()`
+  divergence, pinning both the pure §4.8 form and the §5.3 MAC input for the same message. It
+  is deliberately *not* vendored: the spec's corpus carries no message with a `mac`, because
+  §4.8 says nothing about the field, and that silence is exactly what hid the defect.
+
+### Spec pin
+
+`.spec-ref` **v0.11.1 → v0.13.0**, re-vendored and byte-identity verified. Schema changes
+across that range are `description`-only, plus `trigger-message-request.bayId`, which was an
+unconstrained string where every other `bayId` is a `$ref` to `bay-id.schema.json`.
+
+---
+
+## 0.13.0 — 2026-08-07
+
+*Backfilled in 0.14.0.* This release shipped and was tagged, and the entry was never
+written — `git show v0.13.0` carried the notes and `CHANGELOG.md` jumped from 0.12.0 to
+0.14.0. The lockstep twin `ospp/protocol` **0.13.0** documented it at the time; this side
+did not, which is its own small lockstep failure. Transcribed from the tag.
+
+**SDK-pair release against spec `v0.11.1`.** Released at the same version as
+`ospp/protocol` **0.13.0**, from the same spec pin.
+
+### Added
+
+- `SessionEndReason.OPERATOR_STOPPED` — an operator ended the session deliberately. The
+  only member that bills a non-zero amount for a session the station did not run to
+  completion.
+- `OsppErrorCode.SERVICE_NOT_BOUND = 3019` — Error, recoverable, 409.
+- `OsppErrorCode.COMMAND_PRE_EMPTED = 6008` — Warning, recoverable, 409.
+
+This SDK carries no `recommendedAction` text, so the 4020 wording drift fixed in
+`ospp/protocol` 0.13.0 has no counterpart here.
+
+---
+
 ## 0.12.0 — 2026-08-05
 
 **SDK-pair release against spec `v0.11.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),

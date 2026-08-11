@@ -23,7 +23,7 @@
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { utf8ToBytes } from '@noble/hashes/utils.js';
-import { canonicalize } from './CanonicalJsonSerializer.js';
+import { canonicalizeForMac } from './CanonicalJsonSerializer.js';
 
 const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -131,7 +131,9 @@ export function computeMac(sessionKey: string, message: Record<string, unknown>)
     );
   }
 
-  return bytesToBase64(hmac(sha256, keyBytes, utf8ToBytes(canonicalize(message))));
+  // canonicalizeForMac, not canonicalize: §5.3 step 1 strips `mac` before §4.8
+  // runs. Until 0.14.0 the stripping lived inside canonicalize() itself.
+  return bytesToBase64(hmac(sha256, keyBytes, utf8ToBytes(canonicalizeForMac(message))));
 }
 
 /**

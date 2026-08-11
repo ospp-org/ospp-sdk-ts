@@ -1,5 +1,9 @@
 /**
- * All 114 standard OSPP error codes with static metadata.
+ * All 118 standard OSPP error codes with static metadata.
+ *
+ * The count, and each code's errorText/severity/recoverable, are asserted
+ * against spec/07-errors.md by `npm run check:error-registry` — not by this
+ * docblock, which had said 114 for four releases.
  *
  * Source: spec/07-errors.md §3.1–§3.6 (v0.4.2: 102 → 106 with 2014-2017 additions;
  * v0.6.2: → 107 with 2018 SERVER_AUTH_NONCE_MISMATCH; v0.8.0: → 114 with the seven
@@ -353,7 +357,11 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.PUMP_SYSTEM]:               meta(5001, 'PUMP_SYSTEM',               'Critical', false, 500, 'Hardware'),
   [OsppErrorCode.FLUID_SYSTEM]:              meta(5002, 'FLUID_SYSTEM',              'Warning',  true,  500, 'Hardware'),
   [OsppErrorCode.CONSUMABLE_SYSTEM]:         meta(5003, 'CONSUMABLE_SYSTEM',         'Warning',  true,  500, 'Hardware'),
-  [OsppErrorCode.ELECTRICAL_SYSTEM]:         meta(5004, 'ELECTRICAL_SYSTEM',         'Critical', true,  500, 'Hardware'),
+  // 5004 is NOT recoverable: a welded relay or a lost phase persists while the
+  // measured voltage reads nominal, and a welded relay may leave the bay
+  // energised after the station believes it cut power. §7.2 Level 3 entry
+  // trigger — physical intervention + operator verification + reboot.
+  [OsppErrorCode.ELECTRICAL_SYSTEM]:         meta(5004, 'ELECTRICAL_SYSTEM',         'Critical', false, 500, 'Hardware'),
   [OsppErrorCode.PAYMENT_HARDWARE]:          meta(5005, 'PAYMENT_HARDWARE',          'Warning',  false, 500, 'Hardware'),
   [OsppErrorCode.HEATING_SYSTEM]:            meta(5006, 'HEATING_SYSTEM',            'Warning',  true,  500, 'Hardware'),
   [OsppErrorCode.MECHANICAL_SYSTEM]:         meta(5007, 'MECHANICAL_SYSTEM',         'Warning',  false, 500, 'Hardware'),

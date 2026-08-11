@@ -47,6 +47,44 @@ jobs:
       - name: Type-check spec vectors against src/types/
         run: npm run check:vector-types
 
+  # The schemas job proves the vendored schemas match the spec, and vector-types
+  # proves the payload types match those schemas. The ERROR REGISTRY sat outside
+  # both: it is a Markdown table in spec/07-errors.md, not a schema, so nothing
+  # vendored it and nothing diffed it. The only check on it compared this SDK to
+  # ospp-sdk-php — and reported "recoverable: identical, 0 diffs" while both were
+  # wrong about 5004 ELECTRICAL_SYSTEM for eight spec releases. Two
+  # implementations that agree are one opinion held twice; this job compares
+  # against the spec instead.
+  error-registry:
+    name: Error registry vs spec registry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Compare src/enums/OsppErrorCode.ts against spec/07-errors.md
+        run: npm run check:error-registry
+
+  # scripts/check-crypto-vectors.sh existed since v0.6.0 and NOTHING EVER RAN IT
+  # — no CI job, no npm script. It is wired up here because canonical-form.json
+  # joined the corpus it guards: until 0.14.0 the canonical-form vectors were two
+  # hand-maintained copies, one per SDK, whose agreement was asserted in a comment.
+  # Both could be edited into agreeing with each other and disagreeing with the
+  # spec, which is the shape of every defect 0.14.0 fixes.
+  crypto-vectors:
+    name: Crypto corpus byte-identity gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Byte-identity check (tests/crypto/fixtures/ ↔ spec conformance corpus)
+        run: npm run check:crypto-vectors
+
   schemas:
     name: Schema byte-identity gate
     runs-on: ubuntu-latest
