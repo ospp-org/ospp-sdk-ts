@@ -99,7 +99,7 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
   [ConfigKey.RECONNECT_BACKOFF_MAX]:        km('ReconnectBackoffMax',         'integer', '30',    'RW', 'Dynamic', 'Core'),
   [ConfigKey.STATION_NAME]:                 km('StationName',                 'string',  '',      'RW', 'Static',  'Core'),
   [ConfigKey.TIME_ZONE]:                    km('TimeZone',                    'string',  'UTC',   'RW', 'Static',  'Core'),
-  [ConfigKey.PROTOCOL_VERSION]:             km('ProtocolVersion',             'string',  '0.2.1', 'R',  'Static',  'Core'),
+  [ConfigKey.PROTOCOL_VERSION]:             km('ProtocolVersion',             'string',  '0.3.0', 'R',  'Static',  'Core'),
   [ConfigKey.FIRMWARE_VERSION]:             km('FirmwareVersion',             'string',  null,    'R',  'Static',  'Core'),
   [ConfigKey.BOOT_RETRY_INTERVAL]:          km('BootRetryInterval',           'integer', '30',    'RW', 'Dynamic', 'Core'),
   [ConfigKey.CONNECTION_LOST_GRACE_PERIOD]: km('ConnectionLostGracePeriod',   'integer', '300',   'RW', 'Dynamic', 'Core'),

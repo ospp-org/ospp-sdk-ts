@@ -40,7 +40,7 @@ export interface OsppEnvelope<T = unknown> {
   /** Who originated this message. ConnectionLost LWT uses 'Server'. */
   source: MessageSource;
 
-  /** Semantic version of the OSPP protocol, e.g. "0.2.1". */
+  /** Semantic version of the OSPP protocol, e.g. "0.3.0". */
   protocolVersion: string;
 
   /** Action-specific payload. */
@@ -54,8 +54,26 @@ export interface OsppEnvelope<T = unknown> {
 // Protocol version constant
 // ---------------------------------------------------------------------------
 
-/** Current wire protocol version. */
-export const OSPP_PROTOCOL_VERSION = '0.2.1';
+/**
+ * Current wire protocol version — the value spec Chapter 08 gives for the
+ * `ProtocolVersion` configuration key, which is what a peer expects to see in
+ * the envelope.
+ *
+ * This was `0.2.1` up to and including 0.14.0, and stopped being correct at spec
+ * v0.10.0 — four minor releases during which nothing failed, because every known
+ * consumer already overrode it: csms-server through `OSPP_PROTOCOL_VERSION`,
+ * ts-station-simulator through its own `WIRE_PROTOCOL_VERSION` constant. A
+ * default nothing exercises cannot be observed to be wrong. Do not read the
+ * quiet as evidence that the value does not matter; read it as the reason this
+ * one went stale for a year.
+ *
+ * Keep it equal to `ospp/protocol` (PHP) `ProtocolVersion::default()`. The two
+ * SDKs are released as a pair for exactly this: fixing one alone converts a
+ * shared staleness into a disagreement, which is strictly worse — a station and
+ * a server that disagree about the version fail negotiation with `1007
+ * PROTOCOL_VERSION_MISMATCH` and the failure names the version, not the SDK.
+ */
+export const OSPP_PROTOCOL_VERSION = '0.3.0';
 
 // ---------------------------------------------------------------------------
 // Envelope factory helpers

@@ -20,7 +20,7 @@ describe('browser-safe barrel — runtime sanity', () => {
     expect(MessageType.REQUEST).toBe('Request');
     expect(MessageSource.STATION).toBe('Station');
     expect(OsppAction.BOOT_NOTIFICATION).toBe('BootNotification');
-    expect(OSPP_PROTOCOL_VERSION).toBe('0.2.1');
+    expect(OSPP_PROTOCOL_VERSION).toBe('0.3.0');
   });
 
   it('createEnvelope and topic helpers are pure-JS callable', () => {
@@ -32,7 +32,7 @@ describe('browser-safe barrel — runtime sanity', () => {
       payload: {},
     });
     expect(env.action).toBe('Heartbeat');
-    expect(env.protocolVersion).toBe('0.2.1');
+    expect(env.protocolVersion).toBe('0.3.0');
     expect(toServerTopic('STN-001')).toBe('ospp/v1/stations/STN-001/to-server');
     expect(canonicalize({ b: 2, a: 1 })).toBe('{"a":1,"b":2}');
   });

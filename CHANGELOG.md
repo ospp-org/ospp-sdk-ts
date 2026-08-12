@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.15.0 — 2026-08-12
+
+**SDK-pair release against spec `v0.13.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.15.0**, from the same spec pin.
+
+`.spec-ref` **unchanged at v0.13.0** — no schema moves, no vector moves. The vendored
+crypto corpus and the 118-code error registry are byte-identical to the same spec tag
+they matched at 0.14.0.
+
+> **Behaviour change, narrow: the default wire `protocolVersion` moves `0.2.1` → `0.3.0`.**
+>
+> Affects only a caller that takes the default — `createEnvelope()` without an explicit
+> `protocolVersion`, or anything reading `OSPP_PROTOCOL_VERSION` directly. Such a caller
+> previously announced `0.2.1`, which spec Chapter 08 stopped sanctioning at spec v0.10.0
+> and which the production fleet does not speak. If you are pinned to a peer whose
+> supported set is `{0.2.1}`, pass the version explicitly before upgrading.
+
+### Fixed
+
+- **`OSPP_PROTOCOL_VERSION` and `CONFIG_KEY_REGISTRY[ProtocolVersion].defaultValue` both
+  answered `0.2.1`, where spec Chapter 08 says `0.3.0`.** Stale since spec v0.10.0 — four
+  minor releases. `ospp/protocol` (PHP) carried the identical pair of stale defaults and
+  is fixed in the same release pair; correcting either SDK alone would have converted a
+  shared staleness into a **cross-SDK disagreement**, which is strictly worse. A station
+  and a server that disagree on the version fail negotiation with `1007
+  PROTOCOL_VERSION_MISMATCH`, and the error names the version, not the SDK that chose it —
+  so the disagreement would have been paid for in debugging time at the far end of a wire.
+
+  **Why four releases passed without a symptom.** Every consumer already overrode it, each
+  having discovered the problem separately: `csms-server` sets `OSPP_PROTOCOL_VERSION` in
+  its environment, and `ts-station-simulator` carried a local `WIRE_PROTOCOL_VERSION`
+  constant added after a real UAT incident — a Last-Will envelope built without an explicit
+  version inherited this constant, was refused `1007`, and dead-lettered, so the server
+  never learned the station had vanished and orphaned-session recovery never ran. That
+  constant is deleted in the simulator's matching bump; its docblock had named "when the
+  SDK's own default is corrected" as its exit condition, and this is that release.
+
+  The general shape is worth keeping: **a default that every caller overrides is a default
+  that nothing exercises**, so no test and no wire capture can report it wrong. Silence
+  around it measures how thoroughly it was routed around, not whether it is correct.
+
+### Not in this release
+
+- **No `check-config-registry` equivalent here yet.** `ospp/protocol` (PHP) wires a
+  Chapter 08 parity gate into CI at 0.15.0, and it is what caught this. This SDK has
+  `check:vector-types`, `check:error-registry` and `check:crypto-vectors`, but its
+  `CONFIG_KEY_REGISTRY` is still compared only against itself — the same position the PHP
+  enum was in when it drifted. Worth porting; recorded here rather than in a session that
+  will be forgotten. (This SDK had `MessageSigningMode` right when the PHP one had it
+  wrong, so the drift is not one-directional and neither registry is the trustworthy one.)
+
 ## 0.14.0 — 2026-08-12
 
 **SDK-pair release against spec `v0.13.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),

@@ -44,8 +44,12 @@ describe('OsppEnvelope', () => {
 });
 
 describe('OSPP_PROTOCOL_VERSION', () => {
-  it('should be 0.2.1', () => {
-    expect(OSPP_PROTOCOL_VERSION).toBe('0.2.1');
+  // Named for the source of truth rather than for the number, because the number
+  // in a test name goes stale silently: the PHP SDK carried two tests still named
+  // `_is_0_1_0` while asserting 0.2.1, the assertions having been updated at a bump
+  // that left the names behind.
+  it('should be the version spec Chapter 08 mandates on the wire', () => {
+    expect(OSPP_PROTOCOL_VERSION).toBe('0.3.0');
   });
 
   it('should match semver pattern', () => {
