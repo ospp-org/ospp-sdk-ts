@@ -1,5 +1,137 @@
 # Changelog
 
+## 0.16.0 — 2026-08-13
+
+**SDK-pair release against spec `v0.15.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.16.0**, from the same spec pin.
+
+`.spec-ref` **v0.13.0 → v0.15.0** — a **two-release** jump, and only the first of the two
+carries anything. `v0.14.0` moved a schema and moved the corpus with it; `v0.15.0` touched
+neither, so for a vendoring SDK it is the pin and nothing else. All the work below comes from
+a range this SDK passes *through* rather than lands on — bumping to the newest tag is not the
+same as skipping the middle one.
+
+> **BREAKING — `SchemaValidator` now rejects MeterValues with an empty `values` object.**
+>
+> `src/schemas/common/meter-values.schema.json` gained `"minProperties": 1`. `{"values": {}}`
+> validated for the whole life of this package and does not any more.
+>
+> **This is a behaviour change on a public export from the day it ships**, not a deferred one.
+> `SchemaValidator` compiles Ajv over the vendored tree and is exported from
+> `@ospp/protocol/server`; every file under `src/schemas/common/` is eagerly registered at
+> construction, so the tightened schema is live on the first `validate()` call. It is reachable
+> through **three** public schema keys — `meter-values-event`, `stop-service-response` and
+> `transaction-event-request`, each `$ref`ing the common file — plus the BLE receipt and
+> service-status schemas, which `SchemaPath` does not map and which therefore stay unreachable
+> from the public validator.
+>
+> Any caller that validated a station's MeterValues and accepted `"values": {}` will now get
+> `valid: false`. That is the intended outcome: `meter-values.md` §5 has always said *"The
+> `values` object **MUST** contain at least one field"*, and for the whole of that time nothing
+> enforced it. Such a payload was already non-conforming and was already being believed.
+>
+> `ospp/protocol` (PHP) 0.16.0 ships the identical schema, but `opis/json-schema` is
+> `require-dev` there — that package validates nothing at run time — so the same tightening
+> lands one layer out, in the server that compiles the vendored tree. Same schema, two blast
+> radii, and this is the side where it is immediate.
+>
+> `MeterValues` in `src/types/common.ts` is **unchanged**: all three members stay optional. The
+> type system cannot express `minProperties: 1` on an interface whose members are all optional,
+> so `{ values: {} }` still type-checks and fails at validation. That asymmetry is deliberate —
+> narrowing the type would break every legitimate single-reading construction — but it does mean
+> **the compiler will not find your callers for you**. Grep for `values: {}`.
+
+### Spec pin
+
+`.spec-ref` **v0.13.0 → v0.15.0**, re-vendored and byte-identity verified through
+`scripts/check-schemas.sh`'s own clone path. Schema changes across that range are two files,
+both landing at `v0.14.0`:
+
+- `common/meter-values.schema.json` — gained `"minProperties": 1`. The substantive change of
+  this release and the only one with a caller consequence.
+- `mqtt/session-ended-event.schema.json` — `seqNo.description` only. The old text said the
+  counter *"matches the running seqNo of the last MeterValues"*; it now says the sequence
+  **continues** — the next value after the last, not a repeat of it. Wire-inert, but it
+  reversed which of two readings the schema endorsed, and under the minority one a conforming
+  receiver sees a repeat where it MUST verify an increment.
+
+### Vendored
+
+- `src/schemas/` — byte-identical to spec `v0.15.0`, **86 files**, unchanged in count.
+- `src/test-vectors/` — **160 valid + 157 invalid = 317** vectors, byte-identical to the tag's
+  `conformance/test-vectors/`. Two moves, both consequences of `minProperties`:
+  - `valid/transaction/meter-values-event-minimal.json` carried `"values": {}` — the shape the
+    new schema forbids. **A valid vector encoding an invalid payload**, so re-vendoring the
+    schema alone turns this suite red on it. It now carries one reading.
+  - `invalid/transaction/meter-values-event-empty-values.json` — **new**, and it is the old
+    content of the file above, moved across the boundary. The rule is now falsifiable rather
+    than merely stated.
+- **Nothing in this repository checks that second bullet.** `src/schemas/` has a byte-identity
+  gate; the vendored corpus has none, in either SDK. See *The gap this release does not close*.
+- The crypto corpus needed no work — `conformance/test-vectors/crypto/` is byte-identical
+  between `v0.13.0` and `v0.15.0`, and all four gated files still match.
+
+### Changed
+
+- **`OsppErrorCode.COMMAND_PRE_EMPTED`'s docblock was narrower than the code it documents.**
+  Written against spec `v0.11.1`, it said `details.wouldBe` **MUST** carry the code the station
+  would have answered — unconditionally. `v0.15.0` widens `6008` to the two kinds of pre-empt
+  it always had, and on the second `details.wouldBe` **MUST be absent**: a *server-protective*
+  refusal (the open command circuit breaker is the defined case) is not a prediction about the
+  station, and naming a code the station never gave is exactly the borrowing the entry exists
+  to forbid. `details.reason` is promoted SHOULD → MUST, being the one member present on both.
+  The docblock now carries both kinds and the fail-safe default — **absent `wouldBe` means the
+  command did not run, and no outcome may be assumed.**
+
+  No registry field changed, so nothing executable moved. Which is the uncomfortable part: a
+  docblock asserting a MUST the specification has since relaxed is wrong in the one direction
+  that matters, and no gate here can see it. `check:error-registry` parses columns 1–4 only —
+  `code | errorText | Severity | Recoverable` — and stops before Description and Recommended
+  Action. Correct by design; it also means the prose this SDK *does* carry is compared with
+  nothing.
+
+- **`SessionEndedPayload.seqNo`'s docblock echoed the superseded schema wording** — *"matches
+  the running seqNo of the last MeterValues emitted for the session"*, the reading `v0.14.0`
+  overturned in the schema description it was copied from. It now states the increment. Same
+  class as the entry above: a restatement with no citation and no gate, drifting the moment its
+  source moved.
+
+### The gap this release does not close
+
+Both SDKs vendor two artefacts from the spec — the schema tree **and** the conformance corpus —
+and both CIs byte-diff only the first. So the schemas cannot drift and the vectors drift
+freely, which is what happened, and the failure mode is inverted: a maintainer who does the
+*right* thing (`cp -r spec/schemas`, bump `.spec-ref`) gets a red suite pointing at a hardcoded
+number, with nothing saying the corpus was the other half of the job.
+
+The literal is still a literal. It is updated here (`316` → `317`) and now carries a comment
+saying what it is: a **second copy of a fact about the corpus, not a check on it**. Specified in
+the spec's `KNOWN-ISSUES.md`, and scoped but deliberately **not built** here — a `diff -rq` of
+the whole vendored tree against the spec clone, never a hand-maintained file list, plus a
+parsed count asserted `> 0`, because a gate that reads zero vectors must not report a pass.
+
+A third instance surfaced while scoping it, and it is already live: `scripts/check-crypto-vectors.sh`
+gates its four files **from a hand-written list**, and the spec's crypto corpus has had a fifth,
+`mqtt-mac.json`, vendored in **neither** SDK. Both gates report OK. Not fixed here — nothing
+consumes that vector yet — but it is the defect the list form always produces, and it is why
+the replacement must diff a tree.
+
+### Verification
+
+- `npm run build` — clean.
+- `npm test` — **1009 tests across 36 files**, green (from 1008; the new invalid vector is the
+  one added test, `SchemaValidator.test.ts` 262 → 263).
+- `npm run typecheck` — clean.
+- `npm run check:vector-types` — 12 spec vectors type-check against `src/types/` at `v0.15.0`.
+- `npm run check:error-registry` — **118/118** agreeing against `v0.15.0`.
+- `npm run check:crypto-vectors` — 4/4 byte-identical against `v0.15.0`.
+- `bash scripts/check-schemas.sh` — `src/schemas/` byte-identical to `v0.15.0`.
+- `diff -rq` of `src/test-vectors/{valid,invalid}` against the tag — clean, by hand, because no
+  gate does it.
+
+---
+
 ## 0.15.0 — 2026-08-12
 
 **SDK-pair release against spec `v0.13.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),

@@ -10,8 +10,10 @@ export interface SessionEndedPayload {
   creditsCharged: CreditAmount;
   meterValues?: MeterValues;
   /**
-   * Optional per-session monotonic counter (matches the running seqNo of the
-   * last MeterValues emitted for the session). See spec/02-transport.md §3.2.
+   * Optional per-session monotonic counter, continuing the session's MeterValues
+   * sequence — the next value after the last MeterValues emitted, NOT a repeat of
+   * it. Every session-scoped EVENT increments by exactly 1.
+   * See spec/02-transport.md §3.2.
    */
   seqNo?: number;
   /**

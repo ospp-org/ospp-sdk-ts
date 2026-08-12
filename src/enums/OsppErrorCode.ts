@@ -208,12 +208,24 @@ export enum OsppErrorCode {
   RATE_LIMIT_EXCEEDED       = 6006,
   SERVICE_DEGRADED          = 6007,
   /**
-   * The server refused to dispatch a command it could see the station would refuse,
-   * and stopped it locally. `details.wouldBe` MUST carry the code the station would
-   * have answered. Not the station's own code: 3016 proves the message reached the
-   * station, whereas a pre-empt proves only what the server believed, and that view
-   * can be stale. A server MUST NOT pre-empt a Reset carrying `force: true`.
-   * spec v0.11.1 07-errors.md §3.6.
+   * The server refused to dispatch a command and stopped it locally, so it never
+   * reached the station. Not the station's own code: 3016 proves the message reached
+   * the station, whereas a pre-empt proves only what the server believed, and that
+   * view can be stale. A server MUST NOT pre-empt a Reset carrying `force: true`.
+   *
+   * Two kinds, discriminated by `details.reason` — REQUIRED, because it is the one
+   * member present on both:
+   *  1. **Predicted refusal** — the server sees the station would decline (a Reset
+   *     with sessions running). `details.wouldBe` MUST carry the code the station
+   *     would have answered (3016 for that Reset).
+   *  2. **Server-protective** — the server declines for a reason of its own, the
+   *     open command circuit breaker being the defined case. `details.wouldBe` MUST
+   *     be ABSENT: the station was never going to answer at all, and inventing a
+   *     code it never gave is the borrowing this entry exists to forbid.
+   *
+   * With `details.wouldBe` absent a receiver MUST treat the command as refused and
+   * NOT performed, and MUST NOT infer it would have succeeded.
+   * spec v0.15.0 07-errors.md §3.6.
    */
   COMMAND_PRE_EMPTED        = 6008,
 }

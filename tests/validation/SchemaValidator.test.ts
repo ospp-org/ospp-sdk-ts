@@ -97,10 +97,16 @@ const invalidVectors = discoverTestVectors(join(TEST_VECTORS_ROOT, 'invalid'));
 
 describe('vector coverage', () => {
   it('vendors the whole corpus', () => {
-    // 160 valid + 156 invalid = 316, the count the spec's own verify-schemas.py
+    // 160 valid + 157 invalid = 317, the count the spec's own verify-schemas.py
     // reports. A truncated vendored copy would make every test below pass
     // vacuously.
-    expect(validVectors.length + invalidVectors.length + unmapped.length).toBe(316);
+    //
+    // This literal is a SECOND COPY of a fact about the corpus, not a check on
+    // it: nothing derives it from the vendored tree, so it must be hand-bumped
+    // on every new vector. See KNOWN-ISSUES — the gate that should replace it
+    // derives the count at run time and asserts only `> 0`, leaving byte-identity
+    // against the spec clone to pin WHICH vectors are present.
+    expect(validVectors.length + invalidVectors.length + unmapped.length).toBe(317);
   });
 
   it('leaves exactly the BLE corpus unmapped, and names it', () => {
