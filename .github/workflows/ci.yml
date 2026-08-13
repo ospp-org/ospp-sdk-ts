@@ -68,6 +68,35 @@ jobs:
       - name: Compare src/enums/OsppErrorCode.ts against spec/07-errors.md
         run: npm run check:error-registry
 
+  # The mirror of the same defect one registry over. CONFIG_KEY_REGISTRY was
+  # compared only to itself: tests/enums/ConfigKey.test.ts counts the keys in each
+  # profile, which stays green through any RENAMING of a profile — and it did, for
+  # as long as the field existed. The 0.15.0 notes recorded that ospp/protocol had
+  # wired a Chapter 08 gate and this package had not; this is that port.
+  #
+  # It checks one column the PHP sibling did not, for a structural reason: §§2--6
+  # carry no profile column at all (the profile is expressed by which SECTION a row
+  # sits in), so a gate built from those rows is blind to it by construction. The
+  # profile is stated per key in §1.5, which gained the normative Profile ID column
+  # in spec v0.16.0 — before that there was only a display label, `Offline / BLE`,
+  # which does not survive being made an identifier.
+  #
+  # NB this gate CANNOT run against a spec older than v0.16.0: §1.5 has no Profile
+  # ID column there, the parse yields zero profile rows and it exits 1 rather than
+  # passing vacuously. .spec-ref and this job move together.
+  config-registry:
+    name: Config registry vs Chapter 08
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Compare src/enums/ConfigKey.ts against spec/08-configuration.md
+        run: npm run check:config-registry
+
   # scripts/check-crypto-vectors.sh existed since v0.6.0 and NOTHING EVER RAN IT
   # — no CI job, no npm script. It is wired up here because canonical-form.json
   # joined the corpus it guards: until 0.14.0 the canonical-form vectors were two

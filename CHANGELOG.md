@@ -1,5 +1,132 @@
 # Changelog
 
+## 0.17.0 — 2026-08-13
+
+**SDK-pair release against spec `v0.16.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as
+`ospp/protocol` **0.17.0**, from the same spec pin.
+
+`.spec-ref` **v0.15.0 → v0.16.0**, and this is the cheap kind of bump: **nothing needs
+re-vendoring.** `v0.16.0` changes no schema and no conformance vector — the only files that
+moved under `schemas/` and `conformance/test-vectors/` are two README version banners, and
+the byte-identity gate excludes `README.md` while the crypto gate names its four files
+explicitly. Measured rather than assumed: every spec-facing gate was re-run against the
+`v0.16.0` tree before the pin moved, and all are green. Worth saying out loud, because the
+ordering a re-vendor *does* force — schemas, then vectors, then hardcoded totals, then the
+pin — is expensive and is not needed here.
+
+> **BREAKING — `CONFIG_KEY_REGISTRY[k].profile` answers `DeviceManagement` where it
+> answered `DeviceMgmt`, and the `ConfigProfile` union changes with it.**
+>
+> The four Device Management keys: `FirmwareUpdateEnabled`, `DiagnosticsUploadUrl`,
+> `LogLevel`, `AutoRebootEnabled`. The other four profiles are unchanged — `Core`,
+> `Transaction`, `Security` and `OfflineBLE` were already spelled the way the spec now
+> requires.
+>
+> `ConfigProfile` is a public export (`src/index.ts`, the browser-safe barrel), so this
+> breaks in **two** ways depending on how it is consumed. A type-only consumer — anything
+> annotating a variable `ConfigProfile` or narrowing on the union — breaks at **compile
+> time**, loudly. A consumer comparing the emitted data at run time
+> (`meta.profile === 'DeviceMgmt'`) breaks **silently**: the union erases, so nothing type-
+> checks that string literal against the new vocabulary and the comparison simply stops
+> matching. The second is the one to grep for.
+>
+> **This is an API break and NOT a protocol break, and the distinction is load-bearing.**
+> The profile is metadata that never reaches the wire. No schema in `src/schemas/` declares
+> a `profile` property; `get-configuration-response.schema.json` sets
+> `additionalProperties: false` over exactly `key`, `value` and `readonly`, so the validator
+> would *reject* a profile field. `CONFIG_KEY_REGISTRY` has three referencing sites in the
+> package — its definition, the barrel re-export and its test — and no message builder,
+> envelope or serializer is among them. **No byte on any MQTT or BLE payload changes, no
+> canonical form changes, no MAC or signature input changes.** A station and a server on
+> either side of this upgrade interoperate exactly as before.
+>
+> **`@ospp/station-simulator`, the only known consumer, does not read it.** No profile
+> identifier appears anywhere in its source; it depends on this package at `^0.15.0`, which
+> does not admit `0.17.0` at all.
+
+### Changed
+
+- **The registry carries the spec's normative Profile ID.** Spec `v0.16.0` §1.5 gains a
+  **Profile ID** column — `Core`, `Transaction`, `Security`, `OfflineBLE`,
+  `DeviceManagement` — and states that an implementation exposing a key's profile as a
+  program value MUST use it exactly. Until that column existed there was only a display
+  label to copy, and neither `Offline / BLE` nor `Device Management` survives being made an
+  identifier: this package chose `OfflineBLE` and `DeviceMgmt`, `ospp/protocol` chose
+  `Offline` and `DeviceManagement`. Four spellings of two profiles across two SDKs, none of
+  them wrong against anything, because there was nothing to be wrong against. Each SDK
+  changes exactly one value in this release.
+
+- **`src/enums/ConfigKey.ts` cites §§2--6 rather than §9.** `v0.16.0` declares §§2--6
+  normative and §9 derived from them, and the two do not carry the same columns. §9 is where
+  `Device Mgmt` was spelled — the chapter's one profile label written two ways, and the
+  reason this file had a third spelling to begin with.
+
+- **docs:** `README.md` advertised *"41 configuration keys"*. There are 29, and have been
+  since the enum was cut down.
+
+### Added
+
+- **`scripts/check-config-registry.ts` — the gate this package did not have.** The 0.15.0
+  notes recorded that `ospp/protocol` had wired a Chapter 08 parity gate and that
+  `CONFIG_KEY_REGISTRY` here was "still compared only against itself — the same position the
+  PHP enum was in when it drifted". It was, and it had. `tests/enums/ConfigKey.test.ts`
+  counts the keys in each profile, which stays green through any *renaming* of a profile.
+
+  It compares `Type`, `Default`, `Access` and `Mutability` against §§2--6 and the **Profile
+  ID** against §1.5, plus the key set in both directions. **On the first run it found no
+  drift on the four §§2--6 properties** — this registry was correct on all 29 keys despite
+  never having been checked against anything. Only the profile was wrong.
+
+  It also checks one column the PHP sibling did not, for a structural reason: §§2--6 carry
+  no profile column, so a gate built by parsing those rows is blind to the profile by
+  construction. The PHP gate ran green against `v0.16.0` with its own drift live. Both gates
+  now read §1.5.
+
+  Three properties, the same as the sibling ratchets:
+
+  - **Thresholds on each side before any comparison.** §1.5 is a *different table* from the
+    §§2--6 rows, so a floor cleared by those says nothing about it: §1.5 could reformat,
+    yield nothing, and leave the gate reporting a clean pass on four properties while
+    checking zero keys for the fifth. It has its own floors — 5 profile rows, 25 keys named
+    across them — plus one on the SDK side.
+  - **Zero matched pairs is a failure, never a pass.** Every threshold above can be cleared
+    by two tables that each parse fully and name *disjoint* key sets: both sides full, the
+    intersection empty, nothing compared and nothing reported. The count of pairs actually
+    compared is printed on success, so the number being asserted over is visible rather than
+    inferred from silence.
+  - **It refuses rather than reports success on too few rows**, and names the parser to fix.
+
+  RED-tested four ways, each confirmed to exit 1: the real drift (reports exactly the four
+  Device Management keys); spec `v0.15.0`, where the column does not exist yet (0 profile
+  rows — **this gate cannot run against a spec older than v0.16.0, which is why the pin and
+  the gate move in one commit**); two tables naming disjoint keys (0 pairs compared); and a
+  misspelled Profile ID upstream (reported once as a vocabulary problem, not only as four
+  per-key lines).
+
+  Wired into CI as the `config-registry` job and as `npm run check:config-registry`. **The
+  script is `100644` and does not need an exec bit** — CI invokes it through the npm script,
+  which names `vite-node` as the interpreter, as every gate in this package does. That is
+  deliberate: two gates in the sibling package shipped as `100644` while being invoked as
+  bare `run: scripts/…` and died `Permission denied` on every run with the CI column green.
+  If one is ever rewired as `./scripts/…`, the mode becomes load-bearing and must be
+  `100755` in the git index, not merely on disk.
+
+- **`tests/enums/ConfigKey.test.ts` pins the profile vocabulary.** The existing per-profile
+  counts are a self-comparison and survive any rename; the new assertion requires every
+  `profile` value to be one of the five §1.5 Profile IDs, so a rename has to be deliberate in
+  two files. It is still in-repo — the gate above is what compares against something outside.
+
+### Not in this release
+
+- **No range validation.** `v0.16.0` declares the Chapter 08 Range column normative (§1.6)
+  and widens `HeartbeatIntervalSeconds` from `30--3600` to `10--3600`. `ConfigKeyMeta` models
+  no range, so there is nothing here to correct and nothing for the gate to compare.
+- **Nothing for the Device Management profile becoming capability-conditional.** The registry
+  records which profile a key belongs to, not whether that profile is required. The
+  capability itself, `capabilities.deviceManagementSupported`, is already carried in
+  `StationCapabilities` and is unchanged.
+
 ## 0.16.0 — 2026-08-13
 
 **SDK-pair release against spec `v0.15.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),

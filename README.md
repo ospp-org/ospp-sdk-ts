@@ -12,7 +12,7 @@ npm install @ospp/protocol
 
 - **27 MQTT actions** with full TypeScript types for all request/response/event payloads
 - **102 error codes** with severity, recoverable, and HTTP status metadata
-- **41 configuration keys** with type, access mode, mutability, and default values
+- **29 configuration keys** with type, access mode, mutability, and default values
 - **5 state machines** (Bay, Session, Reservation, Firmware, Diagnostics) with enforced transitions
 - **HMAC-SHA256** canonical JSON serialization, signing, and timing-safe verification
 - **ECDSA P-256** signing and verification

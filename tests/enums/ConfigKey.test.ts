@@ -41,11 +41,31 @@ describe('ConfigKey', () => {
     });
 
     it('should have 4 Device Management keys', () => {
-      expect(byProfile('DeviceMgmt')).toHaveLength(4);
+      expect(byProfile('DeviceManagement')).toHaveLength(4);
     });
 
     it('9 + 6 + 6 + 4 + 4 = 29', () => {
       expect(9 + 6 + 6 + 4 + 4).toBe(29);
+    });
+
+    // These counts are a self-comparison: they assert the registry against
+    // itself and would stay green through any renaming, which is how
+    // `DeviceMgmt` survived. The vocabulary is pinned here so a rename has to
+    // be deliberate in two files; the gate that compares it to something
+    // OUTSIDE this repo is `npm run check:config-registry`, against §1.5 of
+    // spec/08-configuration.md at the pinned .spec-ref.
+    it('every profile value is a spec §1.5 Profile ID', () => {
+      const PROFILE_IDS: ConfigProfile[] = [
+        'Core',
+        'Transaction',
+        'Security',
+        'OfflineBLE',
+        'DeviceManagement',
+      ];
+
+      for (const meta of Object.values(CONFIG_KEY_REGISTRY)) {
+        expect(PROFILE_IDS, `${meta.key} carries profile ${meta.profile}`).toContain(meta.profile);
+      }
     });
   });
 });

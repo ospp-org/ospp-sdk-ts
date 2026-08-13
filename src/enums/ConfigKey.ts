@@ -1,17 +1,29 @@
 /**
  * All 29 standard OSPP configuration keys.
  *
- * Source: spec/08-configuration.md §9 — Configuration Key Summary.
+ * Source: spec/08-configuration.md §§2--6 — the registry tables.
+ *
+ * §9 is a DERIVED cross-reference and is NOT the source: spec v0.16.0 declares
+ * §§2--6 normative and §9 derived from them, and the two do not carry the same
+ * columns. Reading §9 is what left this registry without a Range field and what
+ * fed it the display label `Device Mgmt`, which §9 spelled two ways.
  *
  * Keys are PascalCase strings stored in a flat key-value store on the station.
  * Values are transmitted as JSON strings on the wire regardless of logical type.
  *
- * Profiles:
- *   Core            (9 keys) — required
- *   Transaction     (6 keys) — required
- *   Security        (6 keys) — required
- *   Offline / BLE   (4 keys) — required if capabilities.bleSupported = true
- *   Device Mgmt     (4 keys) — required
+ * Profiles — the `profile` field below carries the §1.5 **Profile ID**, the
+ * normative machine identifier, never the display label:
+ *
+ *   Profile ID         Display label       Keys   Required
+ *   Core               Core                   9   yes
+ *   Transaction        Transaction            6   yes
+ *   Security           Security               6   yes
+ *   OfflineBLE         Offline / BLE          4   if capabilities.bleSupported
+ *   DeviceManagement   Device Management      4   if capabilities.deviceManagementSupported
+ *
+ * The display labels carry a space and a slash and do not survive being made an
+ * identifier; that is why §1.5 states the ID column separately and requires it
+ * exactly. `npm run check:config-registry` compares this registry to it.
  */
 
 // ---------------------------------------------------------------------------
@@ -20,7 +32,12 @@
 
 export type ConfigAccess = 'RW' | 'R' | 'W';
 export type ConfigMutability = 'Dynamic' | 'Static';
-export type ConfigProfile = 'Core' | 'Transaction' | 'Security' | 'OfflineBLE' | 'DeviceMgmt';
+export type ConfigProfile =
+  | 'Core'
+  | 'Transaction'
+  | 'Security'
+  | 'OfflineBLE'
+  | 'DeviceManagement';
 export type ConfigValueType = 'string' | 'integer' | 'boolean' | 'decimal' | 'CSV';
 
 export interface ConfigKeyMeta {
@@ -127,8 +144,8 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
   [ConfigKey.REVOCATION_EPOCH]:             km('RevocationEpoch',             'integer', '0',     'RW', 'Dynamic', 'OfflineBLE'),
 
   // ── Device Management ─────────────────────────────────────────────────
-  [ConfigKey.FIRMWARE_UPDATE_ENABLED]:      km('FirmwareUpdateEnabled',       'boolean', 'true',  'RW', 'Dynamic', 'DeviceMgmt'),
-  [ConfigKey.DIAGNOSTICS_UPLOAD_URL]:       km('DiagnosticsUploadUrl',        'string',  '',      'RW', 'Static',  'DeviceMgmt'),
-  [ConfigKey.LOG_LEVEL]:                    km('LogLevel',                    'string',  'Info',  'RW', 'Dynamic', 'DeviceMgmt'),
-  [ConfigKey.AUTO_REBOOT_ENABLED]:          km('AutoRebootEnabled',           'boolean', 'false', 'RW', 'Dynamic', 'DeviceMgmt'),
+  [ConfigKey.FIRMWARE_UPDATE_ENABLED]:      km('FirmwareUpdateEnabled',       'boolean', 'true',  'RW', 'Dynamic', 'DeviceManagement'),
+  [ConfigKey.DIAGNOSTICS_UPLOAD_URL]:       km('DiagnosticsUploadUrl',        'string',  '',      'RW', 'Static',  'DeviceManagement'),
+  [ConfigKey.LOG_LEVEL]:                    km('LogLevel',                    'string',  'Info',  'RW', 'Dynamic', 'DeviceManagement'),
+  [ConfigKey.AUTO_REBOOT_ENABLED]:          km('AutoRebootEnabled',           'boolean', 'false', 'RW', 'Dynamic', 'DeviceManagement'),
 };
