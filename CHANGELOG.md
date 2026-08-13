@@ -1,5 +1,93 @@
 # Changelog
 
+## 0.18.0 — 2026-08-13
+
+**SDK-pair release against spec `v0.17.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as `ospp/protocol`
+**0.18.0**, from the same spec pin.
+
+**This release changes no code.** `.spec-ref` moves **v0.16.0 → v0.17.0** and nothing else
+in this package moves with it. No schema is re-vendored, no vector, no enum, no type, no
+total. If you are reading this to find out what to change on upgrade, the answer is nothing:
+`0.17.0` and `0.18.0` build the same `dist/` from the same sources against a different pin.
+
+### Why a release exists for this at all
+
+`csms-server` could not move to spec `v0.17.0` while the PHP sibling pinned `v0.16.0`. Its
+`VendoredSchemaSpecParityTest` reads the vendored package's `.spec-ref` and requires it to
+equal the server's own **as a string** — it compares the marker, not the schemas. This
+package is released in lockstep with that one, so it moves for the same reason at the same
+version.
+
+That gate is right to refuse, and the reason is worth stating precisely, because the
+tempting objection is the one it exists to reject. *"The bytes are identical, so let the
+server pin `v0.17.0` against a `v0.16.0` SDK"* is exactly the reasoning that produces
+silent vendored-copy drift. A copy that happens to match today, compared against a spec
+version nobody declared, is indistinguishable from a stale one — that is what a marker is
+for. The marker is the claim; byte-identity is the proof of the claim. Weakening the claim
+to preserve the proof gets the dependency backwards, and the fix is to move the marker.
+
+### What was measured before the pin moved
+
+`v0.16.0..v0.17.0` is **27 files, every one of them Markdown, zero JSON.** No schema and no
+conformance vector changes. The only two files under a directory this package vendors are
+`schemas/README.md` and `conformance/test-vectors/README.md`, each a single version-banner
+line `0.16.0 → 0.17.0` — and neither is vendored here: `src/schemas/` carries no README, and
+the byte-identity gate excludes `README.md` besides.
+
+Two of the 27 are gate *sources*, which is why "all Markdown" is not on its own sufficient:
+
+- `spec/07-errors.md` — version banner only. The 118-row error registry is untouched.
+- `spec/08-configuration.md` — version banner, plus one Description cell on
+  `OfflinePassPublicKey` narrowing the previous-key grace window to §6.7 step 4. Prose in a
+  column no gate compares; the key's Type, Default, Access, Mutability and §1.5 Profile ID
+  are unchanged. The config-registry gate's stated floor still holds — §1.5 keeps the
+  normative Profile ID column at `v0.17.0`, so the gate parses 5 profiles rather than
+  exiting 1 on zero rows.
+
+The substantive change in `v0.17.0` is §6.7 gaining a second, compromise-driven rotation
+posture. **Nothing follows from it here.** This package implements no previous-key retention
+and no grace-period expiry — `OfflinePassPublicKey` appears only as a registry row — because
+that requirement is station behaviour, and this is a protocol type, schema and
+crypto-primitive library.
+
+Every spec-facing gate was re-run against the `v0.17.0` tree **before** the pin moved, and
+each reports what it compared rather than only that it passed:
+
+- **vector types** — 12 spec vectors type-check against `src/types/`
+- **error registry** — `118 codes` both sides, agreeing on errorText, severity, recoverable
+- **config registry** — `29 keys, 5 profiles`, 29 profiles compared, agreeing on type,
+  default, access, mutability and the §1.5 normative Profile ID
+- **crypto corpus** — 4 named files byte-identical (`ble-handshake-keyschedule.json`,
+  `rfc-primitive-anchors.json`, `canonical-form.json`, `server-test-pub.pem`)
+- **schemas** — vendored `src/schemas/` byte-identical to the `v0.17.0` tree
+
+`npm run build` and 1010 tests across 36 files are green, unchanged from `0.17.0` as they
+must be, since no source file moved.
+
+### Fixed
+
+- **`package-lock.json` said `0.16.0` while `package.json` said `0.17.0`.** The lock was
+  updated in the `0.16.0` release and then not in `0.17.0`, so the two disagreed for a full
+  version. Nothing consumed the discrepancy — `npm publish` takes the version from
+  `package.json` and the `0.17.0` tarball was correct — which is precisely why it survived:
+  the field is load-bearing for no install, so no install failed. Both are `0.18.0` here.
+
+### On this shape of release
+
+A spec release that touches no schema and no vector will keep producing exactly this: a
+version number whose entire content is a four-byte edit to `.spec-ref`. It is worth naming
+as its own category rather than treating each occurrence as an oddity. **A release that
+exists only to move a pin is not a release that ships code**, and reading it as one — asking
+what to test, what broke, what to migrate — wastes the reader's attention on an empty set.
+The MINOR bump is not a claim that something was delivered; under ADR-001 it is how the pair
+stays at one version, and the pin is the deliverable.
+
+The cost is real and falls on the consumer, not here: `csms-server` must land the composer
+constraint and its own `.spec-ref` in **one commit**, because either alone is the drift the
+parity gate fails on. `@ospp/station-simulator` has no pin of its own and owes only the
+dependency bump.
+
 ## 0.17.0 — 2026-08-13
 
 **SDK-pair release against spec `v0.16.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
