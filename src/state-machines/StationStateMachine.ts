@@ -85,14 +85,50 @@ export function mayAnswerCommands(state: StationState): boolean {
 }
 
 /**
- * §1.4 row: *Sends anything else unsolicited (EVENT, or a REQUEST it
- * originates).*
+ * §1.4: *"A restricted station may originate exactly those messages that repair
+ * its own standing with the server."*
  *
- * Only `Operational` MAY. The BootNotification retry is not "anything else" —
- * it is the one message a restricted station MUST send.
+ * BootNotification restores the station's registration; SignCertificate restores
+ * the credential without which it cannot connect at all. Nothing else qualifies —
+ * every other originated message reports on the station's *work*, and a
+ * restricted station has not been cleared to do that work.
+ *
+ * These are wire `action` values, not message IDs, because that is what the
+ * envelope carries.
  */
-export function maySendUnsolicited(state: StationState): boolean {
-  return state === OPERATIONAL;
+export const STANDING_REPAIR_ACTIONS: readonly string[] = Object.freeze([
+  'BootNotification',
+  'SignCertificate',
+]);
+
+/**
+ * §1.4: may a station in `state` originate `action`?
+ *
+ * Replaces `maySendUnsolicited(state)`, which asked the question without the one
+ * input that decides it. §1.4 is message-dependent — `Pending` may originate
+ * SignCertificate and may not originate Heartbeat — and a one-argument boolean
+ * cannot carry a message-dependent answer. A second boolean beside the first
+ * would not have helped: the first would have gone on returning `false` for a
+ * `Pending` SignCertificate.
+ *
+ * `Operational` may originate anything. A restricted state may originate the
+ * standing-repair messages only, and only where it holds the session key those
+ * messages must be signed with: SignCertificate is one of the 44 signed message
+ * types (Chapter 06 §5.6) and a sender with no key MUST refuse to send rather
+ * than send unsigned (§5.7), so `Booting` and `Rejected` cannot send it however
+ * this function is called. That is why the specification adds no written scope
+ * for it, and says not to.
+ *
+ * `NotProvisioned` and `Disconnected` answer `false`, as the function this
+ * replaces did. That is the §1.4 answer and not a transport claim: a
+ * disconnected station is not forbidden to originate, it has no channel to
+ * originate on.
+ */
+export function mayOriginate(state: StationState, action: string): boolean {
+  if (state === OPERATIONAL) return true;
+  if (state === PENDING) return STANDING_REPAIR_ACTIONS.includes(action);
+  if (state === BOOTING || state === REJECTED) return action === 'BootNotification';
+  return false;
 }
 
 /**

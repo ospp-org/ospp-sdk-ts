@@ -40,9 +40,13 @@ export enum StationState {
    * service — an operator approval is outstanding, or a `3018
    * TOPOLOGY_MISMATCH` needs repair.
    *
-   * A RESTRICTED state: the station answers commands and sends nothing
-   * unsolicited. It DOES hold a session key — the response that put it here
-   * carries one — because every command it answers is signed.
+   * A RESTRICTED state: the station answers commands, and originates nothing
+   * but BootNotification retries and a SignCertificate renewal — the two
+   * messages that repair its own standing rather than report on its work
+   * (§1.4, see `mayOriginate`). It DOES hold a session key — the response that
+   * put it here carries one — because every command it answers is signed, and
+   * because that key is what makes the SignCertificate possible here and
+   * impossible in `Rejected`.
    */
   PENDING = 'Pending',
 

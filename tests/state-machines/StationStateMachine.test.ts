@@ -20,7 +20,8 @@ import {
   isRestricted,
   mayReceiveCommands,
   mayAnswerCommands,
-  maySendUnsolicited,
+  mayOriginate,
+  STANDING_REPAIR_ACTIONS,
   mayStartNewService,
   holdsSessionKey,
 } from '../../src/state-machines/StationStateMachine';
@@ -134,11 +135,37 @@ describe('the restricted states (§1.4)', () => {
     expect(mayAnswerCommands(OPERATIONAL)).toBe(true);
   });
 
-  it('matches §1.4 row: sends anything else unsolicited', () => {
-    expect(maySendUnsolicited(BOOTING)).toBe(false);
-    expect(maySendUnsolicited(PENDING)).toBe(false);
-    expect(maySendUnsolicited(REJECTED)).toBe(false);
-    expect(maySendUnsolicited(OPERATIONAL)).toBe(true);
+  it('matches §1.4: originates only standing-repair messages while restricted', () => {
+    // BootNotification retries are a MUST in both restricted states.
+    expect(mayOriginate(BOOTING, 'BootNotification')).toBe(true);
+    expect(mayOriginate(PENDING, 'BootNotification')).toBe(true);
+    expect(mayOriginate(REJECTED, 'BootNotification')).toBe(true);
+
+    // The second standing-repair message, and the row this release added.
+    // Only `Pending` — `Booting` and `Rejected` hold no session key, and
+    // SignCertificate is in the signed 44.
+    expect(mayOriginate(PENDING, 'SignCertificate')).toBe(true);
+    expect(mayOriginate(BOOTING, 'SignCertificate')).toBe(false);
+    expect(mayOriginate(REJECTED, 'SignCertificate')).toBe(false);
+
+    // Everything else reports on the station's work, and stays forbidden.
+    for (const action of ['Heartbeat', 'StatusNotification', 'MeterValues', 'TransactionEvent', 'SecurityEvent']) {
+      expect(mayOriginate(BOOTING, action), action).toBe(false);
+      expect(mayOriginate(PENDING, action), action).toBe(false);
+      expect(mayOriginate(REJECTED, action), action).toBe(false);
+      expect(mayOriginate(OPERATIONAL, action), action).toBe(true);
+    }
+
+    // Neither is a §1.4 state; both answer false, as before.
+    expect(mayOriginate(NOT_PROVISIONED, 'BootNotification')).toBe(false);
+    expect(mayOriginate(DISCONNECTED, 'BootNotification')).toBe(false);
+  });
+
+  it('STANDING_REPAIR_ACTIONS is the set the predicate uses, not a second copy', () => {
+    for (const action of STANDING_REPAIR_ACTIONS) {
+      expect(mayOriginate(PENDING, action), action).toBe(true);
+    }
+    expect(STANDING_REPAIR_ACTIONS).toEqual(['BootNotification', 'SignCertificate']);
   });
 
   it('matches §1.4 row: starts new customer service', () => {

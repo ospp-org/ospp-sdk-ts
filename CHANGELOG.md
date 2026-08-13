@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.19.0 — 2026-08-14
+
+**SDK-pair release against spec `v0.19.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as `ospp/protocol`
+**0.19.0**, from the same spec pin.
+
+**This release changes code, and it is a breaking API change.** `.spec-ref` moves
+**v0.17.0 → v0.19.0**, skipping `v0.18.0`, which changed nothing this package implements.
+
+### BREAKING — `maySendUnsolicited` is removed; use `mayOriginate(state, action)`
+
+Spec `v0.19.0` restated §1.4: *"A restricted station may originate exactly those messages that
+repair its own standing with the server."* BootNotification restores the station's
+registration; **SignCertificate** restores the credential without which it cannot connect at
+all. Nothing else qualifies.
+
+That makes the §1.4 rule **message-dependent**, and `maySendUnsolicited(state)` took no
+message. It returned `state === Operational`, so it answered `false` for a `Pending` station
+originating SignCertificate — which the specification now permits, and which is the whole
+point of the change.
+
+```diff
+- import { maySendUnsolicited } from '@ospp/protocol';
+- if (maySendUnsolicited(state)) { publish(msg); }
++ import { mayOriginate } from '@ospp/protocol';
++ if (mayOriginate(state, msg.action)) { publish(msg); }
+```
+
+**Why it was removed rather than kept beside the new one.** A second predicate answering the
+real question would have left the first one answering the old one — still exported, still
+returning `false` for a case that is now legal, still looking like the function to reach for.
+The single boolean that can no longer answer *is* the defect; adding a second does not repair
+it.
+
+**The API cost, stated plainly.** `maySendUnsolicited` was a public export from the package
+root. Removing it breaks a consumer **at compile time**, which is the loud failure and the
+reason it was removed: had it been left in place returning the same values, a consumer using
+it to gate *"may I send this message?"* would have gone on getting a wrong answer for
+SignCertificate **silently** — no error, no type failure, just a station that never renews
+while `Pending` and eventually needs a site visit. A compile error is the cheaper of the two.
+
+Measured before removing: **no consumer in `csms-server`, `ts-station-simulator`,
+`station-simulator`, `csms-mqtt-bridge` or `csms-sandbox` calls it.** The break is
+theoretical for every repository in this project today.
+
+### Added
+
+- **`mayOriginate(state, action): boolean`** — the message-aware predicate. `Operational` may
+  originate anything; `Pending` may originate `BootNotification` and `SignCertificate`;
+  `Booting` and `Rejected` may originate `BootNotification` only, because they hold no session
+  key and SignCertificate is one of the 44 signed message types (a sender with no key **MUST**
+  refuse to send rather than send unsigned). `NotProvisioned` and `Disconnected` answer
+  `false`, exactly as the removed function did — that is the §1.4 answer, not a transport
+  claim.
+- **`STANDING_REPAIR_ACTIONS`** — the two wire `action` values, frozen, and the same array
+  `mayOriginate` tests against rather than a second copy that could drift from it. A test
+  asserts that identity.
+
+### Changed
+
+- `StationState.PENDING`'s doc comment restated the old rule in prose (*"sends nothing
+  unsolicited"*). It now names both permitted messages and says why the session key is what
+  makes SignCertificate possible in `Pending` and impossible in `Rejected`. Same class as the
+  fourteen restatement sites the spec release moved: a restatement left holding the old rule is
+  how the contradiction was born.
+
+### Not changed
+
+- **No schema, vector, type or total moves.** The vendored `src/schemas/` tree is byte-identical
+  to spec `v0.19.0` — verified by diff, not assumed — because `v0.18.0` and `v0.19.0` changed no
+  JSON artefact. The change is in hand-written state-machine code, which is why "the spec diff is
+  all Markdown" was necessary and not sufficient for judging SDK impact this time.
+
 ## 0.18.0 — 2026-08-13
 
 **SDK-pair release against spec `v0.17.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
