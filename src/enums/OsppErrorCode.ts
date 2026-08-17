@@ -392,7 +392,7 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.INVALID_TIME_WINDOW]:       meta(5020, 'INVALID_TIME_WINDOW',       'Warning',  false, 422, 'Hardware'),
   [OsppErrorCode.NO_DIAGNOSTICS_AVAILABLE]:  meta(5021, 'NO_DIAGNOSTICS_AVAILABLE',  'Warning',  false, 404, 'Hardware'),
   [OsppErrorCode.INVALID_CATALOG]:           meta(5023, 'INVALID_CATALOG',           'Error',    false, 422, 'Hardware'),
-  [OsppErrorCode.UNSUPPORTED_SERVICE]:       meta(5024, 'UNSUPPORTED_SERVICE',       'Warning',  false, 422, 'Hardware'),
+  [OsppErrorCode.UNSUPPORTED_SERVICE]:       meta(5024, 'UNSUPPORTED_SERVICE',       'Error',    false, 422, 'Hardware'),
   [OsppErrorCode.CATALOG_TOO_LARGE]:         meta(5025, 'CATALOG_TOO_LARGE',         'Error',    false, 413, 'Hardware'),
 
   // ── Station Software (5.1xx) ──────────────────────────────────────────
