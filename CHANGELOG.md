@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.20.0 — 2026-08-17
+
+**SDK-pair release against spec `v0.20.2`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). Released at the same version as `ospp/protocol`
+**0.20.0**, from the same spec pin. `.spec-ref` moves **v0.19.0 → v0.20.2**.
+
+> ### ⚠ This is a LOCKSTEP-ONLY release. It ships no code change.
+>
+> **Nothing in `src/` changed.** Not one line. `npm pack` produces the same 420-file list as
+> 0.19.0, and the only differing byte inside it is `package.json`'s own `version` field. No
+> schema changed; `src/test-vectors/` is not in `files` and is not published.
+>
+> **If you are reading this in six months to find out what 0.20.0 did to this package: it did
+> nothing to this package.** It exists so the SDK pair carries one number, because
+> `ospp/protocol` 0.20.0 *did* change — its firmware state machine was wrong — and because
+> `.spec-ref` now claims v0.20.2. Upgrading 0.19.0 → 0.20.0 here cannot change your runtime
+> behaviour. The work in this release is a **test** that had no way to exist before: see below.
+
+Everything below is repository-internal — a new contract test, a pin move, and two re-vendored
+(unpublished) conformance vectors.
+
+### Added — `FirmwareCanonicalTable.test.ts`, mirrored in `ospp-sdk-php`
+
+The firmware update state machine of `spec/05-state-machines.md` §6.3 had **no shared vector
+list between the SDKs.** Each asserted its own transcription of the same table, so the two
+could disagree indefinitely and both stay green.
+
+They did disagree. **This SDK was correct** — all thirteen edges of §6.3 and neither of the
+two it does not list. `ospp-sdk-php` carried `Downloaded -> Failed` and `Installed -> Failed`,
+which §6.3 does not list, and lacked `Failed -> Idle`, which it does. That last omission made
+the PHP machine single-use: §6.3 states *"a machine that treats [`Failed`] as terminal can run
+one firmware update and never a second."*
+
+Nothing compared the two, so nothing found it. `BayCanonicalTable.test.ts` already solved this
+for the bay machine; this follows that pattern rather than inventing a second one. The pair
+list is transcribed from §6.3 and is the same list
+`ospp-sdk-php/tests/Contract/StateMachines/FirmwareCanonicalTableContractTest.php` asserts.
+
+**It does not assert a cardinal, and that is deliberate.** §6.3 has fourteen **rows** and
+thirteen **edges** — `Verifying -> Failed` is listed twice, for a checksum mismatch and for an
+invalid signature. The PHP defect began as `transitionCount() === 14`, the row count, which
+then needed two invented edges to reach. §6.3 now warns about exactly this. The test sweeps
+the full 10×10 matrix against the named set, so it fails in **both** directions — verified by
+injecting the PHP defect into this SDK's machine, which turned four of its cases red.
+
+### Changed
+
+- `.spec-ref`: **v0.19.0 → v0.20.2**. No schema changed between those tags. Two conformance
+  vectors did, and both are re-vendored into `src/test-vectors/` (not published):
+  `valid/device-management/firmware-status-notification-full.json` (`progress` 72 → 0) and the
+  new `invalid/device-management/update-firmware-request-http-url.json` (a non-TLS
+  `firmwareUrl`, rejected by the unchanged `^https://` pattern). The vendored corpus is now
+  byte-identical to `v0.20.2`.
+- `SchemaValidator.test.ts`: corpus count **317 → 318**, for the vector above.
+
+### Why this releases anyway
+
+[VERSIONING.md](https://github.com/ospp-org/spec/blob/main/VERSIONING.md): *"The two SDKs
+release at the same version as each other. A consumer pairs them, so an identical number is
+what tells them which pair is coherent."* `ospp/protocol` **must** release — its firmware FSM
+was wrong. Holding this package at 0.19.0 would leave the two at different numbers, which is
+the one thing the pairing rule exists to prevent, and would leave `.spec-ref` claiming v0.19.0
+for a package whose vendored corpus is now v0.20.2.
+
+`ts-station-simulator` pins `^0.19.0`, which npm resolves as `>=0.19.0 <0.20.0` — it will not
+pick this up without an explicit constraint bump, and it uses no part of the firmware state
+machine, so the bump is lockstep bookkeeping for it and nothing more.
+
 ## 0.19.0 — 2026-08-14
 
 **SDK-pair release against spec `v0.19.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
