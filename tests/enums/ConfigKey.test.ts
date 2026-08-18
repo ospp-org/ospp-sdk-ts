@@ -8,8 +8,8 @@ import {
 describe('ConfigKey', () => {
   const allKeys = Object.values(ConfigKey);
 
-  it('should have exactly 29 keys', () => {
-    expect(allKeys).toHaveLength(29);
+  it('should have exactly 28 keys', () => {
+    expect(allKeys).toHaveLength(28);
   });
 
   it('should have unique PascalCase string values', () => {
@@ -40,12 +40,12 @@ describe('ConfigKey', () => {
       expect(byProfile('OfflineBLE')).toHaveLength(4);
     });
 
-    it('should have 4 Device Management keys', () => {
-      expect(byProfile('DeviceManagement')).toHaveLength(4);
+    it('should have 3 Device Management keys', () => {
+      expect(byProfile('DeviceManagement')).toHaveLength(3);
     });
 
-    it('9 + 6 + 6 + 4 + 4 = 29', () => {
-      expect(9 + 6 + 6 + 4 + 4).toBe(29);
+    it('9 + 6 + 6 + 4 + 3 = 28', () => {
+      expect(9 + 6 + 6 + 4 + 3).toBe(28);
     });
 
     // These counts are a self-comparison: they assert the registry against
@@ -115,7 +115,6 @@ describe('CONFIG_KEY_REGISTRY', () => {
       ConfigKey.PROTOCOL_VERSION,
       ConfigKey.FIRMWARE_VERSION,
       ConfigKey.CERTIFICATE_SERIAL_NUMBER,
-      ConfigKey.DIAGNOSTICS_UPLOAD_URL,
     ];
 
     for (const key of staticKeys) {

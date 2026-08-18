@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.23.0 — 2026-08-18
+
+**Three-repository release against spec `v0.23.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
+`.spec-ref` moves **v0.22.0 → v0.23.0**.
+
+> ### ⚠ Two breaking changes: a removed `ConfigKey` case, and a schema tightening.
+
+### The context, because this SDK's machine was the one that was right
+
+`DiagnosticsStateMachine.ts` said so itself, in its own header: *"Source: implied from
+DiagnosticsNotification status values"*. It was the only machine in `src/state-machines/` whose
+source was not a canonical spec table, because until spec `0.23.0` there was no diagnostics section
+in `05-state-machines.md` to cite. The `ospp-sdk-php` mirror read the same four status words as a
+**server record** and got six edges starting at `pending`, with `uploaded` and `failed` terminal.
+The two disagreed on three edges, each suite pinned its own answer — this one asserts
+`['Idle','Failed']` is refused, the other asserted `PENDING -> FAILED` is permitted — and neither
+could point at a source. Spec §8 now derives the machine from what the station does. **The seven
+edges here survived that derivation unchanged.**
+
+### Added — the wire ↔ machine bridge, which neither SDK had in either direction
+
+The two unions were declared independently and nothing reconciled them: `DiagnosticsState` (5
+values, with `Idle`) in the machine, `DiagnosticsNotificationStatus` (4 values) in the payload
+module, no file referencing both. A consumer holding a status had no SDK-provided way to advance a
+machine, so it wrote the mapping by hand — and the two edges it needed most, `Uploaded -> Idle` and
+`Failed -> Idle`, **have no wire trigger at all** (§8.4). A consumer driving the machine from
+arriving notifications therefore reached `Uploaded` and refused the `Collecting` that opens the next
+upload. Single-use, by a different route than the PHP one.
+
+New from `state-machines/DiagnosticsStateMachine.js`, all re-exported from the package root:
+
+* `DIAGNOSTICS_NOTIFICATION_STATUSES` — the four values, declared **once**. The payload module now
+  re-exports this type instead of re-declaring it, so the wire union and the FSM vocabulary can no
+  longer drift into two hand-kept lists. The shape is the one `BayStatus`/`ReportableBayStatus`
+  already uses — the single vocabulary in this SDK that was never split in two.
+* `ReportableDiagnosticsState` — `Exclude<DiagnosticsState, 'Idle'>`, derived rather than re-listed.
+* `diagnosticsStateFromNotificationStatus()` / `diagnosticsStateToNotificationStatus()` /
+  `isReportableDiagnosticsState()` / `isDiagnosticsNotificationStatus()`. Nothing produces `Idle`
+  from a wire value: §8.4 says those edges have no wire trigger, and a bridge that invented one
+  would be inventing the only edge the protocol never announces.
+* **`applyDiagnosticsNotification(current, status)`** — the function whose absence made the machine
+  unusable as a notification consumer. A repeat of the current status is accepted and is **not** a
+  transition, because `diagnostics-status.md` §5 rule 3 asks for a progress report at every 10% and
+  all of them carry `status: "Uploading"`. §8.4: a server "MUST advance on a *change* of `status`
+  and MUST NOT treat a second `Uploading` as an invalid transition." The table still has no
+  `Uploading -> Uploading` edge and §8.3 says it MUST NOT gain one — the two are answers to
+  different questions, and this function is where that distinction now lives.
+
+### Added — `tests/state-machines/DiagnosticsCanonicalTable.test.ts`
+
+The single home of the table, mirroring `FirmwareCanonicalTable.test.ts` and asserting the same
+pair list as the `ospp-sdk-php` twin. It pins the seven `(from, to)` pairs as a named set, sweeps
+all 25 ordered pairs, checks map-against-function, walks three consecutive uploads, and reads the
+wire enum **out of the vendored schema** rather than a literal.
+
+Verified non-vacuous before committing: making the outcomes terminal → **6 failures**; adding
+`Idle -> Failed` → **1**; mis-mapping one arm of the bridge → **3**; treating the progress stream as
+a transition → **1**; dropping a value from the wire enum → **4**.
+
+### Removed — the tautological counter
+
+`DiagnosticsStateMachine.test.ts` asserted `expect(valid).toHaveLength(7)` — the length of its own
+literal array, which cannot fail on any change to `DIAGNOSTICS_TRANSITIONS`. The same file left two
+of the 25 ordered pairs asserted **neither way**: `Uploaded -> Uploading` and `Failed -> Uploaded`.
+Both are closed by the exhaustive sweep in the new file. This is the deletion
+`FirmwareCanonicalTable.test.ts` argues for in its own header.
+
+### Removed — breaking: `ConfigKey.DIAGNOSTICS_UPLOAD_URL`
+
+Spec `0.23.0` withdrew the key. It had no reachable consumer: `uploadUrl` is REQUIRED on every
+GetDiagnostics so nothing fell back to it, no processing rule read it, and no error code reported
+the disabled state its documented `""` default claimed — measured across the reference server, this
+SDK, the PHP SDK and the station simulator. `npm run check:config-registry` failed on the
+re-vendor, which is the gate working: **29 keys → 28**, Device Management **4 → 3**.
+
+**The cost is operational and lands on servers, not on this package.** An unknown key is answered
+`NotSupported`, and `change-configuration.md` §6 rule 2 makes the batch atomic — one `NotSupported`
+entry discards *every other key in the same ChangeConfiguration*. A server still carrying this key
+in a push set finds the whole batch ineffective against a `0.23.0` station while the identical batch
+still applies on `0.22.0`.
+
+### Changed — vendored schema and corpus, in one commit
+
+`src/schemas/mqtt/diagnostics-notification.schema.json` gains conditionals: `progress` only on
+`Uploading`, `errorText` REQUIRED on `Failed` and forbidden elsewhere. The vector corpus moves with
+it — **318 → 329** — because a tightening whose corpus lags turns this SDK's own conformance suite
+red on payloads that are no longer valid. Three of the eight new negatives enter the `if`/`then`
+branches of `get-diagnostics-response` and `set-maintenance-mode-response`, which **no vector had
+ever entered**: both `allOf` blocks could have been deleted with the whole vendored corpus still
+passing.
+
+Suite: **1058 tests, 38 files**. `tsc --noEmit`, `npm run build`, and all four drift gates clean.
+
+---
+
 ## 0.22.0 — 2026-08-18
 
 **Three-repository release against spec `v0.22.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).

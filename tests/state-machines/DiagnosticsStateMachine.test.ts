@@ -31,9 +31,13 @@ describe('canTransition — valid', () => {
     });
   }
 
-  it('should have 7 valid transitions total', () => {
-    expect(valid).toHaveLength(7);
-  });
+  // The `expect(valid).toHaveLength(7)` that lived here asserted the length of this
+  // file's own literal array, not the machine's edge count: it could not fail on any
+  // change to DIAGNOSTICS_TRANSITIONS. DiagnosticsCanonicalTable.test.ts owns the
+  // edge SET now, sweeps all 25 ordered pairs — the list below left two of them
+  // asserted neither way, `Uploaded -> Uploading` and `Failed -> Uploaded` — and
+  // reads the wire enum out of the vendored schema. Nothing here asserts a cardinal.
+  // This is the same deletion FirmwareCanonicalTable.test.ts:12-16 argues for.
 });
 
 describe('canTransition — invalid', () => {

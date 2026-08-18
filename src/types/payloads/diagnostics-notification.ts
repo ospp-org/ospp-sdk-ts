@@ -1,4 +1,6 @@
-export type DiagnosticsNotificationStatus = 'Collecting' | 'Uploading' | 'Uploaded' | 'Failed';
+import type { DiagnosticsNotificationStatus } from '../../state-machines/DiagnosticsStateMachine.js';
+
+export type { DiagnosticsNotificationStatus };
 
 /** DiagnosticsNotification EVENT — Station → Server. */
 export interface DiagnosticsNotificationPayload {

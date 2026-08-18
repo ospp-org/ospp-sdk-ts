@@ -87,9 +87,13 @@ export enum ConfigKey {
   OFFLINE_PASS_MAX_AGE          = 'OfflinePassMaxAge',
   REVOCATION_EPOCH              = 'RevocationEpoch',
 
-  // --- Device Management (4) ---
+  // --- Device Management (3) ---
+  // DIAGNOSTICS_UPLOAD_URL was withdrawn by spec 0.23.0. It had no reachable
+  // consumer: `uploadUrl` is REQUIRED on every GetDiagnostics so nothing fell back
+  // to it, no processing rule read it, and no error code reported the disabled state
+  // its documented `""` default claimed. Removing the case is BREAKING for any
+  // consumer naming it — see CHANGELOG for the operational cost on the server side.
   FIRMWARE_UPDATE_ENABLED       = 'FirmwareUpdateEnabled',
-  DIAGNOSTICS_UPLOAD_URL        = 'DiagnosticsUploadUrl',
   LOG_LEVEL                     = 'LogLevel',
   AUTO_REBOOT_ENABLED           = 'AutoRebootEnabled',
 }
@@ -145,7 +149,6 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
 
   // ── Device Management ─────────────────────────────────────────────────
   [ConfigKey.FIRMWARE_UPDATE_ENABLED]:      km('FirmwareUpdateEnabled',       'boolean', 'true',  'RW', 'Dynamic', 'DeviceManagement'),
-  [ConfigKey.DIAGNOSTICS_UPLOAD_URL]:       km('DiagnosticsUploadUrl',        'string',  '',      'RW', 'Static',  'DeviceManagement'),
   [ConfigKey.LOG_LEVEL]:                    km('LogLevel',                    'string',  'Info',  'RW', 'Dynamic', 'DeviceManagement'),
   [ConfigKey.AUTO_REBOOT_ENABLED]:          km('AutoRebootEnabled',           'boolean', 'false', 'RW', 'Dynamic', 'DeviceManagement'),
 };

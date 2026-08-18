@@ -145,7 +145,19 @@ export {
 export { SessionStateMachine, canTransition as canSessionTransition, isTerminal as isSessionTerminal, SESSION_TRANSITIONS, type SessionState } from './state-machines/SessionStateMachine.js';
 export { ReservationStateMachine, canTransition as canReservationTransition, isTerminal as isReservationTerminal, RESERVATION_TRANSITIONS, type ReservationState } from './state-machines/ReservationStateMachine.js';
 export { FirmwareStateMachine, canTransition as canFirmwareTransition, FIRMWARE_TRANSITIONS, type FirmwareState } from './state-machines/FirmwareStateMachine.js';
-export { DiagnosticsStateMachine, canTransition as canDiagnosticsTransition, DIAGNOSTICS_TRANSITIONS, type DiagnosticsState } from './state-machines/DiagnosticsStateMachine.js';
+export {
+  DiagnosticsStateMachine,
+  canTransition as canDiagnosticsTransition,
+  DIAGNOSTICS_TRANSITIONS,
+  DIAGNOSTICS_NOTIFICATION_STATUSES,
+  isDiagnosticsNotificationStatus,
+  isReportableDiagnosticsState,
+  diagnosticsStateFromNotificationStatus,
+  diagnosticsStateToNotificationStatus,
+  applyDiagnosticsNotification,
+  type DiagnosticsState,
+  type ReportableDiagnosticsState,
+} from './state-machines/DiagnosticsStateMachine.js';
 
 // Topics
 export { toServerTopic, toStationTopic, SERVER_WILDCARD_TOPIC, serverSharedTopic, extractStationId } from './topics/TopicBuilder.js';
