@@ -143,8 +143,8 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
 
   // ── Offline / BLE ─────────────────────────────────────────────────────
   [ConfigKey.OFFLINE_MODE_ENABLED]:         km('OfflineModeEnabled',          'boolean', 'true',  'RW', 'Dynamic', 'OfflineBLE'),
-  [ConfigKey.MAX_OFFLINE_TRANSACTIONS]:     km('MaxOfflineTransactions',      'integer', '50',    'RW', 'Dynamic', 'OfflineBLE'),
-  [ConfigKey.OFFLINE_PASS_MAX_AGE]:         km('OfflinePassMaxAge',           'integer', '3600',  'RW', 'Dynamic', 'OfflineBLE'),
+  [ConfigKey.MAX_OFFLINE_TRANSACTIONS]:     km('MaxOfflineTransactions',      'integer', '1000',  'RW', 'Dynamic', 'OfflineBLE'),
+  [ConfigKey.OFFLINE_PASS_MAX_AGE]:         km('OfflinePassMaxAge',           'integer', '86400', 'RW', 'Dynamic', 'OfflineBLE'),
   [ConfigKey.REVOCATION_EPOCH]:             km('RevocationEpoch',             'integer', '0',     'RW', 'Dynamic', 'OfflineBLE'),
 
   // ── Device Management ─────────────────────────────────────────────────
