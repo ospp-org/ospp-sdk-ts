@@ -114,6 +114,27 @@ jobs:
       - name: Byte-identity check (tests/crypto/fixtures/ ↔ spec conformance corpus)
         run: npm run check:crypto-vectors
 
+  # The corpus that decides what this SDK accepts and refuses had NO gate.
+  # src/schemas/ has been byte-gated since v0.8.0 and tests/crypto/fixtures/ since
+  # 0.14.0; the 334 files under src/test-vectors/ were re-vendored by hand on every
+  # spec sync and nothing compared the result to upstream.
+  #
+  # The failure it closes is silent by construction: SchemaValidator.test.ts
+  # validates whatever vectors are present against whatever schemas are present,
+  # so a vector edited in place leaves the whole suite green. Measured, not
+  # asserted: flipping ONE BYTE in valid/core/boot-notification-response-full.json
+  # left 1067/1067 tests passing and turned this job red.
+  vector-corpus:
+    name: Conformance corpus byte-identity gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Byte-identity check (src/test-vectors/ ↔ spec conformance corpus)
+        run: npm run check:vector-corpus
+
   schemas:
     name: Schema byte-identity gate
     runs-on: ubuntu-latest

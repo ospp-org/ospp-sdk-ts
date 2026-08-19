@@ -50,7 +50,8 @@
     "check:vector-types": "node scripts/check-vector-types.mjs",
     "check:error-registry": "vite-node scripts/check-error-registry.ts",
     "check:config-registry": "vite-node scripts/check-config-registry.ts",
-    "check:crypto-vectors": "bash scripts/check-crypto-vectors.sh"
+    "check:crypto-vectors": "bash scripts/check-crypto-vectors.sh",
+    "check:vector-corpus": "bash scripts/check-vector-corpus.sh"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
