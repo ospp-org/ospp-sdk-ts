@@ -1,6 +1,6 @@
 {
   "name": "@ospp/protocol",
-  "version": "0.24.1",
+  "version": "0.25.0",
   "description": "OSPP Protocol TypeScript SDK",
   "license": "MIT",
   "type": "module",

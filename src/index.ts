@@ -144,7 +144,23 @@ export {
 } from './state-machines/BayStateMachine.js';
 export { SessionStateMachine, canTransition as canSessionTransition, isTerminal as isSessionTerminal, SESSION_TRANSITIONS, type SessionState } from './state-machines/SessionStateMachine.js';
 export { ReservationStateMachine, canTransition as canReservationTransition, isTerminal as isReservationTerminal, RESERVATION_TRANSITIONS, type ReservationState } from './state-machines/ReservationStateMachine.js';
-export { FirmwareStateMachine, canTransition as canFirmwareTransition, FIRMWARE_TRANSITIONS, type FirmwareState } from './state-machines/FirmwareStateMachine.js';
+export {
+  FirmwareStateMachine,
+  canTransition as canFirmwareTransition,
+  FIRMWARE_TRANSITIONS,
+  FIRMWARE_NOTIFICATION_STATUSES,
+  isFirmwareNotificationStatus,
+  isReportableFirmwareState,
+  isObservableFirmwareState,
+  firmwareStateObservedBy,
+  firmwareStateFromNotificationStatus,
+  firmwareStateToNotificationStatus,
+  observableFirmwareTargets,
+  applyFirmwareNotification,
+  type FirmwareState,
+  type ReportableFirmwareState,
+  type UnobservableFirmwareState,
+} from './state-machines/FirmwareStateMachine.js';
 export {
   DiagnosticsStateMachine,
   canTransition as canDiagnosticsTransition,

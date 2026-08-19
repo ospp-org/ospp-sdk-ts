@@ -1,5 +1,151 @@
 # Changelog
 
+## 0.25.0 — 2026-08-19
+
+**SDK-pair release against spec `v0.24.1`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md),
+*SDK-pair releases against a spec tag*). `.spec-ref` **does not move** — it stays `v0.24.1`,
+the contract did not change, and the spec is not re-tagged to chase an SDK number.
+
+**Both SDKs ship code in this release.** Neither side is here only to hold the number: the same
+bridge lands in `sdk-ts` and `ospp-sdk-php`, and the same mutations were injected into both to
+prove each one's gate discriminates. This is not a lockstep-alignment release and the entry would
+say so if it were.
+
+> ### ⚠ The firmware machine had no bridge to the wire, and its gap is the widest in the chapter.
+
+`0.23.0` gave the diagnostics machine a wire ↔ machine bridge in both SDKs. The firmware machine
+never got one, and deferring it was the risk: the two SDKs would each have grown a shape for it,
+and this is the machine where the shapes could not have agreed.
+
+Ten states, and a FirmwareStatusNotification carries **five** of them
+(`05-state-machines.md` §6.6). The other five are **not one kind of thing**, and that is what made
+this bridge different from the diagnostics one rather than a copy of it:
+
+* **Four are unobservable.** §6.6: *"Four states have no notification value at all and are, from
+  the server's side, unobservable… a server that models the station's ten states will hold four of
+  them that nothing on the wire can ever set."* They are `Idle`, `Verifying`, `Verified`,
+  `Rebooting`.
+* **`Activated` is the fifth, and it is reported** — §6.6 maps it to BootNotification [MSG-001],
+  *"not FirmwareStatusNotification"*.
+
+So the "no notification value" set has **five** members and the "never observed" set has **four**,
+and they differ by exactly one state. The diagnostics bridge had one non-reportable state (`Idle`)
+and no such difference to carry, so `isReportableDiagnosticsState` answered both questions there.
+Here one predicate answers one of them wrong whichever way it is written: a consumer that treats
+`Activated` as unobservable throws away the only report a completed update ever gets, and one that
+treats the four as observable waits for messages the protocol never sends.
+
+### Fixed — the wire union was declared twice, and nothing reconciled them
+
+`types/payloads/firmware-status-notification.ts` carried its own hand-written
+`FirmwareNotificationStatus` union while `state-machines/FirmwareStateMachine.ts` carried the
+`FirmwareState` union, in different files, with no file referencing both. This is the identical
+drift the diagnostics bridge closed at `0.23.0`, left open on the machine where it mattered more.
+
+`FIRMWARE_NOTIFICATION_STATUSES` is now declared **once**, next to the machine, and the payload
+module re-exports the type instead of re-declaring it.
+
+### Added — all re-exported from the package root
+
+* `FIRMWARE_NOTIFICATION_STATUSES` / `isFirmwareNotificationStatus()` — the five schema values.
+* `ReportableFirmwareState` — `Extract<FirmwareState, FirmwareNotificationStatus>`, derived from
+  the wire list rather than re-listed, so the two cannot drift.
+* `UnobservableFirmwareState` — `Exclude<FirmwareState, ReportableFirmwareState | 'Activated'>`.
+  Derived, so it is five-minus-`Activated` **by construction** rather than by a second hand-kept
+  list of four.
+* `firmwareStateFromNotificationStatus()` / `firmwareStateToNotificationStatus()` /
+  `isReportableFirmwareState()`. Nothing produces any of the four unobservable states from a wire
+  value, and nothing produces `Activated` either — that one arrives on another message, and a
+  bridge that yielded it from a FirmwareStatusNotification would be inventing a message.
+* `isObservableFirmwareState()` / `firmwareStateObservedBy()` — the predicate the diagnostics
+  bridge never needed. `firmwareStateObservedBy()` returns an `OsppAction` member rather than a
+  string literal, so a rename of the action cannot leave the mapping pointing at a message that no
+  longer exists.
+
+### Added — the conforming notification sequence is not a walk of §6.3
+
+This is the part that would have cost a consumer money, and it has no counterpart in the
+diagnostics bridge at all. There, every edge of §8.3 runs between two states the wire carries, so
+what a server observes IS a walk of the table and `canTransition` answers directly.
+
+Here three of the thirteen edges run **through** unobservable states, so the wire **skips**:
+
+```
+station:  Downloaded -> Verifying -> Verified -> Installing
+server:   Downloaded ------------------------> Installing
+```
+
+`Downloaded -> Installing` is not in §6.3 and **MUST NOT** be added to it — §6.6's silent interval
+is where the SHA-256 and the ECDSA P-256 verification run over the whole image. A consumer that
+fed the two arriving statuses into `canTransition` refused the update at the moment it started
+installing. The same shape hides two more: `Downloaded -> Failed` (a checksum mismatch or a `5112`
+invalid signature, reported from a state the server never saw the station enter),
+`Installed -> Failed` (the watchdog, through `Rebooting`), and `Failed -> Downloading` — the
+rollback edge, which like §8.4's `Uploaded -> Idle` has **no wire trigger and must not be waited
+for**.
+
+* **`observableFirmwareTargets(from)`** — the reportable states reachable by a path whose
+  **intermediate** states are all unobservable. `Activated` is neither returned nor traversed: it
+  is observable, so a server is told about it and must not have it inferred.
+* **`applyFirmwareNotification(current, status)`** — advances a consumer's mirror from one
+  arriving notification. A repeat of the state already held is a **progress report, not a
+  transition**: `firmware-status.md` §5 rules 1--2 ask for one every 10% of `Downloading` and at
+  four milestones of `Installing`, and §6.3 has a self-edge for neither. Same rule §8.4 states for
+  the repeated `Uploading` stream, same resolution.
+
+**A successful update ends in silence on this message.** `observableFirmwareTargets('Installed')`
+is `['Failed']` and nothing else — the success branch is `Installed -> Rebooting -> Activated`,
+and the news arrives as a BootNotification. A consumer waiting for a firmware status to tell it
+the update completed waits forever.
+
+### Gate — the pair SET, and no cardinal
+
+`FirmwareCanonicalTable.test.ts` gains the bridge half, in the same file that already owns this
+machine's edges. §6.3's closing paragraph — *"a conformance check that asserts a transition count
+must assert 13; one that counts the rows of this table gets 14"* — governs the new pairs too, and
+for the same reason: **a count cannot say WHICH pair moved.**
+
+* The wire enum is read out of the vendored
+  `src/schemas/mqtt/firmware-status-notification.schema.json`, not restated, so a spec change to
+  it fails in the gate instead of being absorbed by a literal in it.
+* All **50** `(held state × arriving status)` combinations are swept, each asserted one way or the
+  other, so a pair that is neither permitted nor refused cannot exist. The sweep carries its own
+  denominator: a run that iterated nothing fails.
+* The pair list is the SAME list the `ospp-sdk-php` mirror of this file asserts.
+
+**Proved by mutation, in both SDKs.** Three defects were injected into each package and each
+package's gate was confirmed RED for the right reason, then reverted: conflating observability
+with reportability (2 failures, both naming `Activated`); advancing with `canTransition` instead
+of the observable closure (4 failures, naming `Downloaded → Installing` and `Failed →
+Downloading`); and admitting a silent state into the wire enum (7 failures, naming `Verifying`).
+A green suite either side of that is what the last two releases' worth of cross-SDK disagreements
+were missing.
+
+### Not changed here — two open items upstream, in `spec/profiles/device-management/firmware-status.md`
+
+Reported, not fixed: both are the specification's. The payload type's doc comments now say so at
+the point of use, because `progress?` and `errorText?` are optional here for a reason a consumer
+should not have to guess.
+
+* **`errorText` is unconditional on the firmware notification.** §5 rule 4 makes it a MUST on
+  `Failed`, but `firmware-status-notification.schema.json` neither requires it there nor forbids
+  it elsewhere. The diagnostics twin has **both** halves schema-enforced since `0.23.0`
+  (`diagnostics-status.md` §5 rule 5, and its schema carries the two `if/then` clauses).
+* **The progress rule is weaker there.** §5 rule 3 permits `progress` *"omitted **or set to
+  `0`**"* on `Downloaded`, `Installed` and `Failed` — two spellings of the same absence, where
+  `diagnostics-status.md` §5 rule 4 permits one (*"MUST be omitted"*) and the schema enforces it
+  with `progress: false`. The firmware schema constrains `progress` on no status at all.
+
+### Note — `0.24.1` shipped in both SDKs with no CHANGELOG entry in either
+
+`v0.24.1` is tagged here (`a1e3536`) and on `ospp-sdk-php` (`9a71dfd`), and neither repository's
+CHANGELOG has a heading for it — the entries below jump from `0.23.0` to this release. By
+ADR-001's own definition that release is **not complete**: *"the CHANGELOG entry exists in both
+SDKs under the same version header, naming the spec tag implemented."* What it contained, for the
+record: `.spec-ref` **v0.23.0 → v0.24.1**, one `ConfigKey` default moved to follow spec `0.24.1`,
+the one conformance vector that moved with it, and the `package.json` bump. No entry is back-dated
+here; the hole is named rather than papered over.
+
 ## 0.23.0 — 2026-08-18
 
 **Three-repository release against spec `v0.23.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
