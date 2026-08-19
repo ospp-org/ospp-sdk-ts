@@ -165,6 +165,33 @@ describe('OfflinePass', () => {
     expect(pass.constraints.stationOfflineWindowHours).toBe(24);
     expect(pass.constraints.stationMaxOfflineTx).toBe(50);
   });
+
+  // `allowedServiceTypes` is WITHDRAWN in spec v0.25.0, step one of two: it left
+  // `offlineAllowance.required` and is retained as accepted-and-ignored. A pass
+  // built WITHOUT it must now type-check — this line would not have compiled at
+  // 0.25.0, and it is the whole observable content of the step on this side.
+  //
+  // Note what is NOT asserted: that a pass carrying the member is rejected. It
+  // must still be accepted, which is why the fixture above keeps it and this case
+  // sits beside it rather than replacing it. Both shapes are conforming for one
+  // release, and a control that only proved the new one would read as if the old
+  // had been dropped.
+  it('should accept a pass whose allowance omits the withdrawn allowedServiceTypes', () => {
+    const withdrawn: OfflinePass = {
+      ...pass,
+      offlineAllowance: {
+        maxTotalCredits: 500,
+        maxUses: 10,
+        maxCreditsPerTx: 100,
+      },
+    };
+    expect(withdrawn.offlineAllowance.allowedServiceTypes).toBeUndefined();
+    expect(withdrawn.offlineAllowance.maxUses).toBe(10);
+  });
+
+  it('should still accept a pass that carries it — servers MUST NOT reject on it', () => {
+    expect(pass.offlineAllowance.allowedServiceTypes).toEqual(['svc_eco', 'svc_basic']);
+  });
 });
 
 describe('SessionSource', () => {

@@ -691,6 +691,51 @@ describe('UpdateServiceCatalog payloads', () => {
     };
     expect(req.services).toHaveLength(2);
   });
+
+  // The RESPONSE union was imported by this file and exercised by nothing. Its
+  // `Accepted` arm is where spec v0.25.0 moved `previousCatalogVersion` from
+  // optional to REQUIRED, so it gets both halves of the control: the shapes the
+  // type must accept, and the one it must refuse.
+  it('should accept an Accepted response carrying previousCatalogVersion', () => {
+    const res: UpdateServiceCatalogResponse = {
+      status: 'Accepted',
+      previousCatalogVersion: '2.0',
+    };
+    expect(res.status).toBe('Accepted');
+  });
+
+  it('should accept the empty string — a station that has never held a catalog', () => {
+    // Named by the schema description as the legitimate value, and it is the one
+    // the spec's own `update-service-catalog-response-minimal.json` carries since
+    // v0.25.0. Absent and "" are two different statements on the wire; only one
+    // of them is conforming on an Accepted.
+    const res: UpdateServiceCatalogResponse = {
+      status: 'Accepted',
+      previousCatalogVersion: '',
+    };
+    expect(res.previousCatalogVersion).toBe('');
+  });
+
+  it('should REFUSE an Accepted response that omits previousCatalogVersion', () => {
+    // The refusal proof. Without it, widening the field back to optional would
+    // leave every assertion above still passing — the two shapes accepted above
+    // are accepted by BOTH the old type and the new one, so neither of them can
+    // tell the versions apart. `@ts-expect-error` fails the build if this line
+    // ever STOPS being an error, which is exactly the regression to catch.
+    // Checked by `npm run typecheck`, not by the vitest run.
+    // @ts-expect-error previousCatalogVersion is REQUIRED on Accepted (spec v0.25.0)
+    const res: UpdateServiceCatalogResponse = { status: 'Accepted' };
+    expect(res.status).toBe('Accepted');
+  });
+
+  it('should accept a Rejected response with its error pair', () => {
+    const res: UpdateServiceCatalogResponse = {
+      status: 'Rejected',
+      errorCode: 5023,
+      errorText: 'catalog failed validation',
+    };
+    expect(res.errorCode).toBe(5023);
+  });
 });
 
 // ── Certificates ────────────────────────────────────────────────────────

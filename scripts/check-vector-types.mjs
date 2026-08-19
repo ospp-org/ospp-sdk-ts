@@ -54,6 +54,7 @@ if (!/^v\d+\.\d+\.\d+(-[a-zA-Z0-9._-]+)?$/.test(SPEC_REF)) {
 
 // vector path (relative to the spec repo root) → the SDK type it must satisfy.
 const V = 'conformance/test-vectors/valid/core';
+const DM = 'conformance/test-vectors/valid/device-management';
 const VECTORS = [
   [`${V}/boot-notification-response-rejected.json`, 'BootNotificationResponse'],
   [`${V}/boot-notification-response-rejected-version-mismatch.json`, 'BootNotificationResponse'],
@@ -67,11 +68,30 @@ const VECTORS = [
   [`${V}/boot-notification-request-scheduled.json`, 'BootNotificationRequest'],
   [`${V}/boot-notification-request-error-recovery.json`, 'BootNotificationRequest'],
   ['examples/payloads/mqtt/boot-notification.request.json', 'BootNotificationRequest'],
+
+  // spec v0.25.0 moved both of these schemas, so both types are listed here per
+  // the rule above: add a vector when a payload type changes.
+  //
+  // UpdateServiceCatalogResponse: `previousCatalogVersion` became REQUIRED on the
+  // Accepted arm. Both response vectors carry it — `-minimal` with the empty
+  // string, which is the value a station that has never held a catalog sends and
+  // the reason the field is `string` rather than optional.
+  [`${DM}/update-service-catalog-response-minimal.json`, 'UpdateServiceCatalogResponse'],
+  [`${DM}/update-service-catalog-response-full.json`, 'UpdateServiceCatalogResponse'],
+  // FirmwareStatusNotificationPayload: the type is unchanged, its schema is not —
+  // `progress` is now forbidden on three statuses and `errorText` required on
+  // Failed. These two span both conditionals: `-full` is the Failed carrying
+  // errorText and no progress, `-minimal` the Downloading carrying neither. The
+  // type had no vector coverage at all before this.
+  [`${DM}/firmware-status-notification-full.json`, 'FirmwareStatusNotificationPayload'],
+  [`${DM}/firmware-status-notification-minimal.json`, 'FirmwareStatusNotificationPayload'],
 ];
 
 const IMPORTS = [
   "import type { BootNotificationRequest, BootNotificationResponse } from './src/types/payloads/boot-notification.js';",
   "import { BootReason } from './src/enums/BootReason.js';",
+  "import type { UpdateServiceCatalogResponse } from './src/types/payloads/update-service-catalog.js';",
+  "import type { FirmwareStatusNotificationPayload } from './src/types/payloads/firmware-status-notification.js';",
 ];
 
 // Fields whose declared type is a nominal string enum — see SCOPE above.

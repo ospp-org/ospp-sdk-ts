@@ -135,15 +135,40 @@ export interface OfflineAllowance {
   maxUses: number;
   /** Maximum credits per single offline transaction (>= 1). */
   maxCreditsPerTx: number;
-  /** Service types permitted for offline use (>= 1 entry). */
-  allowedServiceTypes: ServiceId[];
+  /**
+   * Service types permitted for offline use (>= 1 entry when present).
+   *
+   * @deprecated WITHDRAWN in spec `v0.25.0`, step one of two. No check in any of
+   * the three gates has ever read it — not the station's nine
+   * (`06-security.md` §6.1.1), not the authorize-time eleven, not the
+   * reconcile-time thirteen. Servers **MUST NOT** issue it in new passes;
+   * receivers **MUST** accept a pass that carries it and **MUST NOT** reject on
+   * its presence, absence or contents. Optional here as of that step, which is
+   * why this is a type widening and not a break.
+   *
+   * Step two deletes the member and re-signs the corpus. It is a separate
+   * release because `offlineAllowance` is `additionalProperties: false`, so a
+   * one-step deletion would invalidate every pass already in circulation at the
+   * next station that validated it.
+   */
+  allowedServiceTypes?: ServiceId[];
 }
 
 /** Operational constraints for offline sessions. */
 export interface OfflineConstraints {
   /** Minimum interval in seconds between consecutive offline transactions (>= 0). */
   minIntervalSec: number;
-  /** Maximum hours a station can operate in offline mode (>= 1). */
+  /**
+   * Maximum hours a station can operate in offline mode (>= 1).
+   *
+   * A **monotonic** elapsed duration measured from the last successful MQTT
+   * connection, NOT a wall-clock difference — named as such by spec `v0.25.0`
+   * (`06-security.md` §6.1.1 check #2). The distinction is load-bearing in the
+   * one mode this field exists for: offline, both clock sources (`serverTime` on
+   * BootNotification and on Heartbeat) are unreachable and `5106` cannot fire, so
+   * a wall clock that drifts or is stepped would move this bound with it.
+   * `heartbeat.md` §6 rule 5 already mandates the monotonic timer this reuses.
+   */
   stationOfflineWindowHours: number;
   /** Maximum offline transactions a station accepts before requiring sync (>= 1). */
   stationMaxOfflineTx: number;

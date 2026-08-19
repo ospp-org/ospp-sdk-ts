@@ -96,22 +96,25 @@ const validVectors = discoverTestVectors(join(TEST_VECTORS_ROOT, 'valid'));
 const invalidVectors = discoverTestVectors(join(TEST_VECTORS_ROOT, 'invalid'));
 
 describe('vector coverage', () => {
-  it('vendors the whole corpus', () => {
-    // 163 valid + 166 invalid = 329, the count the spec's own verify-schemas.py
-    // reports at v0.23.0. It was 318 at v0.22.0; the eleven added are the
-    // diagnostics conditionals (four negatives arming `progress` and `errorText`),
-    // the three that enter the `if`/`then` branches of get-diagnostics-response and
-    // set-maintenance-mode-response which NO vector had ever entered, the
-    // get-diagnostics-request-http-url mirror of the firmware negative, and three
-    // positives for the Failed, Uploaded and Rejected shapes that had none.
-    // A truncated vendored copy would make every test below pass vacuously.
+  it('vendors a non-empty corpus, and the byte gate pins which vectors those are', () => {
+    // This WAS `toBe(329)`, hand-bumped on every spec sync. That literal was a
+    // second copy of a fact about the corpus rather than a check on it: nothing
+    // derived it from the vendored tree, so it went stale by default and its
+    // failure landed on whoever did the re-vendor CORRECTLY.
     //
-    // This literal is a SECOND COPY of a fact about the corpus, not a check on
-    // it: nothing derives it from the vendored tree, so it must be hand-bumped
-    // on every new vector. See KNOWN-ISSUES — the gate that should replace it
-    // derives the count at run time and asserts only `> 0`, leaving byte-identity
-    // against the spec clone to pin WHICH vectors are present.
-    expect(validVectors.length + invalidVectors.length + unmapped.length).toBe(329);
+    // 0.26.0 replaces it with the pair this comment used to ask for. The
+    // `vector-corpus` CI job (scripts/check-vector-corpus.sh) diffs valid/ and
+    // invalid/ against the spec clone at `.spec-ref`, so WHICH vectors are here
+    // is pinned byte-for-byte — including a vector added upstream and never
+    // vendored, which no count in this file could ever have seen. What is left
+    // for this assertion is the anti-vacuity floor: a truncated or empty tree
+    // would make every case below pass by having nothing to run.
+    //
+    // The floor is deliberately NOT a count. A count here would re-create
+    // exactly what was removed.
+    expect(validVectors.length + invalidVectors.length + unmapped.length).toBeGreaterThan(0);
+    expect(validVectors.length).toBeGreaterThan(0);
+    expect(invalidVectors.length).toBeGreaterThan(0);
   });
 
   it('leaves exactly the BLE corpus unmapped, and names it', () => {
