@@ -127,6 +127,31 @@ if [[ "${status}" -eq 0 ]]; then
         echo "OK identical: ${bucket}/ (${n} vectors)"
       fi
     done
+    # crypto/ is --exclude'd from the diff above because this SDK vendors only a
+    # SUBSET of it, and a whole-directory diff of a subset against a superset is
+    # always drift. But excluded from the diff must not mean unchecked: a vendored
+    # crypto vector that nothing compares can rot against the spec forever while
+    # this gate prints "byte-identical". So iterate what is actually vendored —
+    # driven by the vendored set, not by a list, so a file vendored tomorrow is
+    # compared the day it lands rather than the day someone remembers to add a line.
+    if [[ -d "${VECTORS}/crypto" ]]; then
+      c=0
+      while IFS= read -r dst; do
+        name="$(basename "${dst}")"
+        if cmp -s "${CORPUS_SRC}/crypto/${name}" "${dst}"; then
+          echo "OK identical: crypto/${name}"
+        else
+          echo "DRIFT: crypto/${name} differs from spec ${SPEC_REF} (or is absent upstream)" >&2
+          status=1
+        fi
+        c=$((c + 1))
+      done < <(find "${VECTORS}/crypto" -maxdepth 1 -type f -name '*.json' | sort)
+      if [[ "${c}" -eq 0 ]]; then
+        echo "DRIFT: crypto/ exists but holds no vectors — an empty loop reports success for zero work" >&2
+        status=1
+      fi
+    fi
+
     # Named separately from the buckets because it is the only file here that
     # moves with the spec VERSION rather than with the vectors, and so the only
     # one whose drift proves the pin is stale rather than the corpus.
