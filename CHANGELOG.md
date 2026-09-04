@@ -167,6 +167,19 @@ tampered signature rather than only verifying one it produced itself. `check-vec
 was widened in the same commit so that `crypto/`, excluded from the whole-directory diff
 because this SDK vendors only a subset of it, is no longer thereby *unchecked*.
 
+### Fixed — `publish.yml` ran `npm test` without the inputs `ci.yml` had been given
+
+Found by the `v0.28.0` tag push itself. `ci.yml`'s `test` job was given the spec clone
+the new gate test needs; `publish.yml`, which re-runs the same suite as reproducibility
+insurance before publishing, was not. The tag built, tested **39 of 40 files green**, and
+died on the fortieth — the gate test throwing rather than skipping, which is precisely
+the behaviour it was given. The tag was moved to the fix rather than burnt for a `0.28.1`,
+because the lockstep number is shared with `ospp-sdk-php` and nothing had been published.
+
+The durable half: **two workflows each run `npm test` and each needs the same inputs**, and
+a step added to one and not the other is a difference no push to `main` can find — only a
+tag push runs `publish.yml`. A skipped test would have hidden it; a thrown one did not.
+
 ### Verified at this release
 
 - **12 gates green**, 6 in each SDK, against a local `v0.29.0` checkout.

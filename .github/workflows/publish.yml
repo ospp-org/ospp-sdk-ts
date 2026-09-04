@@ -67,6 +67,27 @@ jobs:
 
       - run: npm run build
 
+      # tests/enums/RecommendedActionGate.test.ts needs a spec checkout to mutate,
+      # and THROWS rather than skipping when CI is set and SPEC_REPO is not — a
+      # skipped gate test reads as a pass in the run summary, which is the exact
+      # failure it exists to prevent one level down.
+      #
+      # This step is here because 0.28.0's tag push proved it was needed: ci.yml's
+      # `test` job had been given the clone and this workflow had not, so the tag
+      # built, tested 39 of 40 files green, and died on the fortieth. The two
+      # workflows each run `npm test` and each needs the same inputs; a step added
+      # to one and not the other is a difference that only a tag push can find.
+      - name: Clone spec at pinned ref (for the gate mutation tests)
+        run: |
+          set -euo pipefail
+          ref="$(tr -d '[:space:]' < .spec-ref)"
+          if ! [[ "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._-]+)?$ ]]; then
+            echo "ERROR: .spec-ref value '$ref' does not match SemVer tag pattern" >&2
+            exit 1
+          fi
+          git clone --quiet --depth 1 --branch "$ref" https://github.com/ospp-org/spec.git /tmp/spec-source
+          echo "SPEC_REPO=/tmp/spec-source" >> "$GITHUB_ENV"
+
       # Re-runs the same test suite the CI workflow already ran on main
       # before this tag was cut. Cheap reproducibility insurance: catches
       # the rare case where the tag points at a commit that no longer
