@@ -8,8 +8,10 @@ import {
 describe('ConfigKey', () => {
   const allKeys = Object.values(ConfigKey);
 
-  it('should have exactly 28 keys', () => {
-    expect(allKeys).toHaveLength(28);
+  // 28 from spec 0.23.0 (which withdrew DiagnosticsUploadUrl) until 0.30.0
+  // registered StationIdentityCertificate.
+  it('should have exactly 29 keys', () => {
+    expect(allKeys).toHaveLength(29);
   });
 
   it('should have unique PascalCase string values', () => {
@@ -32,8 +34,8 @@ describe('ConfigKey', () => {
       expect(byProfile('Transaction')).toHaveLength(6);
     });
 
-    it('should have 6 Security keys', () => {
-      expect(byProfile('Security')).toHaveLength(6);
+    it('should have 7 Security keys', () => {
+      expect(byProfile('Security')).toHaveLength(7);
     });
 
     it('should have 4 Offline/BLE keys', () => {
@@ -44,8 +46,18 @@ describe('ConfigKey', () => {
       expect(byProfile('DeviceManagement')).toHaveLength(3);
     });
 
-    it('9 + 6 + 6 + 4 + 3 = 28', () => {
-      expect(9 + 6 + 6 + 4 + 3).toBe(28);
+    // WAS `expect(9 + 6 + 6 + 4 + 3).toBe(28)` — an arithmetic identity that never
+    // touched the registry and so could not fail. It stayed green when the registry
+    // went to 29 keys at spec 0.30.0, which is the whole failure mode: a test that
+    // would pass over an empty registry is not a test. It now sums the ACTUAL
+    // per-profile counts and compares them to the ACTUAL key count, so the five
+    // buckets must both partition the registry and account for all of it.
+    it('the five profile buckets partition the registry exactly', () => {
+      const perProfile = (['Core', 'Transaction', 'Security', 'OfflineBLE', 'DeviceManagement'] as ConfigProfile[])
+        .map((p) => byProfile(p).length);
+
+      expect(perProfile).toEqual([9, 6, 7, 4, 3]);
+      expect(perProfile.reduce((a, b) => a + b, 0)).toBe(allKeys.length);
     });
 
     // These counts are a self-comparison: they assert the registry against
@@ -101,6 +113,21 @@ describe('CONFIG_KEY_REGISTRY', () => {
 
     it('OfflinePassPublicKey should be WriteOnly', () => {
       expect(CONFIG_KEY_REGISTRY[ConfigKey.OFFLINE_PASS_PUBLIC_KEY].access).toBe('W');
+    });
+
+    // spec 0.30.0 08-configuration.md, ordinal 29. Write-only mirrors
+    // OfflinePassPublicKey above -- not confidentiality (the station presents this
+    // artefact to any BLE peer during the handshake) but because a held identity is
+    // confirmed by completing a handshake, not by echoing ~364 characters back
+    // through the configuration channel on every GetConfiguration.
+    it('StationIdentityCertificate matches its Chapter 08 row', () => {
+      const m = CONFIG_KEY_REGISTRY[ConfigKey.STATION_IDENTITY_CERTIFICATE];
+      expect(m.key).toBe('StationIdentityCertificate');
+      expect(m.valueType).toBe('string');
+      expect(m.defaultValue).toBeNull();
+      expect(m.access).toBe('W');
+      expect(m.mutability).toBe('Dynamic');
+      expect(m.profile).toBe('Security');
     });
 
     it('HeartbeatIntervalSeconds should be ReadWrite', () => {

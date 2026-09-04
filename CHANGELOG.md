@@ -1,5 +1,149 @@
 # Changelog
 
+## 0.29.0 — 2026-09-04
+
+**SDK-pair release against spec `v0.31.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
+`.spec-ref` moves **v0.29.0 → v0.31.0**, taking up **two** spec minors.
+
+> ### Five spec releases moved zero schema bytes. That run ended here.
+>
+> `v0.26.0` through `v0.29.0` moved **no** vendored schema and **no** vendored vector, so the
+> cascade for four consecutive syncs was a one-line marker bump and the byte-identity gates
+> could not have told you either way. `v0.30.0` and `v0.31.0` move schemas, so this sync is a
+> **full re-vendor** and both identity gates were **RED** on arrival. That is them working.
+>
+> Measured against the spec at both tags rather than read from its release notes:
+>
+> | | moved | denominator |
+> |---|---|---|
+> | schemas | **3** | 86 |
+> | conformance vectors | **0** | 334 |
+> | crypto vectors | **0** | 5 in spec (this SDK vendors a subset) |
+> | config keys | **+1** | 28 → 29 |
+> | error codes | **0** | 118 |
+>
+> The vector corpus moved **zero bytes of vector**, and the corpus gate still went **RED** —
+> on `test-vectors/README.md`, whose banner reads `OSPP Version: 0.29.0` upstream at `0.31.0`.
+> That file is in the diff deliberately: it is the only artefact in the corpus that moves with
+> the spec *version* rather than with the vectors, and it is what makes the gate discriminate
+> one `.spec-ref` value from another. A corpus gate that stayed green here would be the
+> pre-`v0.27.0` gate, which reported `OK` through twelve minors of README drift.
+
+> ### The numbers cross wider, and that is the design.
+>
+> This release is `0.29.0` and it pins spec `v0.31.0` — an offset of **−2**. The offset is not
+> fixed and not permanent: it was **0** at `0.27.0`/`v0.27.0`, **−1** at `0.28.0`/`v0.29.0`,
+> and **−2** here. It has changed at three consecutive releases, which is exactly why the two
+> numbers **must not be compared**.
+>
+> The number is taken from this package's own line — `0.28.0` plus a MINOR — and never from the
+> spec's. Choosing `0.31.0` to match the pin would derive one number from the other, the exact
+> reading trap [`VERSIONING.md`](https://github.com/ospp-org/spec/blob/main/VERSIONING.md#the-two-lines-have-crossed-and-they-will-not-uncross)
+> forbids. **`.spec-ref` remains the only source of truth.**
+>
+> Swept again, as a set rather than a sample: **nothing compares the two numbers.** Every
+> tracked file under `scripts/`, `.github/`, `tests/` and `src/` was swept — the denominators
+> are in the release notes below — and of the 14 files that name `.spec-ref` in each repo, not
+> one reads a spec version and compares it ordinally to this package's. The spec's **MUST NOT**
+> against introducing such a comparison is intact, and this release does not add one.
+
+> **Both SDKs changed at this release.** Neither is a no-op version bump taken only to keep the
+> pair in lockstep: `ospp-sdk-php` and this package each re-vendored three schemas, each took
+> the same three registry transcriptions, and each fixed a *different* `3003` defect. Where one
+> of the pair has nothing to ship this note says so; this time it does not apply.
+
+### Re-vendored — spec `v0.31.0`, 3 schemas of 86
+
+`src/schemas/` is a byte-mirror; the three that moved:
+
+- **`mqtt/session-ended-event.schema.json`** — `reason` enum **6 → 7**, adding `Inactivity`.
+  Two `description` cells also lost their `—`/`§` escapes for literal `—`/`§`.
+- **`mqtt/boot-notification-request.schema.json`** — new OPTIONAL property `messageSigningMode`
+  (`All` | `None`). `bootReason`'s description widened to cover a TriggerMessage-induced Boot;
+  **the enum did not change**.
+- **`provisioning-response.schema.json`** — `mqttConfig.keepAliveSeconds` description only; it
+  contradicted the `required` array three lines above it. No constraint moved.
+
+**The three files carry 16 of the 334 vectors**, and **all 16 still validate** — run, not
+reasoned. A widening cannot break a positive vector; it *can* break a negative one by admitting
+a payload that was refused. The two at risk use `"UserStopped"` and `"unknown_reason"`, neither
+admitted by the widened enums, and `Inactivity`/`messageSigningMode` appear in **0** of the 339
+vector files upstream (literal match; positive control on `bootReason` returns 10).
+
+### Added — `messageSigningMode` on `BootNotificationRequest`
+
+The hand-written payload types sit outside the byte-identity gate, and the schema just gained a
+property this one did not have — the drift `check:vector-types` exists to catch, invisible to it
+here only because no vector carries the field yet. Typed `messageSigningMode?: MessageSigningMode`
+against the existing `'All' | 'None'`, OPTIONAL as the schema has it.
+
+It is deliberately **not** part of `capabilities`: that object is four booleans describing what a
+station *supports*; this is configuration state describing what it is *doing*. It rides
+BootNotification REQUEST because that message is one of the three structural exemptions from
+message signing (06-security.md §5.6), and so the only message that still arrives when station
+and server disagree about the mode — every other channel that could report it is among the 44
+signed types.
+
+### Changed — three hand-transcribed registry values the schemas do not carry
+
+1. **`SessionEndReason` 6 → 7** — `INACTIVITY = 'Inactivity'`, the `SessionTimeout` idle stop.
+   Billed **pro-rata**, the same shape as `Local`, *not* a zero-billing reason. **MeterValues do
+   not reset the timer.**
+2. **`ConfigKey` 28 → 29** — `STATION_IDENTITY_CERTIFICATE`, registered by spec `0.30.0`:
+   string, no default, **W**, Dynamic, **Security**.
+3. **`3003 SERVICE_UNAVAILABLE`: HTTP `503` → `409`.**
+
+### Fixed — `3003` said `503`, and the sibling said `500`
+
+`3003` appeared in **no row** of §2.4's status table until spec `0.30.0`, and the three
+implementations that had to answer anyway did not agree: the reference server said `503`, this
+SDK said `503`, and `ospp-sdk-php` had **no arm at all** and fell to its `default => 500`. A
+caller branching on the status for retry or alerting got a different answer per library.
+
+`409` because the name misleads: `3003` says a declared service is not deliverable **on that bay
+right now** — a fact about the addressed resource. `503` asserts the *server* is unavailable,
+which is false here and invites a retry of the whole endpoint rather than a different bay.
+
+**The `spec §2.4 explicit HTTP status mappings` list is the reason this survived.** It is
+hand-maintained, and it had drifted **eleven codes** behind the table it claims to mirror —
+`4010`, `4017`, `2019`, `3003`, `3019`, `4015`, `6008`, `4016`, `4020` were all named upstream
+and absent here. It is now transcribed **in full, 30 codes**. The other ten were already correct;
+only `3003` was wrong, which is exactly why a sample missed it.
+
+> `2008 ACTION_NOT_PERMITTED` is listed by the spec under **both** `401` and `403`. This SDK
+> answers `403` and `ospp-sdk-php` answers `401`; both satisfy the table as written and neither
+> is falsifiable until the spec drops a row. **Pinned in both, not aligned**, so the
+> disagreement stays visible rather than being settled by whoever edited last.
+
+### Fixed — two recommended actions the spec re-worded, caught by the gate
+
+The `recommendedAction` gate checks coverage and structure and never bytes, because §1.4 forbids
+asserting byte-identity. **It caught this move**, four findings before the fix and none after:
+three CODE-REF on `1005` (the cell now cites `1005`, `1007`, `2001`) and one DISCRIMINATOR on
+`3003` (now a branching entry on `details.cause`). Both arms stay inside Appendix C's 1..500.
+
+### Fixed — a test that could not fail
+
+`9 + 6 + 6 + 4 + 3 = 28` asserted an arithmetic identity and never touched the registry, so it
+stayed **green** when the registry went to 29 keys. It now sums the actual per-profile counts and
+compares them to the actual key count. Mutation-checked: adding a bogus key turns it red.
+
+### Verification — mutation, not assertion
+
+Each defect was injected and the job that owns it had to go red. **12 of 12 discriminated**,
+including the two cross-injections this release exists to prevent: this SDK's `3003 → 503`
+injected into `ospp-sdk-php` goes **RED** under `phpunit`, and `ospp-sdk-php`'s `3003 → 500`
+injected here goes **RED** under `npm test`.
+
+> One case stated precisely: dropping `STATION_IDENTITY_CERTIFICATE` from **the enum** leaves
+> `check:config-registry` **green**, because that gate reads `CONFIG_KEY_REGISTRY`'s metadata and
+> not the enum, and the registry entry survives with its `key` field intact. `tsc` and two suite
+> assertions catch it, and both run before that gate's job, so nothing reaches a green CI — but
+> the gate alone is blind to an enum/registry disagreement, and that is recorded rather than
+> left for the next reader.
+
+---
+
 ## 0.28.0 — 2026-09-04
 
 **SDK-pair release against spec `v0.29.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).

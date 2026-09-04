@@ -1,6 +1,7 @@
 import type { StationId, Timestamp, NetworkInfo, StationCapabilities } from '../common.js';
 import type { BayTopology } from '../topology.js';
 import { BootReason } from '../../enums/BootReason.js';
+import type { MessageSigningMode } from '../../crypto/MessageSigningRegistry.js';
 
 /** BootNotification REQUEST — Station → Server. */
 export interface BootNotificationRequest {
@@ -34,6 +35,24 @@ export interface BootNotificationRequest {
   bootReason: BootReason;
   capabilities: StationCapabilities;
   networkInfo: NetworkInfo;
+  /**
+   * The MessageSigningMode the station is CURRENTLY operating in, as loaded from
+   * NVS at this boot. Added by spec 0.31.0 and OPTIONAL: a station that omits it
+   * says nothing, which is what every station said before 0.31.0.
+   *
+   * Deliberately NOT part of `capabilities` — that object is feature flags, four
+   * booleans describing what the station SUPPORTS; this is configuration state,
+   * describing what it is DOING.
+   *
+   * It rides this message because the BootNotification REQUEST is one of the three
+   * structural exemptions from message signing (06-security.md §5.6), and so the
+   * only message that still arrives when the station and the server disagree about
+   * the mode. Every other channel that could report it — GetConfiguration included
+   * — is among the 44 signed types, so a station that has failed closed cannot use
+   * any of them. Without this field that state is not merely undiagnosed, it is
+   * inexpressible.
+   */
+  messageSigningMode?: MessageSigningMode;
 }
 
 /** Common fields present in every BootNotification RESPONSE variant. */

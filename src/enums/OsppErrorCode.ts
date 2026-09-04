@@ -311,7 +311,18 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.SESSION_GENERIC]:           meta(3000, 'SESSION_GENERIC',           'Error',    true,  500, 'Session'),
   [OsppErrorCode.BAY_BUSY]:                  meta(3001, 'BAY_BUSY',                  'Warning',  true,  409, 'Session'),
   [OsppErrorCode.BAY_NOT_READY]:             meta(3002, 'BAY_NOT_READY',             'Warning',  true,  409, 'Session'),
-  [OsppErrorCode.SERVICE_UNAVAILABLE]:       meta(3003, 'SERVICE_UNAVAILABLE',       'Warning',  true,  503, 'Session'),
+  // spec 0.31.0: 3003 joins the §2.4 `409` row explicitly. It appeared in NO row of
+  // that table until 0.30.0, and the three implementations that had to answer anyway
+  // did not agree — the reference server said 503, THIS SDK said 503, and ospp-sdk-php
+  // had no arm at all and fell through to its `default => 500`. A registry that
+  // declines to state a mapping does not avoid one; it delegates it, once per
+  // implementation.
+  //
+  // 409, not 503: the name misleads. `3003` says a declared service is not deliverable
+  // ON THAT BAY RIGHT NOW — a fact about the addressed resource. `503` asserts the
+  // SERVER is unavailable, which is false here and invites a caller to retry the whole
+  // endpoint rather than pick another bay. Same shape as 3001, 3014 and 3019.
+  [OsppErrorCode.SERVICE_UNAVAILABLE]:       meta(3003, 'SERVICE_UNAVAILABLE',       'Warning',  true,  409, 'Session'),
   [OsppErrorCode.INVALID_SERVICE]:           meta(3004, 'INVALID_SERVICE',           'Error',    false, 422, 'Session'),
   [OsppErrorCode.BAY_NOT_FOUND]:             meta(3005, 'BAY_NOT_FOUND',             'Error',    false, 404, 'Session'),
   [OsppErrorCode.SESSION_NOT_FOUND]:         meta(3006, 'SESSION_NOT_FOUND',         'Error',    false, 404, 'Session'),

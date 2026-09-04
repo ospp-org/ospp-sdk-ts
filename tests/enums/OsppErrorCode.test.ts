@@ -227,14 +227,25 @@ describe('OSPP_ERROR_REGISTRY', () => {
   });
 
   describe('spec §2.4 explicit HTTP status mappings', () => {
+    // TRANSCRIBED IN FULL from the §2.4 table at spec 0.31.0, not sampled from it.
+    // This list had drifted eleven codes behind the table it claims to mirror --
+    // 4010, 4017, 2019, 3003, 3019, 4015, 6008, 4016 and 4020 were all named there
+    // and absent here -- which is how `3003` reached 0.31.0 with this SDK answering
+    // 503 and ospp-sdk-php answering 500 while both suites stayed green.
+    //
+    // `2008` is listed by the spec under BOTH 401 and 403. That is a duplicate
+    // upstream, not a choice this SDK gets to make silently; it is asserted as 403
+    // (the row whose description, "action not permitted for this role", matches
+    // ACTION_NOT_PERMITTED) and flagged here so the next reader sees the ambiguity
+    // rather than re-deriving it.
     const specMappings: [number, number][] = [
-      [1005, 400], [3015, 400], [6004, 400],
-      [2009, 401], [2010, 401],
+      [1005, 400], [3015, 400], [4010, 400], [4017, 400], [6004, 400],
+      [2009, 401], [2010, 401], [2019, 401],
       [4001, 402],
       [2008, 403],
       [3005, 404], [3006, 404], [3012, 404],
-      [3001, 409], [3014, 409], [6005, 409],
-      [3004, 422], [3008, 422], [3010, 422],
+      [3001, 409], [3003, 409], [3014, 409], [3019, 409], [4015, 409], [6005, 409], [6008, 409],
+      [3004, 422], [3008, 422], [3010, 422], [4016, 422], [4020, 422],
       [6006, 429],
       [6000, 500], [6001, 500],
       [6003, 502],

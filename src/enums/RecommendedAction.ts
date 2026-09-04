@@ -53,7 +53,7 @@ export const RECOMMENDED_ACTION: Readonly<Record<OsppErrorCode, string>> = {
   [OsppErrorCode.CERTIFICATE_ERROR]:
     'Station: never enter provisioning mode and never discard stored credentials. Branch on `details.cause`; if it is absent, read your own certificate\'s `notAfter`. `expired` — enter offline-only BLE mode (§4.7.3) and await server-triggered renewal. `revoked` / `invalid-chain` / `self-signed` — keep credentials, stay off the broker, alert the operator. Server: reject the connection, alert the operator.',
   [OsppErrorCode.INVALID_MESSAGE_FORMAT]:
-    'Log the malformed message. Do NOT retry — sender must fix the message.',
+    'Log it; do NOT resend the identical bytes — the sender must correct them. On the boot path this does not suspend CORE-011: a station rejected with `1005` MUST keep retrying at the response\'s `retryInterval`, exactly as for `1007` and `2001` (§5.2 — unlimited). One that stops is unrecoverable: it accepts no commands until booted. `recoverable: false` means someone must act, not stop retrying.',
   [OsppErrorCode.UNKNOWN_ACTION]:
     '**Branch on whether a RESPONSE schema exists for the action.** Known to the protocol but unsupported here: reply `status: "Rejected"` with this code on that action\'s own RESPONSE (§2.1). Unknown to the protocol: no RESPONSE schema exists and all are closed, so log and discard (Chapter 02 §11). Either branch **MAY** be reported as an unsolicited EVENT (§2.2). Sender: verify the action name.',
   [OsppErrorCode.PROTOCOL_VERSION_MISMATCH]:
@@ -123,7 +123,7 @@ export const RECOMMENDED_ACTION: Readonly<Record<OsppErrorCode, string>> = {
   [OsppErrorCode.BAY_NOT_READY]:
     'Wait and retry. Check StatusNotification [MSG-009] for the bay\'s current state; if none has arrived at all, the station is not `Operational` and the boot is what needs attention.',
   [OsppErrorCode.SERVICE_UNAVAILABLE]:
-    'App: select a different service, or a different bay that supports the requested one. Station and server: echo the refused `programNumber` — REQUIRED on a `Rejected` StartService response, `details.programNumber` on REST — so a reader sees which ordinal was refused. Operator: check the hardware and consumable at that ordinal; the binding is correct and the ordinal declared, so nothing server-side changes.',
+    'Branch on `details.cause`; absent means `station-reported`. App: select a different service, or a different bay. Station and server: echo the refused `programNumber` — REQUIRED on a `Rejected` StartService response, `details.programNumber` on REST. `station-reported`: wait for the station to report the ordinal available again; nothing server-side changes. `disabled`: an operator must re-enable it. `consumable`: refill at that ordinal.',
   [OsppErrorCode.INVALID_SERVICE]:
     'Verify the service ID against the station\'s UpdateServiceCatalog [MSG-021] data.',
   [OsppErrorCode.BAY_NOT_FOUND]:

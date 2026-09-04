@@ -73,13 +73,30 @@ export enum ConfigKey {
   RESERVATION_DEFAULT_TTL       = 'ReservationDefaultTTL',
   DEFAULT_CREDITS_PER_SESSION   = 'DefaultCreditsPerSession',
 
-  // --- Security (6) ---
+  // --- Security (7) ---
   CERTIFICATE_SERIAL_NUMBER     = 'CertificateSerialNumber',
   AUTHORIZATION_CACHE_ENABLED   = 'AuthorizationCacheEnabled',
   MESSAGE_SIGNING_MODE          = 'MessageSigningMode',
   OFFLINE_PASS_PUBLIC_KEY       = 'OfflinePassPublicKey',
   CERTIFICATE_RENEWAL_THRESHOLD_DAYS = 'CertificateRenewalThresholdDays',
   CERTIFICATE_RENEWAL_ENABLED   = 'CertificateRenewalEnabled',
+  /**
+   * The station's signed BLE StationIdentity artefact — the JSON object of
+   * 06-security.md §6.5.2, in OSPP Canonical Form. First delivered in the
+   * provisioning response; re-issued through ChangeConfiguration [MSG-013],
+   * which §6.5.2 relies on because `expiresAt` is short.
+   *
+   * Write-only, mirroring `OfflinePassPublicKey` — not for confidentiality (the
+   * station presents this artefact to any BLE peer during the handshake) but
+   * because a held identity is confirmed by completing a handshake, not by
+   * echoing ~364 characters back on every GetConfiguration.
+   *
+   * Registered at spec 0.30.0. It was named as a valid ChangeConfiguration key at
+   * two normative sites while absent from the Chapter 08 registry, so §8.2 rule 3
+   * obliged a conforming station to answer `NotSupported` — and, the batch being
+   * atomic, to apply nothing else in the same request.
+   */
+  STATION_IDENTITY_CERTIFICATE  = 'StationIdentityCertificate',
 
   // --- Offline / BLE (4) ---
   OFFLINE_MODE_ENABLED          = 'OfflineModeEnabled',
@@ -140,6 +157,7 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
   [ConfigKey.OFFLINE_PASS_PUBLIC_KEY]:      km('OfflinePassPublicKey',        'string',  null,    'W',  'Dynamic', 'Security'),
   [ConfigKey.CERTIFICATE_RENEWAL_THRESHOLD_DAYS]: km('CertificateRenewalThresholdDays', 'integer', '30', 'RW', 'Dynamic', 'Security'),
   [ConfigKey.CERTIFICATE_RENEWAL_ENABLED]:  km('CertificateRenewalEnabled',   'boolean', 'true',  'RW', 'Dynamic', 'Security'),
+  [ConfigKey.STATION_IDENTITY_CERTIFICATE]: km('StationIdentityCertificate',  'string',  null,    'W',  'Dynamic', 'Security'),
 
   // ── Offline / BLE ─────────────────────────────────────────────────────
   [ConfigKey.OFFLINE_MODE_ENABLED]:         km('OfflineModeEnabled',          'boolean', 'true',  'RW', 'Dynamic', 'OfflineBLE'),
