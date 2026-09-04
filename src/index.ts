@@ -26,6 +26,7 @@ export {
   type OsppErrorSeverity,
   type OsppErrorCategory,
 } from './enums/OsppErrorCode.js';
+export { RECOMMENDED_ACTION, recommendedAction } from './enums/RecommendedAction.js';
 export {
   ConfigKey,
   CONFIG_KEY_REGISTRY,

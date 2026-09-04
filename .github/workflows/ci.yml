@@ -24,6 +24,24 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+      # tests/enums/RecommendedActionGate.test.ts runs the recommendedAction gate
+      # against synthetic, deliberately-broken copies of the spec registry —
+      # including the case that proves the gate does NOT assert the byte-identity
+      # 07-errors.md §1.4 forbids. It needs a real registry to mutate, and without
+      # SPEC_REPO it SKIPS. Green skips read exactly like green passes in the run
+      # summary, so the suite throws under CI when this is missing rather than
+      # quietly stopping. Shallow clone at the pinned ref; no network cost beyond
+      # the one every other gate job here already pays.
+      - name: Clone spec at pinned ref (for the gate mutation tests)
+        run: |
+          set -euo pipefail
+          ref="$(tr -d '[:space:]' < .spec-ref)"
+          if ! [[ "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._-]+)?$ ]]; then
+            echo "ERROR: .spec-ref value '$ref' does not match SemVer tag pattern" >&2
+            exit 1
+          fi
+          git clone --quiet --depth 1 --branch "$ref" https://github.com/ospp-org/spec.git /tmp/spec-source
+          echo "SPEC_REPO=/tmp/spec-source" >> "$GITHUB_ENV"
       - run: npm test
 
   # The schemas job below proves the vendored SCHEMAS match the spec. Nothing
@@ -67,6 +85,33 @@ jobs:
       - run: npm ci
       - name: Compare src/enums/OsppErrorCode.ts against spec/07-errors.md
         run: npm run check:error-registry
+
+  # The sibling of error-registry, on the column that gate does not read.
+  #
+  # check:error-registry compares errorText, severity and recoverable and stops
+  # there. This SDK carried NO corrective actions at all — OsppErrorMeta had no
+  # such member — while ospp-sdk-php carried 11 of 118, and both states sat behind
+  # a green column. The 11 was read once as the registry being incomplete; §3 gives
+  # an action for 118 of 118 rows with no empty cell, so it was a transcription
+  # hole on the SDK side, not a gap upstream.
+  #
+  # This gate checks COVERAGE and STRUCTURE and never compares an action to its
+  # cell: §1.4 permits translation and shortening and concludes that a conformance
+  # test MUST NOT assert byte-identity. See the script header for the eight
+  # properties it asserts instead, and tests/enums/RecommendedActionGate.test.ts
+  # for the mutation that proves no diff is hiding in it.
+  recommended-action:
+    name: Recommended action coverage vs §3 registry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Compare RECOMMENDED_ACTION against spec/07-errors.md §3
+        run: npm run check:recommended-action
 
   # The mirror of the same defect one registry over. CONFIG_KEY_REGISTRY was
   # compared only to itself: tests/enums/ConfigKey.test.ts counts the keys in each
