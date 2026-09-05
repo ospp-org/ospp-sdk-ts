@@ -227,17 +227,31 @@ describe('OSPP_ERROR_REGISTRY', () => {
   });
 
   describe('spec §2.4 explicit HTTP status mappings', () => {
-    // TRANSCRIBED IN FULL from the §2.4 table at spec 0.31.0, not sampled from it.
+    // TRANSCRIBED IN FULL from the §2.4 table at spec 0.32.0, not sampled from it.
+    // 30 code-status pairs. Re-derived from the table at both tags rather than
+    // edited by hand: v0.31.0 carried 31, v0.32.0 carries 30, and the one removed
+    // pair is `2008 -> 401`. Nothing else in this list moved.
+    //
     // This list had drifted eleven codes behind the table it claims to mirror --
     // 4010, 4017, 2019, 3003, 3019, 4015, 6008, 4016 and 4020 were all named there
     // and absent here -- which is how `3003` reached 0.31.0 with this SDK answering
     // 503 and ospp-sdk-php answering 500 while both suites stayed green.
     //
-    // `2008` is listed by the spec under BOTH 401 and 403. That is a duplicate
-    // upstream, not a choice this SDK gets to make silently; it is asserted as 403
-    // (the row whose description, "action not permitted for this role", matches
-    // ACTION_NOT_PERMITTED) and flagged here so the next reader sees the ambiguity
-    // rather than re-deriving it.
+    // `2008` USED TO BE listed under BOTH 401 and 403 -- in all 49 spec tags from
+    // v0.1.0-draft.1 to v0.31.0, the only one of this table's thirty codes to
+    // appear twice. This note flagged that as an upstream duplicate the SDK should
+    // not silently resolve. Spec 0.32.0 resolved it: §4.4's multi-status licence
+    // gained a condition -- a code listed under two statuses MUST have a registry
+    // entry naming the condition that selects between them -- and 2008's entry
+    // names one, "the AUTHENTICATED entity does not have the required RBAC role or
+    // permission", which is 403 by construction. The 401 row was UNSELECTABLE, not
+    // merely redundant, and fell out as a consequence.
+    //
+    // The value here does not move, and that is the point worth keeping. 403 was
+    // one of two conformant answers under the unconditional licence and is the only
+    // one under the conditional one; the sibling ospp-sdk-php chose 401, was
+    // equally conformant, and moves to 403. No code is listed twice at 0.32.0, so
+    // the ambiguity this note existed to flag is gone.
     const specMappings: [number, number][] = [
       [1005, 400], [3015, 400], [4010, 400], [4017, 400], [6004, 400],
       [2009, 401], [2010, 401], [2019, 401],

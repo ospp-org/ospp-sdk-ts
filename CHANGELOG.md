@@ -1,5 +1,60 @@
 # Changelog
 
+## Unreleased — `.spec-ref` v0.31.0 → v0.32.0
+
+**Not a release, and unlike the sibling this one carries no behaviour change at all.** No version
+is cut and none is needed: spec `0.32.0` moves **0** of the 86 schemas and **0** of the 334
+conformance vectors, so there is nothing to re-vendor beyond the corpus README banner that moves
+with the spec *version* rather than with the vectors. `@ospp/protocol` stays at **0.29.0** on npm.
+
+> ### The marker moves for hygiene, not repair — and the gates were asked to prove it.
+>
+> Measured, not assumed. Moving `.spec-ref` alone turned exactly **two** of the eight gates red,
+> and they named exactly the three files that had to follow:
+>
+> | gate | what it named |
+> |---|---|
+> | `check:vector-corpus` | `src/test-vectors/README.md` — the banner, the only byte of the corpus that differs between the two tags |
+> | `check:doc-claims` | `README.md` line 3, and `src/enums/SessionEndReason.ts`'s *as-of* claim |
+>
+> The other six stayed green through the move, which is the measurement: `check:error-registry`,
+> `check:config-registry`, `check:crypto-vectors`, `check:action-registry`, `check:vector-types`
+> and `check:recommended-action` all compare content, and no content moved. Vendored corpus at
+> both tags: **163 valid + 171 invalid = 334**, byte-identical either way.
+
+### Changed — the marker, and the three claims derived from it
+
+- `.spec-ref` **v0.31.0 → v0.32.0**.
+- `src/test-vectors/README.md` re-vendored from spec `v0.32.0` — a one-line banner.
+- `README.md` line 3, and `src/enums/SessionEndReason.ts`'s *"7 values as of spec 0.31.0"* → `0.32.0`.
+  The count itself is unchanged and was re-derived from the schema at `v0.32.0` rather than carried:
+  the `reason` enum is still **7**, because `0.32.0` considered widening it and **refused with the
+  cost written down**. The *"7 since spec 0.31.0 added Inactivity"* note in the tests is a statement
+  about history and stays as it is.
+
+### Unchanged — `2008` was already right here, and that is now decidable
+
+`07-errors.md` §2.4 listed `2008 ACTION_NOT_PERMITTED` under **both** `401` and `403` in all 49 spec
+tags from `v0.1.0-draft.1` on — the only one of that table's thirty codes to appear twice. §4.4
+declared the table illustrative and expressly permitted it, so this SDK's `403` and `ospp-sdk-php`'s
+`401` were **both conformant and neither refutable**. Spec `0.32.0` gave the licence a condition — a
+code listed twice MUST have a registry entry naming the discriminator — and `2008`'s entry names one
+condition, which is `403` by construction. The `401` row was unselectable and is gone.
+
+**No value moves here.** `OSPP_ERROR_REGISTRY[2008].httpStatus` was already `403`, and the §2.4
+fixture in `tests/enums/OsppErrorCode.test.ts` already asserted `[2008, 403]`. Re-derived from the
+table at both tags: **31 pairs at `v0.31.0`, 30 at `v0.32.0`**, the single removed pair being
+`2008 → 401`, and the fixture is set-identical to the `v0.32.0` table. What changed is the note above
+that fixture, which told the reader the spec listed the code twice — true when written, false now.
+
+**The sibling is the one that moves.** `ospp-sdk-php` ships the `401 → 403` correction in its next
+release. **That does not oblige a tag here**: ADR-001 lockstep pairs the two SDKs on the *spec* they
+vendor, and nothing in either repository compares the two package versions — no script, no CI job, no
+assertion. Cutting `0.30.0` here to match would publish a version whose entire diff is a version
+string. The pin this package advertises is `.spec-ref`, and it is now correct.
+
+---
+
 ## 0.29.0 — 2026-09-04
 
 **SDK-pair release against spec `v0.31.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
