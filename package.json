@@ -1,6 +1,6 @@
 {
   "name": "@ospp/protocol",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "OSPP Protocol TypeScript SDK",
   "license": "MIT",
   "type": "module",
@@ -55,7 +55,7 @@
     "check:recommended-action": "vite-node scripts/check-recommended-action.ts",
     "check:action-registry": "vite-node scripts/check-action-registry.ts",
     "check:doc-claims": "vite-node scripts/check-doc-claims.ts",
-    "check:bay-transitions": "vite-node scripts/check-bay-transitions.ts"
+    "check:state-machines": "vite-node scripts/check-state-machines.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

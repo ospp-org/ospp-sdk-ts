@@ -13,7 +13,7 @@ describe('canTransition — valid', () => {
   const valid: [SessionState, SessionState][] = [
     ['Pending', 'Authorized'], ['Pending', 'Failed'],
     ['Authorized', 'Active'], ['Authorized', 'Failed'],
-    ['Active', 'Stopping'], ['Active', 'Failed'],
+    ['Active', 'Stopping'], ['Active', 'Completed'], ['Active', 'Failed'],
     ['Stopping', 'Completed'], ['Stopping', 'Failed'],
   ];
 
@@ -23,8 +23,8 @@ describe('canTransition — valid', () => {
     });
   }
 
-  it('should have 8 valid transitions total', () => {
-    expect(valid).toHaveLength(8);
+  it('should have 9 valid transitions total', () => {
+    expect(valid).toHaveLength(9);
   });
 });
 
@@ -32,7 +32,7 @@ describe('canTransition — invalid', () => {
   const invalid: [SessionState, SessionState][] = [
     ['Pending', 'Active'], ['Pending', 'Stopping'], ['Pending', 'Completed'], ['Pending', 'Pending'],
     ['Authorized', 'Authorized'], ['Authorized', 'Stopping'], ['Authorized', 'Completed'], ['Authorized', 'Pending'],
-    ['Active', 'Active'], ['Active', 'Authorized'], ['Active', 'Completed'], ['Active', 'Pending'],
+    ['Active', 'Active'], ['Active', 'Authorized'], ['Active', 'Pending'],
     ['Stopping', 'Stopping'], ['Stopping', 'Active'], ['Stopping', 'Authorized'], ['Stopping', 'Pending'],
     // Terminal states have no outgoing transitions
     ['Completed', 'Pending'], ['Completed', 'Failed'], ['Completed', 'Completed'],

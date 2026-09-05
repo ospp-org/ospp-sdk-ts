@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.32.0 — 2026-09-06
+
+**SDK-pair release. `.spec-ref` does NOT move** — it stays `v0.33.0`, because the specification was
+already right. `ospp-sdk-php` releases the same number.
+
+> ### The fifth instance, and the gate that ends the class.
+>
+> `05-state-machines.md` §3.3 asserts `Active → Completed` in **four** places — the §3.1 diagram and
+> three table rows — for the three reasons a station reports *without ever being asked to stop*:
+> `Local` (the user pressed the physical Stop button on the bay), `LocalOutOfCredit`,
+> `OperatorStopped`. Both SDKs refused it, so **three of the seven `SessionEndReason` values were
+> unrepresentable** in this machine.
+>
+> **The spec is what is right, and the reference server is the evidence.** It reached the correct end
+> state only by writing an intermediate `Stopping` — in a **separate, un-wrapped** write — and its
+> own timeout sweep reads a persisted `Stopping` as *"the station never confirmed the stop"* and
+> settles it on a different billing arm. The workaround existed to compensate, and is removed
+> downstream now that it need not exist.
+
+### Fixed — `Active -> Completed`
+
+- `SESSION_TRANSITIONS` gains the pair; the machine goes **8 → 9**.
+- **The test's list of valid pairs passed without it.** The loop asserts each *listed* pair is
+  allowed and never that the list is *complete*, so `toHaveLength(8)` was true of a list that had
+  gone stale. Completed, with the reason written in.
+
+### Added — `check:state-machines`, replacing `check:bay-transitions`
+
+- Derives **all six** machines from `05-state-machines.md`, each **bounded to its own section** (the
+  chapter holds seven tables; a global scan merges them), reading `From`/`To` column positions from
+  each header because the Bay table carries an extra `Effected by` column.
+- **Compares against the SPEC, never the sibling SDK** — two transcriptions that are identically
+  wrong pass a cross-SDK comparison and fail this one.
+- **Zero parsed transitions is a failure, not a pass**, and it **self-tests before reporting**:
+  every `To` cell of one section is rewritten and the parsed set must change. CI runs the self-test.
+- **§5.3 BLE is named NOT COVERED** rather than silently skipped; this SDK has no BLE machine.
+
+### Still ungated, measured and NOT built here
+
+**17 of the sibling's 28 enums mirror a vendored schema enum exactly and none has a gate comparing
+the two**; this SDK's enums are the same shape. A drift is invisible — the byte-identity gate sees
+an unchanged schema and the enum's own test sees an unchanged hand-written list. Recorded, not
+closed.
+
+### Verification
+
+- **9/9 gates**, `tsc` 0 errors, **vitest 40 files / 1138 tests**, 0 failures. `.spec-ref` unchanged
+  at `v0.33.0`, so no re-vendor and no schema or vector moves.
+
+---
+
 ## 0.31.0 — 2026-09-05
 
 **SDK-pair release against spec `v0.33.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
