@@ -65,6 +65,48 @@ jobs:
       - name: Type-check spec vectors against src/types/
         run: npm run check:vector-types
 
+  # `OsppAction` is the enum the whole SDK is indexed by — topics, envelopes, HMAC
+  # classification and every payload type hang off it — and it was the only
+  # registry in this package with nothing comparing it to the spec. 07-errors.md
+  # had error-registry, 08-configuration.md had config-registry, schemas/ had the
+  # byte gate. Chapter 03 had a doc comment, and that comment said "OSPP protocol
+  # v0.2.5" while .spec-ref pinned v0.31.0 — twenty-nine minors of drift on a line
+  # no job read. The count it also carried happened to still be right; nothing
+  # established that but coincidence.
+  action-registry:
+    name: Action enum vs spec message catalog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: MQTT actions vs spec/03-messages.md Quick Reference
+        run: npm run check:action-registry
+
+  # README.md made six factual claims about this package and FOUR were false: the
+  # protocol version (v0.5.0 against a v0.31.0 pin), the error codes (102 against
+  # 118), the bundled schemas (64 against 86) and the state machines (5, named,
+  # against 6 exported). Every job above was green throughout, because not one of
+  # them read README.md — the only description of this package npm renders, and
+  # the first thing an integrator installing @ospp/protocol sees.
+  #
+  # No spec clone and no network: every value is derived from this repo.
+  doc-claims:
+    name: Documented claims vs derived values
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Every asserted number and version vs what it asserts about
+        run: npm run check:doc-claims
+
   # The schemas job proves the vendored schemas match the spec, and vector-types
   # proves the payload types match those schemas. The ERROR REGISTRY sat outside
   # both: it is a Markdown table in spec/07-errors.md, not a schema, so nothing

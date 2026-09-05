@@ -26,15 +26,16 @@
  *
  * The values are the registry cell with Markdown links flattened to their label
  * text and whitespace collapsed; nothing else is changed. Every cell fits the
- * wire bound as written at v0.29.0 (longest 494 of 500), so no shortening is
- * needed anywhere and none is done.
+ * wire bound as written at the pinned ref (longest 494 of 500), so no shortening
+ * is needed anywhere and none is done — and `npm run check:doc-claims` derives that
+ * 494 from the map below rather than trusting this sentence for it.
  *
  * There is deliberately no matching `errorDescription` map. That field is
  * PER-OCCURRENCE and written by the emitter; §1.4 states that an implementation
  * MUST NOT emit a registry Description cell verbatim and that "a generator MUST
  * NOT be built to do so".
  *
- * Source: spec/07-errors.md §3.1–§3.6 at `.spec-ref` v0.29.0.
+ * Source: spec/07-errors.md §3.1–§3.6, at the ref pinned in `.spec-ref`.
  */
 
 import { OsppErrorCode } from './OsppErrorCode.js';

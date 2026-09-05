@@ -52,7 +52,9 @@
     "check:config-registry": "vite-node scripts/check-config-registry.ts",
     "check:crypto-vectors": "bash scripts/check-crypto-vectors.sh",
     "check:vector-corpus": "bash scripts/check-vector-corpus.sh",
-    "check:recommended-action": "vite-node scripts/check-recommended-action.ts"
+    "check:recommended-action": "vite-node scripts/check-recommended-action.ts",
+    "check:action-registry": "vite-node scripts/check-action-registry.ts",
+    "check:doc-claims": "vite-node scripts/check-doc-claims.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

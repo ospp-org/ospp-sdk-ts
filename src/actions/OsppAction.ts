@@ -1,7 +1,15 @@
 /**
- * All 27 MQTT actions defined by the OSPP protocol v0.2.5.
+ * All 27 MQTT actions defined by the OSPP protocol.
  *
- * Source: spec/spec/03-messages.md — Quick Reference + §5.4 SessionEnded.
+ * Source: spec/spec/03-messages.md — the MQTT Quick Reference table, at the ref
+ * pinned in `.spec-ref`. `npm run check:action-registry` compares this enum to
+ * that table on every run, in both directions, and compares the 27 above to it
+ * as well — so both the membership and the count are derived, not asserted.
+ *
+ * The version this file used to name here was `v0.2.5`, twenty-nine minors
+ * behind the pin, and no gate could see it because no gate read this file. The
+ * number is not restated: `.spec-ref` is the one place that answers "which
+ * spec?", and a second copy of an answer is the defect, not the documentation.
  *
  * The action value is carried in the `action` field of the MQTT envelope.
  * There is NO topic-per-action — all messages flow through two topics per
