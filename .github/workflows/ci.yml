@@ -128,6 +128,25 @@ jobs:
       - name: Compare src/enums/OsppErrorCode.ts against spec/07-errors.md
         run: npm run check:error-registry
 
+  bay-transitions:
+    name: Bay transition table vs spec §2.3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The six state machines were the only registries here with no parity gate.
+      # spec 0.30.0 added `Unknown -> Reserved` and it reached the canonical table
+      # and nothing else: the canonical-table test TRANSCRIBES the pairs, so this
+      # SDK, ospp-sdk-php, and the server that delegates to them all refused the
+      # transition for three releases while every artefact stayed green. A station
+      # that rebooted holding a reservation had its one truthful report rejected.
+      - name: Compare BayStateMachine against spec/05-state-machines.md §2.3
+        run: npm run check:bay-transitions
+
   # The sibling of error-registry, on the column that gate does not read.
   #
   # check:error-registry compares errorText, severity and recoverable and stops

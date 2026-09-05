@@ -1,8 +1,77 @@
 # Changelog
 
-## Unreleased — `.spec-ref` v0.31.0 → v0.32.0
+## 0.31.0 — 2026-09-05
 
-**Not a release, and unlike the sibling this one carries no behaviour change at all.** No version
+**SDK-pair release against spec `v0.33.0`** ([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
+`.spec-ref` moves **v0.31.0 → v0.33.0**, taking up **two** spec minors. `ospp-sdk-php` releases the
+same number; `0.30.0` is skipped here, because that one was the sibling's alone — the `2008`
+`401 → 403` correction this SDK did not need.
+
+> ### A transition was normative for three releases and this SDK refused it.
+>
+> Spec `0.30.0` added `Unknown → Reserved` to the canonical bay table, together with a station-side
+> **MUST** to persist a `Confirmed` reservation durably — the spec says *"for exactly this reason"*.
+> It reached the canonical table and **nothing else**. This SDK refused the transition,
+> `ospp-sdk-php` refused it, and `csms-server` delegates to them, so a station that rebooted holding
+> a reservation had its one truthful post-boot report rejected in all three. Following the guides it
+> reports `Available` instead, and the bay is resold under the holder.
+>
+> **Nothing could catch it, and that is the part worth fixing.** The canonical-table test in this
+> repo *transcribes* the twenty-one pairs by hand under a docblock quoting §2.3. A transcription is
+> not a comparison. The error registry, the config registry, the action registry, the recommended
+> actions, the schemas and the vectors all have a gate that derives them from the spec; **the six
+> state machines had none.**
+>
+> | | before | after |
+> |---|---|---|
+> | `Station` transitions | 20 | **21** |
+> | `Server` (the union) | 26 | **27** |
+> | exits from `Unknown` | 5 | **6** |
+
+### Added — `check:bay-transitions`, which derives the table instead of restating it
+
+- `scripts/check-bay-transitions.ts` parses §2.3 bounded to that section (the file holds six
+  transition tables; a global scan merges them), expands multi-source rows into transitions, and
+  compares both parties against `BayStateMachine` in **both directions** — refused-but-specified and
+  allowed-but-unspecified. Wired into `ci.yml` as its own job.
+- It fails loudly on **zero parsed rows** rather than passing vacuously, and it models the union
+  correctly: §2.3 says *"A station implements the `Station` rows. A server implements all of them"*,
+  so comparing the `Server` party to the six server-effected rows alone reports every station row as
+  an extra. **That is what its first run did** — one true finding and twenty false ones — and the
+  false ones are what said the instrument was wrong rather than the SDK.
+
+### Added — `5113 OUTCOME_INDETERMINATE`, the 119th code
+
+- Spec `0.33.0` adds it for `start-service.md` rule 12, which **mandated a message the schema
+  refuses**: it required a `Faulted` StatusNotification and named no `errorCode`, while CORE-012 and
+  `status-notification.schema.json` both require one on `Faulted`. Measured over all 34 codes then in
+  the range, **every one asserts a fault the station observed**, and that rule's condition is that it
+  observed nothing — so a code was missing, not a list.
+- `Warning`, not recoverable, `Hardware` category. Registry **118 → 119**; the 5xxx band **34 → 35**.
+
+### Changed — sync to spec `v0.33.0`
+
+- `.spec-ref` **v0.31.0 → v0.33.0**. Corpus re-vendored: **0** of the 334 existing vectors move,
+  **3 are added** (the rule-12 StatusNotification, its SecurityEvent, and a `1005` boot rejection),
+  and one existing vector changes — `security-event-hardware-fault.json` carried
+  `errorCode: 5003 CONSUMABLE_SYSTEM` under *"Pump overcurrent detected"*, which is `5001`.
+- **0 of the 86 schemas move.** `errorCode` is `{"type": "integer"}` everywhere it appears, so the
+  119th code costs no schema byte.
+
+### Verification
+
+- **9/9 gates**, `tsc` 0 errors, **vitest 40 files / 1138 tests**, 0 failures. Fourteen hand-written
+  restatements of the transition count and the registry size went red on the fix and were corrected;
+  each was a number a human had copied, which is the same failure the new gate exists to end.
+
+---
+
+### Absorbed from the unreleased v0.32.0 marker move
+
+*This block was written when `.spec-ref` moved to `v0.32.0` without a release. It ships here, and
+the pin has since moved again to `v0.33.0` — the numbers below describe that earlier step.*
+
+**It carried no behaviour change at all, unlike the sibling.** No version
 is cut and none is needed: spec `0.32.0` moves **0** of the 86 schemas and **0** of the 334
 conformance vectors, so there is nothing to re-vendor beyond the corpus README banner that moves
 with the spec *version* rather than with the vectors. `@ospp/protocol` stays at **0.29.0** on npm.

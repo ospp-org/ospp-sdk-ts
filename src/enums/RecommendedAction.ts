@@ -1,7 +1,7 @@
 /**
  * The per-code corrective action from the spec registry (07-errors.md §3).
  *
- * All 118 registry codes are transcribed. This SDK carried NONE of them until
+ * All 119 registry codes are transcribed. This SDK carried NONE of them until
  * 0.28.0 — `OsppErrorMeta` has no such member and no accessor existed — while
  * ospp-sdk-php carried eleven. That eleven was read once as the registry being
  * incomplete; it is not. §3 gives a Recommended Action for 118 of 118 rows with
@@ -269,6 +269,8 @@ export const RECOMMENDED_ACTION: Readonly<Record<OsppErrorCode, string>> = {
     'Station: reject new StartService requests. Reconnect to MQTT to flush buffered TransactionEvents. Server: prioritize reconnection and reconciliation for this station.',
   [OsppErrorCode.FIRMWARE_SIGNATURE_INVALID]:
     'Do NOT install. Report via SecurityEvent [MSG-012] with `FirmwareIntegrityFailure` type. Server: verify signing key and re-publish firmware.',
+  [OsppErrorCode.OUTCOME_INDETERMINATE]:
+    'Station: report the bay `Faulted` and emit the SecurityEvent [MSG-012] that carries the `sessionId`. Server: settle on the estimate, and record that the closing figure is unmeasured rather than observed. Operator: inspect the bay before returning it to service.',
 
   // 07-errors.md §3.6 — Server (6xxx)
   [OsppErrorCode.SERVER_GENERIC]:

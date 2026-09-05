@@ -1,7 +1,7 @@
 /**
  * Reasons a session may end autonomously (without server-initiated StopService).
  *
- * Source: spec/03-messages.md §5.4 SessionEnded — `reason` enum (7 values as of spec 0.32.0).
+ * Source: spec/03-messages.md §5.4 SessionEnded — `reason` enum (7 values as of spec 0.33.0).
  * Refund policy per reason: spec/04-flows.md §6.
  * Sent in the SessionEnded EVENT payload.
  */

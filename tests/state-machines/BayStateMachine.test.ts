@@ -37,11 +37,11 @@ describe('Bay SM transitions map', () => {
 });
 
 describe('transition counts', () => {
-  it('is twenty for a station and twenty-six for a server', () => {
+  it('is twenty-one for a station and twenty-seven for a server', () => {
     // spec/05-state-machines.md §2.3: "Twenty `Station` rows by distinct
     // `(from, to)` pair, and six `Server` rows — twenty-six in all."
-    expect(transitionCount(EffectedBy.STATION)).toBe(20);
-    expect(transitionCount(EffectedBy.SERVER)).toBe(26);
+    expect(transitionCount(EffectedBy.STATION)).toBe(21);
+    expect(transitionCount(EffectedBy.SERVER)).toBe(27);
   });
 });
 
@@ -51,7 +51,7 @@ describe('canTransition — valid Station rows', () => {
     // arc added, for a station that rebooted mid-session and owes a truthful
     // post-boot report (spec 05-state-machines.md §2.3).
     [UNKNOWN, AVAILABLE], [UNKNOWN, FAULTED], [UNKNOWN, UNAVAILABLE],
-    [UNKNOWN, OCCUPIED], [UNKNOWN, FINISHING],
+    [UNKNOWN, OCCUPIED], [UNKNOWN, FINISHING], [UNKNOWN, RESERVED],
     // Available →
     [AVAILABLE, RESERVED], [AVAILABLE, OCCUPIED], [AVAILABLE, FAULTED], [AVAILABLE, UNAVAILABLE],
     // Reserved →
@@ -72,14 +72,14 @@ describe('canTransition — valid Station rows', () => {
     });
   }
 
-  it('should have 20 valid Station transitions total', () => {
-    expect(valid).toHaveLength(20);
+  it('should have 21 valid Station transitions total', () => {
+    expect(valid).toHaveLength(21);
   });
 });
 
 describe('canTransition — invalid for both parties', () => {
   const invalid: [BayStatus, BayStatus][] = [
-    [UNKNOWN, RESERVED], [UNKNOWN, UNKNOWN],
+    [UNKNOWN, UNKNOWN],
     [AVAILABLE, AVAILABLE], [AVAILABLE, FINISHING],
     [RESERVED, RESERVED], [RESERVED, FINISHING], [RESERVED, UNAVAILABLE],
     [OCCUPIED, OCCUPIED], [OCCUPIED, AVAILABLE], [OCCUPIED, RESERVED], [OCCUPIED, UNAVAILABLE],
@@ -110,7 +110,7 @@ describe('the Server rows are server-only', () => {
 describe('allowedTransitions', () => {
   it('returns the Station targets for each state', () => {
     const expectations: [BayStatus, BayStatus[]][] = [
-      [UNKNOWN, [AVAILABLE, FAULTED, UNAVAILABLE, OCCUPIED, FINISHING]],
+      [UNKNOWN, [AVAILABLE, FAULTED, UNAVAILABLE, OCCUPIED, FINISHING, RESERVED]],
       [AVAILABLE, [RESERVED, OCCUPIED, FAULTED, UNAVAILABLE]],
       [RESERVED, [OCCUPIED, AVAILABLE, FAULTED]],
       [OCCUPIED, [FINISHING, FAULTED]],

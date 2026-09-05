@@ -31,6 +31,11 @@ const STATION_PAIRS: ReadonlyArray<readonly [BayStatus, BayStatus]> = [
   [UNKNOWN, UNAVAILABLE],
   [UNKNOWN, OCCUPIED],
   [UNKNOWN, FINISHING],
+  // The sixth, added by spec 0.30.0 and absent from this transcription until 0.31.0.
+  // A station that reboots holding a `Confirmed` reservation reports `Reserved`; §2.3
+  // makes persisting it a station MUST "for exactly this reason".
+  // scripts/check-bay-transitions.ts now derives these pairs instead of trusting this list.
+  [UNKNOWN, RESERVED],
 
   [AVAILABLE, RESERVED],
   [AVAILABLE, OCCUPIED],
@@ -67,9 +72,9 @@ const SERVER_PAIRS: ReadonlyArray<readonly [BayStatus, BayStatus]> = [
 ];
 
 describe('canonical bay transition table (§2.3)', () => {
-  it('has twenty Station rows', () => {
-    expect(STATION_PAIRS).toHaveLength(20);
-    expect(transitionCount(EffectedBy.STATION)).toBe(20);
+  it('has twenty-one Station rows', () => {
+    expect(STATION_PAIRS).toHaveLength(21);
+    expect(transitionCount(EffectedBy.STATION)).toBe(21);
   });
 
   it('has six Server rows', () => {
@@ -77,8 +82,8 @@ describe('canonical bay transition table (§2.3)', () => {
     expect(transitionCount(EffectedBy.SERVER) - transitionCount(EffectedBy.STATION)).toBe(6);
   });
 
-  it('is twenty-six in all for a server', () => {
-    expect(transitionCount(EffectedBy.SERVER)).toBe(26);
+  it('is twenty-seven in all for a server', () => {
+    expect(transitionCount(EffectedBy.SERVER)).toBe(27);
   });
 
   it.each(STATION_PAIRS)('station may effect %s -> %s', (from, to) => {

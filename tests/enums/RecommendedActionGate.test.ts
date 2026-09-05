@@ -106,7 +106,7 @@ describe.skipIf(!md)('check-recommended-action gate', () => {
 
   it('passes against the pinned registry, unmutated', () => {
     const { exit, out } = runGate(spec());
-    expect(out).toContain('covered 118/118');
+    expect(out).toContain('covered 119/119');
     expect(exit).toBe(0);
   });
 

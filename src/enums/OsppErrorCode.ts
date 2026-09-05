@@ -1,5 +1,5 @@
 /**
- * All 118 standard OSPP error codes with static metadata.
+ * All 119 standard OSPP error codes with static metadata.
  *
  * The count, and each code's errorText/severity/recoverable, are asserted
  * against spec/07-errors.md by `npm run check:error-registry` — not by this
@@ -197,6 +197,16 @@ export enum OsppErrorCode {
   RESET_FAILED              = 5110,
   BUFFER_FULL               = 5111,
   FIRMWARE_SIGNATURE_INVALID = 5112,
+  /**
+   * The station cannot determine what a bay delivered. Added by spec 0.33.0 for
+   * `start-service.md` §6 rule 12. It is the ONE member of the 5xxx range that
+   * asserts no fault was DETECTED: every other member names something the station
+   * observed, and this one exists because rule 12's condition is that it observed
+   * nothing. Rule 12 mandated a `Faulted` StatusNotification and named no code,
+   * while CORE-012 and the schema both require one on `Faulted` — so the message
+   * the rule required did not validate.
+   */
+  OUTCOME_INDETERMINATE     = 5113,
 
   // --- Server (6xxx) ---
   SERVER_GENERIC            = 6000,
@@ -420,6 +430,7 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.RESET_FAILED]:              meta(5110, 'RESET_FAILED',              'Critical', false, 500, 'Hardware'),
   [OsppErrorCode.BUFFER_FULL]:               meta(5111, 'BUFFER_FULL',               'Critical', true,  503, 'Hardware'),
   [OsppErrorCode.FIRMWARE_SIGNATURE_INVALID]: meta(5112, 'FIRMWARE_SIGNATURE_INVALID', 'Critical', false, 500, 'Hardware'),
+  [OsppErrorCode.OUTCOME_INDETERMINATE]:     meta(5113, 'OUTCOME_INDETERMINATE',     'Warning',  false, 500, 'Hardware'),
 
   // ── Server (6xxx) ─────────────────────────────────────────────────────
   [OsppErrorCode.SERVER_GENERIC]:            meta(6000, 'SERVER_GENERIC',            'Error',    true,  500, 'Server'),

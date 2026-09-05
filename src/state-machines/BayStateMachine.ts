@@ -20,14 +20,23 @@ import { EffectedBy } from '../enums/EffectedBy.js';
 const { UNKNOWN, AVAILABLE, RESERVED, OCCUPIED, FINISHING, FAULTED, UNAVAILABLE } = BayStatus;
 
 /**
- * The twenty `Station` rows. These are the complete set a station may effect and
+ * The twenty-one `Station` rows. These are the complete set a station may effect and
  * therefore the complete set a StatusNotification [MSG-009] may report.
  *
- * `Unknown` has FIVE exits. §2.3: a station that reboots mid-session MUST resume
+ * `Unknown` has SIX exits. §2.3: a station that reboots mid-session MUST resume
  * that session, and on the boot that follows the bay is physically `Occupied`
  * (or `Finishing`, mid wind-down) and owes a post-boot report. With only the
  * three determinate-idle exits that station had no truthful report to send —
  * `Available` would free a bay running a paid session.
+ *
+ * `Unknown -> Reserved` is the sixth, and it was MISSING here until 0.31.0. Spec
+ * 0.30.0 added the row together with a station-side MUST to persist a `Confirmed`
+ * reservation durably, *for exactly this reason*. This SDK refused it,
+ * ospp-sdk-php refused it, and the reference server delegates to them — so the one
+ * truthful post-boot report was rejected in all three, and a station following the
+ * guides reported `Available`, which resells a reserved bay. Nothing caught it
+ * because the canonical table was TRANSCRIBED into a test rather than derived;
+ * `scripts/check-bay-transitions.ts` now derives it.
  *
  * `Unavailable → Faulted` is here because a bay taken out of service can still
  * develop a fault, and a technician working on it is the most likely person to
@@ -37,7 +46,7 @@ const STATION_TRANSITIONS: ReadonlyMap<BayStatus, ReadonlySet<BayStatus>> = new 
   BayStatus,
   Set<BayStatus>
 >([
-  [UNKNOWN,     new Set([AVAILABLE, FAULTED, UNAVAILABLE, OCCUPIED, FINISHING])],
+  [UNKNOWN,     new Set([AVAILABLE, FAULTED, UNAVAILABLE, OCCUPIED, FINISHING, RESERVED])],
   [AVAILABLE,   new Set([RESERVED, OCCUPIED, FAULTED, UNAVAILABLE])],
   [RESERVED,    new Set([OCCUPIED, AVAILABLE, FAULTED])],
   [OCCUPIED,    new Set([FINISHING, FAULTED])],
