@@ -10,8 +10,8 @@ describe('ConfigKey', () => {
 
   // 28 from spec 0.23.0 (which withdrew DiagnosticsUploadUrl) until 0.30.0
   // registered StationIdentityCertificate.
-  it('should have exactly 29 keys', () => {
-    expect(allKeys).toHaveLength(29);
+  it('should have exactly 28 keys', () => {
+    expect(allKeys).toHaveLength(28);
   });
 
   it('should have unique PascalCase string values', () => {
@@ -34,8 +34,8 @@ describe('ConfigKey', () => {
       expect(byProfile('Transaction')).toHaveLength(6);
     });
 
-    it('should have 7 Security keys', () => {
-      expect(byProfile('Security')).toHaveLength(7);
+    it('should have 6 Security keys', () => {
+      expect(byProfile('Security')).toHaveLength(6);
     });
 
     it('should have 4 Offline/BLE keys', () => {
@@ -56,7 +56,7 @@ describe('ConfigKey', () => {
       const perProfile = (['Core', 'Transaction', 'Security', 'OfflineBLE', 'DeviceManagement'] as ConfigProfile[])
         .map((p) => byProfile(p).length);
 
-      expect(perProfile).toEqual([9, 6, 7, 4, 3]);
+      expect(perProfile).toEqual([9, 6, 6, 4, 3]);
       expect(perProfile.reduce((a, b) => a + b, 0)).toBe(allKeys.length);
     });
 
@@ -164,8 +164,6 @@ describe('CONFIG_KEY_REGISTRY', () => {
       [ConfigKey.METER_VALUES_INTERVAL, '60'],
       [ConfigKey.MAX_SESSION_DURATION_SECONDS, '900'],
       [ConfigKey.RESERVATION_DEFAULT_TTL, '300'],
-      // spec/08-configuration.md §3: default "All", Static not Dynamic.
-      [ConfigKey.MESSAGE_SIGNING_MODE, 'All'],
       [ConfigKey.LOG_LEVEL, 'Info'],
       [ConfigKey.AUTO_REBOOT_ENABLED, 'false'],
       [ConfigKey.FIRMWARE_VERSION, null],

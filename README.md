@@ -1,6 +1,6 @@
 # @ospp/protocol
 
-TypeScript SDK for the OSPP (Open Self-Service Point Protocol), pinned to spec `v0.33.1`.
+TypeScript SDK for the OSPP (Open Self-Service Point Protocol), pinned to spec `v0.34.0`.
 
 ## Install
 
@@ -12,7 +12,7 @@ npm install @ospp/protocol
 
 - **27 MQTT actions** with full TypeScript types for all request/response/event payloads
 - **119 error codes** with severity, recoverable, and HTTP status metadata
-- **29 configuration keys** with type, access mode, mutability, and default values
+- **28 configuration keys** with type, access mode, mutability, and default values
 - **6 state machines** (Station, Bay, Session, Reservation, Firmware, Diagnostics) with enforced transitions
 - **HMAC-SHA256** canonical JSON serialization, signing, and timing-safe verification
 - **ECDSA P-256** signing and verification

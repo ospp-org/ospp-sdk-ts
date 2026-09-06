@@ -1,5 +1,5 @@
 /**
- * All 29 standard OSPP configuration keys.
+ * All 28 standard OSPP configuration keys.
  *
  * Source: spec/08-configuration.md §§2--6 — the registry tables.
  *
@@ -73,10 +73,9 @@ export enum ConfigKey {
   RESERVATION_DEFAULT_TTL       = 'ReservationDefaultTTL',
   DEFAULT_CREDITS_PER_SESSION   = 'DefaultCreditsPerSession',
 
-  // --- Security (7) ---
+  // --- Security (6) ---
   CERTIFICATE_SERIAL_NUMBER     = 'CertificateSerialNumber',
   AUTHORIZATION_CACHE_ENABLED   = 'AuthorizationCacheEnabled',
-  MESSAGE_SIGNING_MODE          = 'MessageSigningMode',
   OFFLINE_PASS_PUBLIC_KEY       = 'OfflinePassPublicKey',
   CERTIFICATE_RENEWAL_THRESHOLD_DAYS = 'CertificateRenewalThresholdDays',
   CERTIFICATE_RENEWAL_ENABLED   = 'CertificateRenewalEnabled',
@@ -153,7 +152,6 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
   // ── Security ──────────────────────────────────────────────────────────
   [ConfigKey.CERTIFICATE_SERIAL_NUMBER]:    km('CertificateSerialNumber',     'string',  null,    'R',  'Static',  'Security'),
   [ConfigKey.AUTHORIZATION_CACHE_ENABLED]:  km('AuthorizationCacheEnabled',   'boolean', 'true',  'RW', 'Dynamic', 'Security'),
-  [ConfigKey.MESSAGE_SIGNING_MODE]:         km('MessageSigningMode',          'string',  'All',      'RW', 'Static',  'Security'),
   [ConfigKey.OFFLINE_PASS_PUBLIC_KEY]:      km('OfflinePassPublicKey',        'string',  null,    'W',  'Dynamic', 'Security'),
   [ConfigKey.CERTIFICATE_RENEWAL_THRESHOLD_DAYS]: km('CertificateRenewalThresholdDays', 'integer', '30', 'RW', 'Dynamic', 'Security'),
   [ConfigKey.CERTIFICATE_RENEWAL_ENABLED]:  km('CertificateRenewalEnabled',   'boolean', 'true',  'RW', 'Dynamic', 'Security'),
