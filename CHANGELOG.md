@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.32.1 — 2026-09-06
+
+**SDK-pair release, PATCH. `.spec-ref` moves `v0.33.0` → `v0.33.1`** — the spec cut a
+documentation-only patch, and the marker follows it. **Zero JSON bytes move in anything either SDK
+vendors**: measured on the two tags, `git diff --name-only v0.33.0 v0.33.1 -- schemas/ conformance/`
+touches exactly two files and both are `README.md` version headers. The vendored corpus therefore
+changes by **one line in one file**, and the byte-identity gate is what said so.
+
+> ### The prose that is executable, and the gate that read numbers but never the code beside them.
+
+**`README.md`'s only usage example was wrong twice, and every gate was green.** It imported
+`requiresHmac`, which occurs **0 times** in `src/` and **0 times** in `tests/` — the real export is
+`requiresMac` — and it imported `SchemaValidator` from the package root, which `src/index.ts:6`
+says in its own header lives behind the **`./server`** subpath because it is Node-only. The first
+thing an integrator pastes did not compile. `check:doc-claims` derives **fourteen** numbers off this
+file and had never looked at the code block between them.
+
+**The second one is the interesting one.** `requiresHmac` is a name that does not exist anywhere;
+`SchemaValidator` is a real export at the wrong entry point, and no spell-check, no grep and no
+"does this identifier exist in the package" test would have found it. The check derives a surface
+**per entry point**, from `package.json`'s `exports` map — so it reports *"imports `SchemaValidator`
+from '@ospp/protocol', which does not export it (it is exported by '@ospp/protocol/server')"*, and a
+subpath added to `exports` that the gate cannot resolve is **instrument-broken**, not silently
+unchecked.
+
+### Fixed
+
+- `README.md` — the example imports `requiresMac`, and takes `SchemaValidator` from
+  `@ospp/protocol/server` with the reason written beside it.
+- `README.md` — the pinned spec version follows `.spec-ref`, as its own claim already required.
+- `src/enums/SessionEndReason.ts` — the *as-of* spec version follows `.spec-ref`.
+- `src/test-vectors/README.md` — re-vendored at `v0.33.1`.
+
+### Added — `check:doc-claims` reads the example
+
+Derived, not listed: each entry point's surface is the runtime namespace of its module unioned with
+the identifiers of its `export type { … }` blocks, so an example naming a withdrawn export goes red
+on the release that withdraws it. `CHANGELOG.md` is excluded **by role** — its examples describe the
+API of the release they head, and `SchemaPath` is correct there and withdrawn here.
+
+**Four controls, run before the result was believed:** a planted identifier is caught; a real export
+imported from the *wrong* subpath is caught and named; an example block with no imports is
+**refused as vacuous** rather than passed; and an unresolvable `exports` subpath exits non-zero.
+
+### A note on the file modes, because it cost a step
+
+Re-vendoring with `rsync -a` from a spec worktree rewrote **224** vendored vectors from mode `100755`
+to `100644`. This repository has `core.fileMode = true`, so git saw all 224 while the content
+difference was **one line in one file**. The corpus is synced by content, and the modes git already
+tracks are left alone.
+
 ## 0.32.0 — 2026-09-06
 
 **SDK-pair release. `.spec-ref` does NOT move** — it stays `v0.33.0`, because the specification was

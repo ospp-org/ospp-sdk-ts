@@ -67,6 +67,7 @@ import { ConfigKey } from '../src/enums/ConfigKey.js';
 import { RECOMMENDED_ACTION } from '../src/enums/RecommendedAction.js';
 import { SessionEndReason } from '../src/enums/SessionEndReason.js';
 import * as sdk from '../src/index.js';
+import * as sdkServer from '../src/server.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -398,5 +399,156 @@ if (problems.length > 0) {
   );
   process.exit(1);
 }
+
+// ── the one part of the prose that IS executable ───────────────────────────
+//
+// Every claim above is a NUMBER. The README's other assertion is a code block, and
+// nothing read it. Measured on 2026-09-06, the only usage example was wrong TWICE:
+// it imported `requiresHmac`, which occurs zero times in `src/` and zero times in
+// `tests/` — the real export is `requiresMac` — and it imported `SchemaValidator`
+// from the root, which `src/index.ts:6` says in its own header lives behind the
+// `./server` subpath because it is Node-only. The first thing an integrator pastes
+// did not compile, and this gate was green throughout, because deriving a number
+// says nothing about whether the example beside it names things that exist.
+//
+// Derived, not listed, and per ENTRY POINT. The subpaths come from `package.json`'s
+// `exports` map, so a new one that nothing here can resolve is instrument-broken
+// rather than silently unchecked; each surface is the runtime namespace of its
+// module unioned with the identifiers of its `export type { … }` blocks. `A as B`
+// exports B. Nothing is maintained by hand.
+//
+// CHANGELOG.md is excluded by ROLE, as the record documents are in the spec's gate:
+// its examples describe the API of the release they head, and `SchemaPath` is
+// correct there and withdrawn here. A gate that forbade that would forbid the record.
+
+const EXPORT_BLOCK = /export\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g;
+
+function surfaceOf(runtime: object, sourceRel: string): Set<string> {
+  const names = new Set<string>(Object.keys(runtime));
+  const text = readFileSync(join(ROOT, sourceRel), 'utf8');
+  for (const m of text.matchAll(EXPORT_BLOCK)) {
+    for (const raw of m[1].split(',')) {
+      const name = raw.replace(/\/\/.*$/gm, '').trim().split(/\s+as\s+/).pop()?.trim();
+      if (name && /^[A-Za-z_$][\w$]*$/.test(name)) names.add(name);
+    }
+  }
+  return names;
+}
+
+const PKG = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+  name: string;
+  exports: Record<string, unknown>;
+};
+const SOURCE_OF_SUBPATH: Record<string, [object, string]> = {
+  '.': [sdk, 'src/index.ts'],
+  './server': [sdkServer, 'src/server.ts'],
+};
+const surfaces = new Map<string, Set<string>>();
+for (const subpath of Object.keys(PKG.exports)) {
+  const entry = SOURCE_OF_SUBPATH[subpath];
+  if (!entry) {
+    console.error(
+      `ERROR: package.json exports "${subpath}" and this gate cannot resolve it, so any example\n` +
+        'importing from it would be checked against nothing. Add it to SOURCE_OF_SUBPATH.',
+    );
+    process.exit(1);
+  }
+  const specifier = subpath === '.' ? PKG.name : PKG.name + subpath.slice(1);
+  surfaces.set(specifier, surfaceOf(entry[0], entry[1]));
+}
+
+const TS_FENCE = /```(?:typescript|ts|tsx)\r?\n([\s\S]*?)```/g;
+const NAMED_IMPORT = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"](@[^'"]+)['"]/g;
+
+interface ExampleImport {
+  name: string;
+  from: string;
+  line: number;
+}
+
+/** Identifiers a markdown text imports from this package, with the line each sits on. */
+function importedIdentifiers(text: string): ExampleImport[] {
+  const out: ExampleImport[] = [];
+  for (const fence of text.matchAll(TS_FENCE)) {
+    const body = fence[1];
+    const fenceStart = (fence.index ?? 0) + fence[0].indexOf(body);
+    for (const imp of body.matchAll(NAMED_IMPORT)) {
+      const from = imp[2];
+      if (from !== PKG.name && !from.startsWith(PKG.name + '/')) continue;
+      const listStart = fenceStart + (imp.index ?? 0) + imp[0].indexOf(imp[1]);
+      let cursor = 0;
+      for (const raw of imp[1].split(',')) {
+        const name = raw.trim().split(/\s+as\s+/)[0]?.trim();
+        if (name && /^[A-Za-z_$][\w$]*$/.test(name)) {
+          const at = listStart + cursor + raw.indexOf(name);
+          out.push({ name, from, line: text.slice(0, at).split('\n').length });
+        }
+        cursor += raw.length + 1;
+      }
+    }
+  }
+  return out;
+}
+
+// Control before belief: a planted identifier must be caught, a real one must not,
+// and an identifier that is real only on ANOTHER subpath must be caught on this one.
+{
+  const probe =
+    '```typescript\n' +
+    "import { OsppAction, notAnExportAtAll, SchemaValidator } from '@ospp/protocol';\n" +
+    '```';
+  const parsed = importedIdentifiers(probe);
+  const root = surfaces.get(PKG.name)!;
+  const unknown = parsed.filter((i) => !root.has(i.name)).map((i) => i.name);
+  const ok =
+    parsed.length === 3 &&
+    unknown.length === 2 &&
+    unknown.includes('notAnExportAtAll') &&
+    unknown.includes('SchemaValidator') &&
+    surfaces.get(PKG.name + '/server')!.has('SchemaValidator');
+  if (!ok) {
+    console.error(
+      'ERROR: positive control FAILED — the example reader does not discriminate.\n' +
+        `  parsed ${parsed.length}, unknown [${unknown.join(', ')}]`,
+    );
+    process.exit(1);
+  }
+}
+
+const docFiles = readdirSync(ROOT).filter((f) => f.endsWith('.md') && f !== 'CHANGELOG.md');
+const exampleProblems: string[] = [];
+let exampleIdentifiers = 0;
+for (const f of docFiles) {
+  for (const { name, from, line } of importedIdentifiers(readFileSync(join(ROOT, f), 'utf8'))) {
+    exampleIdentifiers++;
+    if (surfaces.get(from)?.has(name)) continue;
+    const elsewhere = [...surfaces].find(([spec, set]) => spec !== from && set.has(name))?.[0];
+    const near = [...(surfaces.get(from) ?? [])].find(
+      (e) => e.toLowerCase().replace(/[^a-z]/g, '') === name.toLowerCase().replace(/[^a-z]/g, ''),
+    );
+    exampleProblems.push(
+      `${f}:${line} — imports \`${name}\` from '${from}', which does not export it` +
+        (elsewhere ? ` (it is exported by '${elsewhere}')` : near ? ` (did you mean \`${near}\`?)` : ''),
+    );
+  }
+}
+
+if (exampleIdentifiers === 0) {
+  console.error(
+    'ERROR: no example imported anything from this package — the fence or import pattern\n' +
+      'matches nothing, so this check would pass vacuously. Refusing to report a pass.',
+  );
+  process.exit(1);
+}
+console.log(
+  `example imports: ${exampleIdentifiers} identifier(s) across ${docFiles.length} markdown file(s), ` +
+    `against ${[...surfaces].map(([s, v]) => `${s}=${v.size}`).join(' · ')}`,
+);
+
+if (exampleProblems.length > 0) {
+  console.error(`\nEXAMPLES THAT DO NOT COMPILE — ${exampleProblems.length}:\n`);
+  for (const e of exampleProblems) console.error(`  ${e}`);
+}
+if (exampleProblems.length > 0 || problems.length > 0) process.exit(1);
 
 console.log(`OK — all ${CLAIMS.length} documented claims agree with what this package actually contains`);

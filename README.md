@@ -1,6 +1,6 @@
 # @ospp/protocol
 
-TypeScript SDK for the OSPP (Open Self-Service Point Protocol), pinned to spec `v0.33.0`.
+TypeScript SDK for the OSPP (Open Self-Service Point Protocol), pinned to spec `v0.33.1`.
 
 ## Install
 
@@ -28,13 +28,16 @@ import {
   createEnvelope,
   MessageType,
   MessageSource,
-  SchemaValidator,
   BayStateMachine,
   computeMac,
   verifyMac,
-  requiresHmac,
+  requiresMac,
   toServerTopic,
 } from '@ospp/protocol';
+
+// Node-only utilities live behind the `./server` subpath, so the root entry stays
+// usable in a browser or React Native bundle.
+import { SchemaValidator } from '@ospp/protocol/server';
 ```
 
 ## Build
