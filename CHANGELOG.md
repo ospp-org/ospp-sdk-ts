@@ -1,5 +1,87 @@
 # Changelog
 
+## 0.34.0 — 2026-09-06
+
+**SDK-pair release, MINOR. `.spec-ref` moves `v0.34.0` → `v0.35.0`.** One vendored schema moves and
+four vendored vectors are added; the type layer moves with them, and that half is the part no gate
+would have demanded.
+
+### The cascade, measured before it was taken
+
+`git diff --name-only v0.34.0 v0.35.0 -- schemas/ conformance/test-vectors/` on the spec touches
+**5 files of the 86 + 341 vendored**: `schemas/mqtt/get-configuration-response.schema.json` and four
+new `device-management` vectors. `0` of the other 85 schemas move. The byte-identity gate is what
+says so, and it is what said so before any of this was edited.
+
+### What the spec did
+
+`get-configuration-response` gained OPTIONAL `errorCode` and `errorText`. It was the last of the
+**14** Server → Station REQUEST actions whose response could not express a refusal at all — the
+*Implicit Error Codes* note makes `1005`, `2007` and `6001` implicit for every one of them, and this
+schema declared neither an error field nor a `status` to hang one on. `required` did **not** move:
+`configuration: []` was already the mandated answer when every requested key is unknown, so a
+refusing station reports zero entries and says nothing false. Two `if`/`then` arms pair the fields
+and force both arrays empty on that branch.
+
+### What that costs a consumer of this SDK
+
+**`GetConfigurationResponse` was narrower than its own vendored schema, and every gate was green.**
+`src/types/payloads/get-configuration.ts` is hand-written; the schema is vendored byte-identical by
+CI; nothing compares the two. `scripts/check-vector-types.mjs` is the one instrument that can, and
+its `VECTORS` list is explicit by design — a seed, not coverage — so it had no `get-configuration`
+entry and would have stayed green through the whole re-vendor.
+
+The order that fixed it is the order the check forces: **list the vector first, watch it fail, then
+widen the type.** Listing `get-configuration-response-refused.json` failed twice, and only the second
+failure was the real one — the first was a missing import in the script's own `IMPORTS`, which is
+the shape of red that proves nothing.
+
+### Changed
+
+- `src/schemas/mqtt/get-configuration-response.schema.json` — re-vendored from spec `v0.35.0`.
+- `src/test-vectors/{valid,invalid}/device-management/get-configuration-response-refused*.json` —
+  4 new vectors, one valid and three invalid, one per clause the schema added.
+- `src/types/payloads/get-configuration.ts` — `GetConfigurationResponse` gains OPTIONAL `errorCode`
+  and `errorText`, documented with the rule a consumer actually needs: **test `errorCode`, never test
+  the array for emptiness.** An empty `configuration` with no `errorCode` is an ordinary answer.
+- `scripts/check-vector-types.mjs` — the refusal vector added to `VECTORS` (16 → **17** vectors
+  type-checked) plus the import it needs, so the type can no longer go narrow silently.
+- `.spec-ref` — `v0.34.0` → `v0.35.0`.
+- `package.json` — `0.32.1` → `0.34.0`. See below.
+
+### Also fixed: the `v0.33.0` tag never bumped this file
+
+`v0.33.0` was cut against a `package.json` still reading `0.32.1`, and `publish.yml`'s guard —
+*package.json version matches release tag* — rejects exactly that, before `npm ci`. The tag could not
+publish. `0.34.0` here is the first version this file has carried since `0.32.1`, and the missing
+`0.33.0` entry is written below rather than skipped: a release with no changelog entry is a release
+nobody can read.
+
+---
+
+## 0.33.0 — 2026-09-05
+
+**Written retroactively at `0.34.0`.** This entry was missing: the tag was cut, the code shipped, and
+neither `package.json` nor this file recorded it. Recorded now from the commit rather than from
+memory (`9b9997e`, 10 files).
+
+**SDK-pair release, MINOR. `.spec-ref` moved `v0.33.1` → `v0.34.0`.** Spec `0.34.0` withdrew
+`MessageSigningMode`: signing is unconditional, every MQTT message carries a `mac` except the three
+structural exemptions, and a station that does not sign is non-conforming rather than "in another
+mode". The registry went 29 → 28 keys.
+
+### Changed
+
+- `src/enums/ConfigKey.ts` — `MessageSigningMode` withdrawn; `tests/enums/ConfigKey.test.ts` follows.
+- `src/enums/SessionEndReason.ts` — description corrected.
+- `src/schemas/mqtt/` — 4 schemas re-vendored: `authorize-offline-pass-response`,
+  `boot-notification-request` (`messageSigningMode` DEPRECATED and RETAINED — removing a property
+  from a closed object refuses the boot of every station already sending it),
+  `transaction-event-response`, `trigger-message-response` (gained `errorCode`/`errorText`).
+- `.spec-ref`, `README.md`, `src/test-vectors/README.md`.
+
+---
+
 ## 0.32.1 — 2026-09-06
 
 **SDK-pair release, PATCH. `.spec-ref` moves `v0.33.0` → `v0.33.1`** — the spec cut a

@@ -76,6 +76,11 @@ const VECTORS = [
   // Accepted arm. Both response vectors carry it — `-minimal` with the empty
   // string, which is the value a station that has never held a catalog sends and
   // the reason the field is `string` rather than optional.
+  // spec v0.35.0 gave get-configuration-response `errorCode`/`errorText`. The
+  // refusal vector is listed here because that is the only thing in this repo that
+  // can see a payload type gone narrow: the schema is vendored byte-identical by
+  // the CI schemas job, and no gate compares a TypeScript interface against it.
+  [`${DM}/get-configuration-response-refused.json`, 'GetConfigurationResponse'],
   [`${DM}/update-service-catalog-response-minimal.json`, 'UpdateServiceCatalogResponse'],
   [`${DM}/update-service-catalog-response-full.json`, 'UpdateServiceCatalogResponse'],
   // FirmwareStatusNotificationPayload: the type is unchanged, its schema is not —
@@ -92,6 +97,7 @@ const IMPORTS = [
   "import { BootReason } from './src/enums/BootReason.js';",
   "import type { UpdateServiceCatalogResponse } from './src/types/payloads/update-service-catalog.js';",
   "import type { FirmwareStatusNotificationPayload } from './src/types/payloads/firmware-status-notification.js';",
+  "import type { GetConfigurationResponse } from './src/types/payloads/get-configuration.js';",
 ];
 
 // Fields whose declared type is a nominal string enum — see SCOPE above.
