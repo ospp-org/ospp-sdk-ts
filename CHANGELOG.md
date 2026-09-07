@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.35.0 — 2026-09-08
+
+**SDK-pair release, MINOR. `.spec-ref` moves `v0.35.0` → `v0.36.0`.** One vendored schema, one new
+vendored vector, the regenerated tamper corpus — and one hand-written type that was narrower than
+the schema sitting beside it.
+
+### The cascade, measured before it was taken
+
+`git diff --name-only v0.35.0 v0.36.0 -- schemas/ conformance/test-vectors/` on the spec touches
+**4 files of the 86 schemas + 341 vectors vendored here**:
+
+| file | what |
+|---|---|
+| `schemas/mqtt/connection-lost.schema.json` | `reason` `const` → 2-member `enum` |
+| `conformance/test-vectors/valid/core/connection-lost-planned-shutdown.json` | new |
+| `conformance/test-vectors/crypto/tamper-rejection.json` | 12 → 14 vectors (firmware BODY + KEY) |
+| `conformance/test-vectors/README.md` | version stamp |
+
+**0 of the other 85 schemas move, and 341 of 341 existing vectors keep their verdict.** The
+byte-identity gates are what say so, and they said so before any of this was edited.
+
+### The half no gate would have demanded
+
+`ConnectionLostPayload.reason` was the literal type `'UnexpectedDisconnect'`. Nothing here compares a
+TypeScript interface against its own vendored schema, so a type gone narrow is invisible: the schema
+is byte-gated, the validator validates JSON and never touches the interface, and the SDK's own unit
+test had **enshrined the narrowness** — `it('should have constant reason')`, asserting the single
+literal.
+
+That test is **inverted, not deleted**. It encoded the defect as intent: the reason being a constant
+is exactly what left a station shutting down on purpose with nothing true to say. It now asserts
+both members, and a third case checks the union against the **vendored schema** rather than against
+a second copy of the list written in the test file.
+
+`scripts/check-vector-types.mjs` gains the two ConnectionLost vectors and is what made this red:
+`Type '"PlannedShutdown"' is not assignable to type '"UnexpectedDisconnect"'`. 19 vectors now
+type-check, up from 17.
+
+### Exports
+
+`ConnectionLostReason` is exported alongside `ConnectionLostPayload`.
+
+
 ## 0.34.0 — 2026-09-06
 
 **SDK-pair release, MINOR. `.spec-ref` moves `v0.34.0` → `v0.35.0`.** One vendored schema moves and

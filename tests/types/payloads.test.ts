@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { join } from 'path';
 import { SchemaValidator } from '../../src/validation/SchemaValidator';
@@ -14,7 +15,7 @@ import type { HeartbeatRequest, HeartbeatResponse } from '../../src/types/payloa
 import type { StatusNotificationPayload } from '../../src/types/payloads/status-notification';
 import type { MeterValuesPayload } from '../../src/types/payloads/meter-values';
 import type { SessionEndedPayload } from '../../src/types/payloads/session-ended';
-import type { ConnectionLostPayload } from '../../src/types/payloads/connection-lost';
+import type { ConnectionLostPayload, ConnectionLostReason } from '../../src/types/payloads/connection-lost';
 import type { SecurityEventPayload } from '../../src/types/payloads/security-event';
 import type { ChangeConfigurationRequest, ChangeConfigurationResponse } from '../../src/types/payloads/change-configuration';
 import type { GetConfigurationRequest, GetConfigurationResponse } from '../../src/types/payloads/get-configuration';
@@ -495,12 +496,47 @@ describe('SessionEnded payload', () => {
 });
 
 describe('ConnectionLost payload', () => {
-  it('should have constant reason', () => {
+  // INVERTED at spec 0.36.0. This block read `should have constant reason` and
+  // pinned the single literal 'UnexpectedDisconnect' — it encoded the defect as
+  // intent. The reason being a constant is precisely what left a station shutting
+  // down on purpose with nothing true to say: a clean MQTT DISCONNECT suppresses
+  // the will, so it could stay silent and be believed alive until the heartbeat
+  // timeout, or drop the link ungracefully so the broker published a will that
+  // lied. The assertion is kept and turned around rather than deleted, so the file
+  // still records that this field was once closed and why it was opened.
+  it('carries the broker will reason', () => {
     const payload: ConnectionLostPayload = {
       stationId: 'stn_a1b2c3d4',
       reason: 'UnexpectedDisconnect',
     };
     expect(payload.reason).toBe('UnexpectedDisconnect');
+  });
+
+  it('also carries the station-announced planned shutdown — the reason is NOT constant', () => {
+    const payload: ConnectionLostPayload = {
+      stationId: 'stn_a1b2c3d4',
+      reason: 'PlannedShutdown',
+    };
+    expect(payload.reason).toBe('PlannedShutdown');
+  });
+
+  it('admits exactly the two reasons its schema does', () => {
+    const schema = JSON.parse(
+      readFileSync(
+        new URL('../../src/schemas/mqtt/connection-lost.schema.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { properties: { reason: { enum?: string[]; const?: string } } };
+
+    // Against the VENDORED SCHEMA, not against a second copy of the list written
+    // here: a hand-written union that drifts narrower than its schema is exactly
+    // what scripts/check-vector-types.mjs exists to catch, and this is the same
+    // fact asserted from the type side.
+    expect(schema.properties.reason.const).toBeUndefined();
+    expect(schema.properties.reason.enum).toEqual(['UnexpectedDisconnect', 'PlannedShutdown']);
+
+    const all: ConnectionLostReason[] = ['UnexpectedDisconnect', 'PlannedShutdown'];
+    expect(all).toHaveLength(schema.properties.reason.enum!.length);
   });
 });
 

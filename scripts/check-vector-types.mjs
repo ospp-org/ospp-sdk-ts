@@ -81,6 +81,14 @@ const VECTORS = [
   // can see a payload type gone narrow: the schema is vendored byte-identical by
   // the CI schemas job, and no gate compares a TypeScript interface against it.
   [`${DM}/get-configuration-response-refused.json`, 'GetConfigurationResponse'],
+  // spec v0.36.0 widened ConnectionLost `reason` from a one-member `const` to a
+  // two-member enum, so a station leaving on purpose can say so. The type declared
+  // the literal 'UnexpectedDisconnect' and is therefore narrower than its own
+  // schema — invisible to every other gate here, because the schema is vendored
+  // byte-identical and nothing compares a TypeScript interface against it. Both
+  // vectors are listed so the LWT value stays covered too.
+  [`${V}/connection-lost-planned-shutdown.json`, 'ConnectionLostPayload'],
+  [`${V}/connection-lost-minimal.json`, 'ConnectionLostPayload'],
   [`${DM}/update-service-catalog-response-minimal.json`, 'UpdateServiceCatalogResponse'],
   [`${DM}/update-service-catalog-response-full.json`, 'UpdateServiceCatalogResponse'],
   // FirmwareStatusNotificationPayload: the type is unchanged, its schema is not —
@@ -98,6 +106,7 @@ const IMPORTS = [
   "import type { UpdateServiceCatalogResponse } from './src/types/payloads/update-service-catalog.js';",
   "import type { FirmwareStatusNotificationPayload } from './src/types/payloads/firmware-status-notification.js';",
   "import type { GetConfigurationResponse } from './src/types/payloads/get-configuration.js';",
+  "import type { ConnectionLostPayload } from './src/types/payloads/connection-lost.js';",
 ];
 
 // Fields whose declared type is a nominal string enum — see SCOPE above.

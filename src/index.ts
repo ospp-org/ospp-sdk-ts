@@ -101,7 +101,7 @@ export type { HeartbeatRequest, HeartbeatResponse } from './types/payloads/heart
 export type { StatusNotificationPayload } from './types/payloads/status-notification.js';
 export type { MeterValuesPayload } from './types/payloads/meter-values.js';
 export type { SessionEndedPayload } from './types/payloads/session-ended.js';
-export type { ConnectionLostPayload } from './types/payloads/connection-lost.js';
+export type { ConnectionLostPayload, ConnectionLostReason } from './types/payloads/connection-lost.js';
 export type { SecurityEventPayload, SecurityEventType, SecurityEventSeverity } from './types/payloads/security-event.js';
 export type { ChangeConfigurationRequest, ChangeConfigurationResponse, ChangeConfigurationResult, ChangeConfigurationResultStatus, ConfigKeyValue } from './types/payloads/change-configuration.js';
 export type { GetConfigurationRequest, GetConfigurationResponse, ConfigurationEntry } from './types/payloads/get-configuration.js';
