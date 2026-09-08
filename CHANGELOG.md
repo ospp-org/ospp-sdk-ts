@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.36.0 — 2026-09-08
+
+**SDK-pair release, MINOR. `.spec-ref` moves `v0.36.0` → `v0.37.0`.** The spec release is prose:
+`02-transport.md` §3.3 gained what a duplicate *is*. Rule 4 — a repeat whose content differs is not
+a duplicate. Rule 5 — an identifier reused **by design**, the LWT `messageId` fixed at CONNECT and
+republished unchanged, is not a duplicate marker at all.
+
+### The cascade, measured before it was taken
+
+`git diff --name-only v0.36.0 v0.37.0 -- schemas/ conformance/test-vectors/` on the spec touches
+**one file** of the 86 schemas + 341 vectors vendored here, and it is `test-vectors/README.md` —
+the version string. Deduplication is *receiver behaviour*; this package is types, schemas and
+canonicalisation, and holds no deduplication surface (`grep -rli dedup src/` finds 3 files, all
+doc-comments on `messageId` and on the `TransactionEvent` `Duplicate` status — no implementation).
+
+| | |
+|---|---|
+| Schema bytes moved | **0** — re-vendored from `v0.37.0` and byte-identical |
+| Vectors moved | **0** — `README.md` only |
+| Files changed | **5** — `.spec-ref`, `package.json`, vendored `README.md`, and the two prose claims below |
+| Suite | **40 files / 1150 tests** passing, `tsc` clean |
+| Gates | 9 of 9 green |
+
+### Two gates earned their keep, and one trap was avoided
+
+`check:doc-claims` was **RED** and named both false claims with the derived value beside the
+asserted one: `README.md` still said *pinned to spec `v0.36.0`*, and `SessionEndReason.ts` still
+said *7 values as of spec 0.36.0*. Neither is a number anyone would have re-read. It derives from
+`.spec-ref` rather than trusting prose, which is the whole reason it finds these.
+
+**The trap:** `rsync -a` from the spec checkout rewrote **25 schema files** — `100755 → 100644`,
+**0 insertions, 0 deletions**. With `core.fileMode=true` those are 25 modified files in
+`git status` and nothing in `git diff`. They were reverted rather than committed: a mode flip is not
+part of a spec release, and committing it would have buried the "0 bytes moved" claim under noise.
+
+### For consumers implementing rule 4
+
+Content equality is the **OSPP Canonical Form** with `mac` removed — the bytes `06-security.md`
+§5.4 already MACs — so a fingerprint built for rule 4 **cannot be stricter than the signature the
+frame already passed**. `canonicalJson` in this package is that serialiser. Use it and nothing else;
+`JSON.stringify` does not sort keys and will make two equal messages differ.
+
+---
+
 ## 0.35.0 — 2026-09-08
 
 **SDK-pair release, MINOR. `.spec-ref` moves `v0.35.0` → `v0.36.0`.** One vendored schema, one new
