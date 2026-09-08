@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.36.2 — 2026-09-08
+
+**SDK-pair release, PATCH. `.spec-ref` moves `v0.37.1` → `v0.37.2`.** The spec corrected one
+cross-reference in §3.3 — per-sender uniqueness was cited as Chapter 01 §6 and lives in §3.
+
+**0 schema bytes, 0 vectors**; suite **1153** and `tsc` unchanged. The marker moves because the
+pairing is the point.
+
+---
+
 ## 0.36.1 — 2026-09-08
 
 **SDK-pair release, PATCH. `.spec-ref` moves `v0.37.0` → `v0.37.1`.** Three conformance vectors —
