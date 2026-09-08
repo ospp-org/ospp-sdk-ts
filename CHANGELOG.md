@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.36.1 — 2026-09-08
+
+**SDK-pair release, PATCH. `.spec-ref` moves `v0.37.0` → `v0.37.1`.** Three conformance vectors —
+the first the corpus has ever carried for `errorText`'s `^[A-Z][A-Z0-9_]+$`.
+
+Removing that pattern from **all 18** schemas that declare it left the spec's `verify-schemas.py`
+at **342/342, identical to baseline**: the restriction was guarded nowhere. The added vectors cover
+prose with spaces, **hyphens where the rule says underscores**, and a **nested** occurrence, and the
+spec's control shows the corpus now reports exactly those three when the pattern is stripped.
+
+| | |
+|---|---|
+| Vendored corpus | **342 → 345** (168 valid, **174 → 177** invalid) |
+| Schema bytes moved | **0** |
+| Suite | **1150 → 1153** tests — the corpus test picks the vectors up on its own |
+| Gates | 9 of 9 green, `tsc` clean |
+
+---
+
 ## 0.36.0 — 2026-09-08
 
 **SDK-pair release, MINOR. `.spec-ref` moves `v0.36.0` → `v0.37.0`.** The spec release is prose:
