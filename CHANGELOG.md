@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.36.3 — 2026-09-08
+
+**SDK-pair release, PATCH. `.spec-ref` moves `v0.37.2` → `v0.37.3`.** The spec corrected rule 4's
+comparison basis from the whole envelope to the **`payload`** — an envelope-level comparison calls
+every re-stamped retry a collision and processes it twice.
+
+**0 schema bytes, 0 vectors**; suite **1153** and `tsc` unchanged. For anyone building a rule-4
+fingerprint on this package: `canonicalJson` over the **payload**, not over the envelope.
+
+---
+
 ## 0.36.2 — 2026-09-08
 
 **SDK-pair release, PATCH. `.spec-ref` moves `v0.37.1` → `v0.37.2`.** The spec corrected one
