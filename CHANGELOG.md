@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.36.4 — 2026-09-09
+
+**SDK-pair release, PATCH. `.spec-ref` does NOT move — it stays `v0.37.3`.** Nothing in the spec
+changed; what changed is that this SDK now carries a vector the spec has published since 0.13.0 and
+this repo had never copied.
+
+**The defect.** The spec's crypto corpus holds **five** vectors. This repo vendored **four**.
+`mqtt-mac.json` — the one that pins §5.4, the envelope MAC — was absent, in **both** SDKs, while
+both gates reported the corpus byte-identical.
+
+**Why no gate saw it, and this half is worse than the PHP half.** `scripts/check-crypto-vectors.sh`
+was still **four hardcoded `check` lines**. ospp-sdk-php converted the same script to a directory
+walk at 0.27.0 precisely because an inclusion list compares nothing it was not told about; this repo
+never made that conversion, so the two gates have been asymmetric ever since. The standing proof was
+already in the tree: `tamper-rejection.json` is vendored here, under `src/test-vectors/crypto/`, and
+those four lines never mentioned it — it could have drifted from the spec indefinitely.
+
+**Fixed:**
+
+- `mqtt-mac.json` vendored into `tests/crypto/fixtures/`, byte-identical.
+- `check-crypto-vectors.sh` converted from the inclusion list to a **directory walk**, with the
+  `SDK_LOCAL` reason-map ospp-sdk-php already carried, and extended to cover
+  `src/test-vectors/crypto/` — so `tamper-rejection.json` is byte-checked for the first time.
+- A **completeness arm** that walks the SPEC side and fails on a vector never vendored, with a
+  `SPEC_ONLY` map demanding a stated reason. Empty today.
+- `mqtt-mac-vector.test.ts` consumes the vector: canonical bytes and length, the MAC, the key
+  reproduced from its recorded derivation, the **negative** (`macIfKeyNotDecoded` must be what the
+  Base64-text key produces **and** must differ from the real MAC), and verify accept/reject.
+
+**Radius: 0 schema bytes, 0 `src/` code bytes, `.spec-ref` unmoved.** A marker and the corpus.
+Suite **1151 passed**, 7 skipped.
+
+---
+
 ## 0.36.3 — 2026-09-08
 
 **SDK-pair release, PATCH. `.spec-ref` moves `v0.37.2` → `v0.37.3`.** The spec corrected rule 4's
