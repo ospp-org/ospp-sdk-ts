@@ -1,6 +1,6 @@
 {
   "name": "@ospp/protocol",
-  "version": "0.36.4",
+  "version": "0.36.5",
   "description": "OSPP Protocol TypeScript SDK",
   "license": "MIT",
   "type": "module",
@@ -40,7 +40,8 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "src/schemas"
+    "src/schemas",
+    "src/test-vectors"
   ],
   "scripts": {
     "build": "tsc && copyfiles -u 1 \"src/schemas/**/*.schema.json\" dist",

@@ -134,18 +134,31 @@ if [[ "${status}" -eq 0 ]]; then
     # this gate prints "byte-identical". So iterate what is actually vendored —
     # driven by the vendored set, not by a list, so a file vendored tomorrow is
     # compared the day it lands rather than the day someone remembers to add a line.
+    # EXTENDED 2026-09-09 to `.pem` as well as `.json`. This directory is now
+    # PUBLISHED (package.json `files` carries `src/test-vectors`), so everything in
+    # it reaches consumers and everything in it must be pinned. The crypto corpus
+    # ships `server-test-pub.pem` because the corpus is not self-sufficient without
+    # it: `ble-handshake-keyschedule.json` names
+    # `conformance/test-keys/server-test-pub.pem` as the key its station-certificate
+    # signature verifies under, and a consumer who cannot resolve that path cannot
+    # complete the verification the vector exists to make possible. The key comes
+    # from a DIFFERENT spec directory, so it is compared against that one.
     if [[ -d "${VECTORS}/crypto" ]]; then
       c=0
       while IFS= read -r dst; do
         name="$(basename "${dst}")"
-        if cmp -s "${CORPUS_SRC}/crypto/${name}" "${dst}"; then
+        case "${name}" in
+          *.pem) src_path="${SPEC_SRC}/conformance/test-keys/${name}" ;;
+          *)     src_path="${CORPUS_SRC}/crypto/${name}" ;;
+        esac
+        if cmp -s "${src_path}" "${dst}"; then
           echo "OK identical: crypto/${name}"
         else
           echo "DRIFT: crypto/${name} differs from spec ${SPEC_REF} (or is absent upstream)" >&2
           status=1
         fi
         c=$((c + 1))
-      done < <(find "${VECTORS}/crypto" -maxdepth 1 -type f -name '*.json' | sort)
+      done < <(find "${VECTORS}/crypto" -maxdepth 1 -type f \( -name '*.json' -o -name '*.pem' \) | sort)
       if [[ "${c}" -eq 0 ]]; then
         echo "DRIFT: crypto/ exists but holds no vectors — an empty loop reports success for zero work" >&2
         status=1

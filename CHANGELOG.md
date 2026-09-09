@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.36.5 — 2026-09-09
+
+**SDK-pair release, PATCH — PACKAGING. `.spec-ref` does not move, no schema byte moves, no
+library code moves.** A protocol package ships the conformance vectors: they *are* the contract,
+and an implementer has to be able to verify against them without cloning anything.
+
+**Measured from the PUBLISHED archive, not from configuration.** `npm pack @ospp/protocol@0.36.4`
+is 176 K, 420 files: **172 schema files and ZERO vectors.** `package.json` declared
+`files: ["dist", "src/schemas"]`, and the whole conformance corpus — 347 files, already sitting
+under `src/test-vectors/` — was outside that allowlist and had never been packed. The two SDKs
+therefore differed in what they published: Composer ships the repository and so carried the
+corpus; npm carried the schemas alone.
+
+**Fixed:** `files` gains `src/test-vectors`, and the crypto corpus is completed to all **5**
+spec vectors plus `server-test-pub.pem`. The key ships because the crypto corpus is not
+self-sufficient without it — `ble-handshake-keyschedule.json` names
+`conformance/test-keys/server-test-pub.pem` as the key its station-certificate signature verifies
+under. `check-vector-corpus.sh`'s crypto arm now pins `.pem` as well as `.json`, because
+everything published must be pinned.
+
+**Growth, measured by packing before and after:** 420 → 776 files, unpacked 784 K → 938 K,
+**packed 176 K → 223 K (+47 K, +27 %)**.
+
+**What is NOT shipped, deliberately:** `canonical-mac-strip.json`, `hmac-golden-vectors.json` and
+`signing-classification.json` are SDK-local — this library's own properties and policy, not
+protocol facts — and `tests/crypto/fixtures/generators/` is a tool. Verified absent from the
+tarball, along with `tests/`, `scripts/` and `.github/`: **0 each**.
+
+Suite **1151 passed**, 7 skipped. All **9** gates green, corpus gate red under both controls
+(drifted vector, drifted key).
+
+---
+
 ## 0.36.4 — 2026-09-09
 
 **SDK-pair release, PATCH. `.spec-ref` does NOT move — it stays `v0.37.3`.** Nothing in the spec
