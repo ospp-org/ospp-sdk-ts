@@ -1,6 +1,6 @@
 # @ospp/protocol
 
-TypeScript SDK for the OSPP (Open Self-Service Point Protocol), pinned to spec `v0.39.1`.
+TypeScript SDK for the OSPP (Open Self-Service Point Protocol), pinned to spec `v0.40.0`.
 
 ## Install
 
