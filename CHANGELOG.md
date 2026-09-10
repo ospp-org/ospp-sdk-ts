@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.37.1 — 2026-09-10
+
+**SDK-pair release, PATCH — `.spec-ref` follows the spec to `v0.39.0`. No library code moves;
+one vendored schema and the corpus README re-sync; the vector corpus itself is byte-identical.**
+
+Spec `0.39.0` gives `actualDurationSeconds` a clock and a rounding rule and scopes the
+monotonic-timer obligation to the station. **Neither SDK computes a duration** — measured:
+`actualDurationSeconds` occurs **14** times across both `src/` trees and every occurrence is a
+type declaration or a bundled test vector — so no library code changes.
+
+### Re-vendored
+
+`schemas/mqtt/change-configuration-response.schema.json` gains `maxItems: 20` on `results`, a bound
+that was already normative (`change-configuration.md` §6 rule 3 makes the array one entry per
+request key, and the request schema bounds `keys` at 20). **0 of 345** corpus vectors change
+verdict — the six that validate against this schema carry 1, 2, 4, 1, 1 and 1 entries — and the
+constraint is boundary-controlled upstream at 20 accepted / 21 rejected. The conformance corpus
+README re-syncs because it carries the spec's own version banner; every other vendored byte is
+unchanged, which is what `check:vector-corpus` / `check-vector-corpus.sh` assert.
+
+### Fixed (TypeScript)
+
+**Two claims about the pinned spec were false in the published `0.37.0`, and the gate that catches
+them was run before the change that broke them rather than after.** `README.md` said `v0.37.3` and
+`SessionEndReason.ts` said `0.37.3` while `.spec-ref` read `v0.38.0`; `check:doc-claims` reports
+exactly this and was green when it ran, because `.spec-ref` moved afterwards in the same session.
+Both sentences now derive from `.spec-ref`, and the gate reads **14 of 14 claims agree**. The
+lesson is the ordering, not the strings: a claim-derivation gate has to be the LAST thing run
+before a tag, not the last thing run before the final edit.
+
+---
+
 ## 0.37.0 — 2026-09-10
 
 **SDK-pair release, MINOR — the envelope cap. `.spec-ref` moves `v0.37.3` → `v0.38.0`; ZERO schema
