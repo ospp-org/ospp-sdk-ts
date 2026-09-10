@@ -59,6 +59,13 @@ export {
 export {
   type OsppEnvelope,
   type CreateEnvelopeOptions,
+  MAX_ENVELOPE_BYTES,
+  MQTT_MAX_PACKET_BYTES,
+  envelopeByteLength,
+  exceedsEnvelopeCap,
+  remainingEnvelopeBytes,
+  assertWithinEnvelopeCap,
+  serializeEnvelopeForWire,
   OSPP_PROTOCOL_VERSION,
   createEnvelope,
 } from './types/envelope.js';
