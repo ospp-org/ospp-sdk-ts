@@ -164,7 +164,9 @@ export const RECOMMENDED_ACTION: Readonly<Record<OsppErrorCode, string>> = {
   [OsppErrorCode.INSUFFICIENT_BALANCE]:
     'App: show top-up prompt. Web: redirect to payment page. The user must purchase more credits before starting a session.',
   [OsppErrorCode.OFFLINE_LIMIT_EXCEEDED]:
-    'App: the user must go online to request a new OfflinePass (or top up credits).',
+    'App: the user must go online to request a new OfflinePass (or top up credits). Where ' +
+    '`details.constraint` names a station-scoped ceiling, a different pass will not help and ' +
+    'the station itself must reconnect.',
   [OsppErrorCode.OFFLINE_RATE_LIMITED]:
     'Wait the required interval (default 60 seconds) before attempting another offline transaction.',
   [OsppErrorCode.OFFLINE_PER_TX_EXCEEDED]:

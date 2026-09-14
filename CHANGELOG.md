@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.38.1 — 2026-09-14
+
+**PATCH — `.spec-ref` follows the spec to `v0.41.0`. No schema byte, no vector; one registry
+string.** Pairs with `ospp/protocol` (PHP) `0.38.1`.
+
+`v0.41.0` is a prose-only spec release: it tags three normative rules that had been written into the
+spec tree and left in no tag. **Measured on `v0.40.0..v0.41.0`: 0 schema bytes, 0 of 350 conformance
+vectors, 0 example payloads** — every schema in this package is byte-identical to the spec's at
+`v0.41.0`.
+
+**One thing to mirror, and only moving `.spec-ref` surfaced it.** The registry cell for
+`4002 OFFLINE_LIMIT_EXCEEDED` now selects a branch on `details.constraint` — a pass-scoped ceiling
+means a new pass helps, a station-scoped one means it does not and the station must reconnect — and
+the recommended action named neither. It does now.
+
+Two stale sync markers are corrected in the same pass: `src/test-vectors/README.md` and
+`src/schemas/README.md` both still carried `OSPP Version: 0.39.1`.
+
+---
+
 ## 0.38.0 — 2026-09-10
 
 **SDK-pair release, MINOR — `.spec-ref` follows the spec to `v0.40.0`, which uniforms `errorText`
