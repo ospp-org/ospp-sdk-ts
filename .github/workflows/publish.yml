@@ -63,6 +63,43 @@ jobs:
           fi
           echo "OK — package.json version '$actual' matches release tag '$tag'."
 
+      # Guard against the npm-404 trap. npm answers an unauthorized PUT on a
+      # scoped package with 404, not 401 or 403, so that it never discloses
+      # whether a private package exists. An expired, revoked or de-scoped token
+      # therefore surfaces as:
+      #
+      #   npm error 404 Not Found - PUT https://registry.npmjs.org/@ospp%2fprotocol
+      #   npm error 404  '@ospp/protocol@0.39.0' is not in this registry.
+      #
+      # which reads as "the package is missing" and is nothing of the kind — the
+      # package has been public since 2026-03-22. That message cost v0.38.1
+      # (2026-09-14) and v0.39.0 (2026-09-18), and it arrived only after the
+      # whole build and test had run AND after the provenance attestation had
+      # been written to a public transparency log for a release that never
+      # happened. `npm whoami` is one request and names the account the token
+      # authenticates as, so a dead credential fails here, in seconds, saying so.
+      #
+      # LIMIT, stated plainly: this proves the token is live and names its
+      # account. It does NOT prove the token still grants write on
+      # @ospp/protocol — npm exposes no read-only probe for that short of
+      # publishing. A granular token whose package grant was removed still
+      # passes whoami and still fails the publish with the same 404. If that
+      # happens, the account named here is the one to check the grant on.
+      - name: Preflight — the npm credential is live
+        run: |
+          set -euo pipefail
+          if ! who="$(npm whoami 2>&1)"; then
+            echo "ERROR: npm rejected NPM_TOKEN. It is expired, revoked, or not a valid npm token." >&2
+            echo "npm said: $who" >&2
+            echo "Fix: mint a Granular Access Token at https://www.npmjs.com/settings/<user>/tokens with" >&2
+            echo "Read and write on @ospp/protocol, then replace the NPM_TOKEN repository secret." >&2
+            echo "Do NOT work around this by publishing by hand — that skips provenance." >&2
+            exit 1
+          fi
+          echo "OK — npm authenticated as '$who'."
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - run: npm ci
 
       - run: npm run build

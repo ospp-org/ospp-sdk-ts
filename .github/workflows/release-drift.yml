@@ -1,0 +1,111 @@
+# Fail loudly when a release tag never reached the package registry.
+#
+# WHY THIS IS A SEPARATE, SCHEDULED WORKFLOW
+# ------------------------------------------
+# publish.yml already goes red when a publish fails. That was never the problem.
+# The problem is that a red run is a single event in a history nobody re-reads:
+# v0.38.1 failed on 2026-09-14 and the divergence between the git tags and npm
+# was found on 2026-09-18 by a session looking at something else. Four days, one
+# red run, no other signal.
+#
+# So this check is deliberately NOT a step in publish.yml and NOT only a job in
+# ci.yml:
+#
+#   - in publish.yml it would only run on a tag push, which is the moment that
+#     is already failing. It cannot report on its own silence.
+#   - in ci.yml it would only run when someone pushes. A repository that has
+#     just cut a release and gone quiet is exactly the case being caught, and it
+#     is exactly when push-triggered gates stop running.
+#
+# On a schedule it goes red every day until a human resolves it, which is the
+# property that was missing. GitHub emails the account that last edited the
+# `schedule:` block below when a scheduled run fails, so the red is pushed
+# rather than waiting to be noticed.
+#
+# It also runs on pushes to main, so the answer is immediate after a release
+# lands rather than up to a day later, and on workflow_dispatch so it can be
+# used to confirm a fix without spending a version number.
+#
+# NOTE: GitHub disables scheduled workflows in a repository with no activity for
+# 60 days. This repository releases far more often than that, but if it ever
+# goes quiet, re-enable the schedule from the Actions tab.
+
+name: Release drift
+
+on:
+  schedule:
+    # Daily, 07:17 UTC. Off the hour on purpose: the top of the hour is the
+    # busiest slot on the shared scheduler and is where runs get delayed.
+    - cron: '17 7 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    name: npm @ospp/protocol vs this repository's tags
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 is load-bearing. The default checkout fetches no tags at
+      # all, and a tag-vs-registry check over zero tags would pass vacuously.
+      # check-release-drift.mjs refuses to run on an empty tag set for the same
+      # reason, so a regression here fails rather than going quietly green.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Compare npm against the tags in this repository
+        run: node scripts/check-release-drift.mjs --registry npm
+
+  # The PHP sibling has no publish workflow at all: Packagist is wired to its
+  # GitHub tags by a webhook configured outside the repository, so there is not
+  # even a red run to miss — a webhook that stops firing is silent everywhere.
+  # Same exposure, different mechanism, and Packagist answers the same question
+  # npm does, so the same script covers it.
+  #
+  # This job lives here rather than in ospp-sdk-php because that repository
+  # carries no release automation to attach it to; moving it there later needs
+  # nothing but this job and a copy of the script.
+  packagist:
+    name: Packagist ospp/protocol vs ospp-sdk-php tags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Public repository, so no token is needed to read its tags.
+      - uses: actions/checkout@v4
+        with:
+          repository: ospp-org/ospp-sdk-php
+          path: sibling-php
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Compare Packagist against the tags in ospp-sdk-php
+        run: |
+          set -euo pipefail
+          git -C sibling-php for-each-ref \
+            --format='%(refname:short)|%(creatordate:iso-strict)' refs/tags/ > php-tags.txt
+          echo "read $(wc -l < php-tags.txt) tags from ospp-sdk-php"
+          # The sibling declares its own gaps or declares none. Never fall back
+          # to this repository's .release-gaps.json — those versions are npm's
+          # history and would wrongly excuse a hole in the PHP series.
+          gaps=/dev/null
+          if [ -f sibling-php/.release-gaps.json ]; then
+            gaps=sibling-php/.release-gaps.json
+          fi
+          echo "declared gaps read from: $gaps"
+          node scripts/check-release-drift.mjs \
+            --registry packagist \
+            --package ospp/protocol \
+            --tags-from php-tags.txt \
+            --gaps-from "$gaps"

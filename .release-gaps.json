@@ -1,0 +1,21 @@
+{
+  "//": [
+    "Tags in this repository that never became a published version on npm, and are not going to.",
+    "scripts/check-release-drift.mjs fails on any tag that is absent from the registry and absent",
+    "from this file, so a release that silently never shipped has to be recorded here deliberately",
+    "instead of being rediscovered from a version series with a hole in it.",
+    "",
+    "A version listed here is SPENT ONLY IF npm holds it. npm refuses to reuse a version number that",
+    "was published and then unpublished; a number that never arrived at all is still free. Check",
+    "before assuming: `npm view @ospp/protocol@X version`, and the packument's `time` block, which",
+    "retains an entry for every version ever published even after an unpublish.",
+    "",
+    "Do NOT add a tag here to silence the check while the publish is still broken. The entry is a",
+    "statement that the version will never exist, not a way to stop asking."
+  ],
+  "gaps": {
+    "0.6.0": "package.json still said 0.5.7 when the tag was cut, so the publish asked npm to republish 0.5.7 and was refused with E403 'You cannot publish over the previously published versions: 0.5.7' (run 27868665280, 2026-06-20). Superseded by 0.6.2, published 2026-06-23. Never uploaded; the number is free but has been skipped deliberately.",
+    "0.6.1": "Same manifest mismatch as 0.6.0 — package.json said 0.5.7, npm answered the same E403 (run 27913031826, 2026-06-21). Superseded by 0.6.2, published 2026-06-23. Never uploaded.",
+    "0.33.0": "package.json still said 0.32.1 when the tag was cut. The version guard in publish.yml caught it before the build ran: 'ERROR: package.json version 0.32.1 does not match release tag v0.33.0' (run 34048561610, 2026-09-06). Superseded by 0.34.0, published 2026-09-06. Never uploaded."
+  }
+}
