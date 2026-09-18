@@ -2,31 +2,32 @@
 
 ## Release gaps — tags that are not on npm
 
-A tag in this repository is a publish request, not a publish. Five of them never became a version
-on npm. Measured 2026-09-18: 53 release tags, 48 published versions.
+A tag in this repository is a publish request, not a publish. Four of them never became a version
+on npm and never will. Measured 2026-09-18: 53 release tags, 49 published versions.
 
-| Version | Status | Why |
-| --- | --- | --- |
-| `0.6.0` | permanent gap | `package.json` still said `0.5.7` at the tag. npm answered `E403 You cannot publish over the previously published versions: 0.5.7` (run 27868665280). Superseded by `0.6.2`. |
-| `0.6.1` | permanent gap | Same mismatch, same `E403` (run 27913031826). Superseded by `0.6.2`. |
-| `0.33.0` | permanent gap | `package.json` still said `0.32.1` at the tag; the version guard in `publish.yml` stopped it before the build (run 34048561610). Superseded by `0.34.0`. |
-| `0.38.1` | not published | The publish failed on an npm `E404` against a live credential (run 34851174592, 2026-09-14). Nothing was uploaded. |
-| `0.39.0` | not published | Same `E404`, same cause (run 35332294682, 2026-09-18). Nothing was uploaded. |
+| Version | Why it does not exist |
+| --- | --- |
+| `0.6.0` | `package.json` still said `0.5.7` at the tag. npm answered `E403 You cannot publish over the previously published versions: 0.5.7` (run 27868665280). Superseded by `0.6.2`. |
+| `0.6.1` | Same mismatch, same `E403` (run 27913031826). Superseded by `0.6.2`. |
+| `0.33.0` | `package.json` still said `0.32.1` at the tag; the version guard in `publish.yml` stopped it before the build (run 34048561610). Superseded by `0.34.0`. |
+| `0.38.1` | `package.json` matched the tag and the suite passed; the publish was refused with `E404` on the PUT — npm's masked answer for a credential it no longer authorised to write this package (run 34851174592, 2026-09-14). Superseded by `0.39.0`. |
 
-**`0.38.1` and `0.39.0` are not spent.** npm refuses to reuse a version number that was published
-and later unpublished; a number that never arrived is still free. Neither appears in the packument's
-`time` block, which retains an entry for every version ever published even after an unpublish, there
-is no `unpublished` record, and `time.modified` is still `2026-09-10T18:14:24.989Z` — the moment
-`0.38.0` landed, before either attempt. Both numbers can still be published once the credential is
-restored. `npm view @ospp/protocol@0.38.1 version` answers `E404 No match found`, which is what a
-never-published version looks like, not a burnt one.
+`0.39.0` failed the same way on 2026-09-18 (run 35332294682) and **was published** at
+`2026-09-18T10:38:34.564Z` once the `NPM_TOKEN` secret was replaced and that run re-run. It is
+`dist-tags.latest`.
 
-No consumer is pinned to `0.38.1`. The dependants reachable in this workspace ask for `^0.38.0`
+**None of the four is spent, and all four are skipped anyway.** npm refuses to reuse a version
+number that was published and later unpublished; a number that never arrived is still free. None of
+them appears in the packument's `time` block, which retains an entry for every version ever
+published even after an unpublish, and there is no `unpublished` record — `npm view
+@ospp/protocol@0.38.1 version` answers `E404 No match found`, which is what a never-published
+version looks like, not a burnt one. `0.38.1` was therefore publishable after the credential was
+restored, and was deliberately not published: `0.39.0` carries everything it would have, and no
+consumer depends on it. The dependants reachable in this workspace ask for `^0.38.0`
 (`ts-station-simulator`, `csms-app`) and `^0.29.0` (`spec`); on a `0.x` version a caret locks the
-minor, so `^0.38.0` resolves to `0.38.0` today and is unaffected by the gap — and equally cannot
-reach `0.39.0` until it publishes.
+minor, so `^0.38.0` resolves to `0.38.0` and must be widened to reach `0.39.0` regardless.
 
-The three permanent gaps are declared in [`.release-gaps.json`](.release-gaps.json).
+All four gaps are declared in [`.release-gaps.json`](.release-gaps.json).
 `scripts/check-release-drift.mjs` fails on any tag that is absent from both the registry and that
 file, so a future gap has to be recorded deliberately rather than discovered from a version series
 with a hole in it.

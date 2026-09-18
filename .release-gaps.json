@@ -16,6 +16,7 @@
   "gaps": {
     "0.6.0": "package.json still said 0.5.7 when the tag was cut, so the publish asked npm to republish 0.5.7 and was refused with E403 'You cannot publish over the previously published versions: 0.5.7' (run 27868665280, 2026-06-20). Superseded by 0.6.2, published 2026-06-23. Never uploaded; the number is free but has been skipped deliberately.",
     "0.6.1": "Same manifest mismatch as 0.6.0 — package.json said 0.5.7, npm answered the same E403 (run 27913031826, 2026-06-21). Superseded by 0.6.2, published 2026-06-23. Never uploaded.",
-    "0.33.0": "package.json still said 0.32.1 when the tag was cut. The version guard in publish.yml caught it before the build ran: 'ERROR: package.json version 0.32.1 does not match release tag v0.33.0' (run 34048561610, 2026-09-06). Superseded by 0.34.0, published 2026-09-06. Never uploaded."
+    "0.33.0": "package.json still said 0.32.1 when the tag was cut. The version guard in publish.yml caught it before the build ran: 'ERROR: package.json version 0.32.1 does not match release tag v0.33.0' (run 34048561610, 2026-09-06). Superseded by 0.34.0, published 2026-09-06. Never uploaded.",
+    "0.38.1": "package.json matched the tag and the whole build and test passed; the publish was refused with E404 on the PUT, npm's masked answer for a credential it no longer authorises to write @ospp/protocol (run 34851174592, 2026-09-14). Nothing was uploaded: the version is absent from the packument's versions and time blocks alike, so the number stays free. Superseded by 0.39.0, published 2026-09-18, which carries everything 0.38.1 would have. Skipped by release decision on 2026-09-18 rather than published late, and no consumer depends on it."
   }
 }
