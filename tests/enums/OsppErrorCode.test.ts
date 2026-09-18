@@ -11,14 +11,15 @@ describe('OsppErrorCode', () => {
     (v): v is number => typeof v === 'number',
   );
 
-  it('should have exactly 119 error codes', () => {
+  it('should have exactly 120 error codes', () => {
     // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes): 102 → 106.
     // v0.6.2: spec 07-errors.md §3.2 added 2018 SERVER_AUTH_NONCE_MISMATCH: 106 → 107.
     // v0.8.0: spec 07-errors.md added the seven provisioning-identity codes —
     //         2019 (§3.2) and 4015-4020 (§3.4): 107 → 114. Matches the spec's
     //         own stated "Total: 114 standard error codes" (07-errors.md §1.1).
     // v0.11.0: 114 → 118 with 3017 PROGRAM_NOT_DECLARED and 3018 TOPOLOGY_MISMATCH.
-    expect(allCodes).toHaveLength(119);
+    // v0.39.0: 119 → 120 with 3020 BINDING_UNCOVERED (spec v0.42.0 §3.3).
+    expect(allCodes).toHaveLength(120);
   });
 
   it('should have unique numeric values', () => {
@@ -38,8 +39,9 @@ describe('OsppErrorCode', () => {
       expect(byRange(2000, 2999)).toHaveLength(20);
     });
 
-    it('should have 20 session/bay errors (3xxx)', () => {
-      expect(byRange(3000, 3999)).toHaveLength(20);
+    it('should have 21 session/bay errors (3xxx)', () => {
+      // v0.39.0: 20 → 21 with 3020 BINDING_UNCOVERED.
+      expect(byRange(3000, 3999)).toHaveLength(21);
     });
 
     it('should have 20 payment/credit errors (4xxx)', () => {
@@ -55,8 +57,24 @@ describe('OsppErrorCode', () => {
       expect(byRange(6000, 6999)).toHaveLength(9);
     });
 
-    it('15 + 20 + 20 + 20 + 34 + 9 = 118', () => {
-      expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118);
+    // WAS `expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118)` — an arithmetic identity that
+    // never touched the registry and so could not fail. Both sides constant-folded to
+    // 118, so it would have passed over an empty registry, a renamed enum, or a deleted
+    // one. It was also WRONG twice over: its 5xxx term said 34 where the block seven
+    // lines above asserts 35, and its total said 118 where the assertion 37 lines above
+    // asserts the real count. It was a literal-vs-literal comparison in all six of its
+    // forms, green in every tag this repository carries, and arithmetically stale from
+    // 0.31.0, when 5113 moved the 5xxx band and the two assertions that DO read the
+    // registry were updated while this one was not. Same defect, same repair, as
+    // `ConfigKey.test.ts`. It now reads the ACTUAL per-band counts and asserts the six
+    // bands both partition the registry and account for all of it.
+    it('the six bands partition the registry exactly', () => {
+      const perBand = ([[1000, 1999], [2000, 2999], [3000, 3999],
+                        [4000, 4999], [5000, 5999], [6000, 6999]] as [number, number][])
+        .map(([lo, hi]) => byRange(lo, hi).length);
+
+      expect(perBand).toEqual([15, 20, 21, 20, 35, 9]);
+      expect(perBand.reduce((a, b) => a + b, 0)).toBe(allCodes.length);
     });
   });
 
@@ -258,7 +276,7 @@ describe('OSPP_ERROR_REGISTRY', () => {
       [4001, 402],
       [2008, 403],
       [3005, 404], [3006, 404], [3012, 404],
-      [3001, 409], [3003, 409], [3014, 409], [3019, 409], [4015, 409], [6005, 409], [6008, 409],
+      [3001, 409], [3003, 409], [3014, 409], [3019, 409], [3020, 409], [4015, 409], [6005, 409], [6008, 409],
       [3004, 422], [3008, 422], [3010, 422], [4016, 422], [4020, 422],
       [6006, 429],
       [6000, 500], [6001, 500],

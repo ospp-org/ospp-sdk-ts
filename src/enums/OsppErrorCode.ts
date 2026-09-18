@@ -1,5 +1,5 @@
 /**
- * All 119 standard OSPP error codes with static metadata.
+ * All 120 standard OSPP error codes with static metadata.
  *
  * The count, and each code's errorText/severity/recoverable, are asserted
  * against spec/07-errors.md by `npm run check:error-registry` — not by this
@@ -128,6 +128,16 @@ export enum OsppErrorCode {
    * transmitted to a station. spec v0.11.1 07-errors.md §3.3.
    */
   SERVICE_NOT_BOUND         = 3019,
+  /**
+   * The server holds a service→program binding whose ordinal the station no longer
+   * declares. The binding EXISTS -- that is what separates it from 3019, whose action
+   * tells an operator to create one -- and the ordinal is declared nowhere on that bay,
+   * which separates it from 3003. Server-originated toward the requesting client; MUST
+   * NOT be transmitted to a station, which declared correctly. Silence is not this code:
+   * where the server holds no declaration for the bay at all it does not apply.
+   * spec v0.42.0 07-errors.md §3.3.
+   */
+  BINDING_UNCOVERED         = 3020,
 
   // --- Payment & Credit (4xxx) ---
   PAYMENT_GENERIC           = 4000,
@@ -354,6 +364,10 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
   [OsppErrorCode.PROGRAM_NOT_DECLARED]:      meta(3017, 'PROGRAM_NOT_DECLARED',      'Error',    false, 404, 'Session'),
   [OsppErrorCode.TOPOLOGY_MISMATCH]:         meta(3018, 'TOPOLOGY_MISMATCH',         'Error',    true,  409, 'Session'),
   [OsppErrorCode.SERVICE_NOT_BOUND]:         meta(3019, 'SERVICE_NOT_BOUND',         'Error',    true,  409, 'Session'),
+  // 3020 IS in §2.4's table, unlike 3017/3018 above: spec v0.42.0 placed it in the 409
+  // row beside 3001, 3003, 3014 and 3019, which are the same shape -- a fact about the
+  // addressed resource, not about the server answering.
+  [OsppErrorCode.BINDING_UNCOVERED]:         meta(3020, 'BINDING_UNCOVERED',         'Error',    true,  409, 'Session'),
 
   // ── Payment & Credit (4xxx) ───────────────────────────────────────────
   [OsppErrorCode.PAYMENT_GENERIC]:           meta(4000, 'PAYMENT_GENERIC',           'Error',    true,  500, 'Payment'),

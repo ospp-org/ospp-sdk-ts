@@ -1,10 +1,10 @@
 /**
  * The per-code corrective action from the spec registry (07-errors.md §3).
  *
- * All 119 registry codes are transcribed. This SDK carried NONE of them until
+ * All 120 registry codes are transcribed. This SDK carried NONE of them until
  * 0.28.0 — `OsppErrorMeta` has no such member and no accessor existed — while
  * ospp-sdk-php carried eleven. That eleven was read once as the registry being
- * incomplete; it is not. §3 gives a Recommended Action for 118 of 118 rows with
+ * incomplete; it is not. §3 gives a Recommended Action for 120 of 120 rows with
  * no empty cell, so the gap was a transcription hole on the SDK side of the
  * wire, and `npm run check:recommended-action` now refuses to let one reopen.
  *
@@ -157,6 +157,8 @@ export const RECOMMENDED_ACTION: Readonly<Record<OsppErrorCode, string>> = {
     'Station: keep the declaration stable and keep retrying BootNotification per CORE-011; answer commands while `Pending`. Do **NOT** alter the declaration to match the server — it describes hardware, and agreeing silently hides a real change. Operator: read `details`. If the hardware genuinely changed, re-provision the station, which re-creates the bay records. If it did not, correct the station record server-side; the next boot is then accepted.',
   [OsppErrorCode.SERVICE_NOT_BOUND]:
     'Operator: create the binding for this (bay, service) pair, naming an ordinal the bay declared at provisioning. Server: name the bay and the service in `details`, and do not dispatch StartService. The customer has not been charged, because nothing was started — say so, rather than reporting a station fault for a condition no station has seen.',
+  [OsppErrorCode.BINDING_UNCOVERED]:
+    'Operator: the service→program binding on this bay names ordinal `details.programNumber`, which the station no longer declares. Re-bind the service to one of `details.declaredPrograms`, or re-provision the station if its hardware changed. Server: do not dispatch StartService, and do not substitute a neighbouring ordinal. The customer has not been charged, because nothing was started.',
 
   // 07-errors.md §3.4 — Payment & Credit (4xxx)
   [OsppErrorCode.PAYMENT_GENERIC]:

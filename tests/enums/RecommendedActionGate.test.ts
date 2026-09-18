@@ -106,7 +106,9 @@ describe.skipIf(!md)('check-recommended-action gate', () => {
 
   it('passes against the pinned registry, unmutated', () => {
     const { exit, out } = runGate(spec());
-    expect(out).toContain('covered 119/119');
+    // Both halves are the SPEC's row count (`covered ${covered}/${spec.size}`), not this
+    // package's, so this literal tracks the pinned spec: 119 → 120 at spec v0.42.0.
+    expect(out).toContain('covered 120/120');
     expect(exit).toBe(0);
   });
 

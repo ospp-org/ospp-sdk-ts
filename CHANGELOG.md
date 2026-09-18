@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.39.0 — 2026-09-18
+
+**MINOR — `3020 BINDING_UNCOVERED` enters the registry.** `.spec-ref` follows the spec to `v0.42.0`.
+MINOR and not PATCH because an enum member is added and a consumer pinned to `^0.38.0` must opt in
+to receive it. Pairs with `ospp/protocol` (PHP) `0.39.0` from the same spec pin
+([ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md)).
+
+### Added
+
+- **`OsppErrorCode.BINDING_UNCOVERED = 3020`**, its `OSPP_ERROR_REGISTRY` row
+  (`Error`, `recoverable: true`, `409`, `Session`) and its `RECOMMENDED_ACTION` arm, transcribed from
+  the spec cell rather than from the sibling SDK. The condition: the server holds a service→program
+  binding whose ordinal the station no longer declares. The binding **exists**, which separates it
+  from `3019 SERVICE_NOT_BOUND`, whose action tells an operator to create one; the ordinal is
+  declared nowhere on that bay, which separates it from `3003 SERVICE_UNAVAILABLE`. Server-originated,
+  and it **MUST NOT** reach a station. Where the server holds no declaration for the bay at all the
+  code does not apply — silence is not a report that a program is gone.
+
+  Both exhaustive maps — `OSPP_ERROR_REGISTRY` and `RECOMMENDED_ACTION`, each a
+  `Readonly<Record<OsppErrorCode, …>>` — make omitting either row a compile error, so the three
+  additions are enforced by the type checker rather than by a test.
+
+- **`3020` joins the §2.4 mirror** in `tests/enums/OsppErrorCode.test.ts` at `409`, beside `3001`,
+  `3003`, `3014` and `3019`. Unlike `3017`/`3018`, spec `v0.42.0` names this code in the status
+  table, so the value has a clause behind it rather than being an SDK guess.
+
+### Fixed
+
+- **A band-count assertion that could not fail, and was wrong twice over.**
+  `tests/enums/OsppErrorCode.test.ts` carried `expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118)` — two
+  literal expressions, constant-folding to `118 === 118`. It read nothing from the registry, so it
+  would have passed over an empty one, a renamed enum or a deleted one. Its `5xxx` term said **34**
+  where the assertion seven lines above asserts **35**, and its total said **118** where the
+  assertion 37 lines above asserts the real count. It was a literal-vs-literal comparison in all six
+  of its forms, green in **every tag this repository carries**, and arithmetically stale since
+  `0.31.0`, when `5113` moved the `5xxx` band and the two assertions that *do* read the registry
+  were updated while this one was not. It now maps the six bands through the same `byRange()` helper
+  its neighbours use and asserts that they **partition** the registry — the per-band counts and that
+  their sum is `allCodes.length` — so a code minted outside `1xxx`–`6xxx` cannot slip through either.
+  Same defect and same repair as `tests/enums/ConfigKey.test.ts`, which fixed its own instance at
+  `0.29.0`.
+
+  **Two further instances of the same shape remain, named and not fixed here** because they belong
+  to the action registry rather than the error registry: `tests/actions/OsppAction.test.ts:87`
+  (`expect(11 + 14 + 1 + 1).toBe(27)`) and `:174` (`expect(20 + 7).toBe(27)`).
+
+- **Two prose claims that shipped stale in `0.38.1`.** `README.md` said the package was pinned to
+  spec `v0.40.0` and `src/enums/SessionEndReason.ts` said its enum was as of `0.40.0`, while
+  `.spec-ref` had already moved to `v0.41.0` in that release. `npm run check:doc-claims` had been
+  red on `main` since, and the `Documented claims vs derived values` CI job with it. Both now read
+  `0.42.0` and the gate is green. **Pre-existing; surfaced by this release, not caused by it.**
+
+### Changed
+
+- **`.spec-ref` `v0.41.0` → `v0.42.0`.** **Measured on `v0.41.0..v0.42.0`: 0 schema bytes, 0 of 350
+  conformance vectors, 0 example payloads.** All **86** vendored schema files stay byte-identical;
+  the only vendored file that moved is `src/test-vectors/README.md`, whose header carries the
+  document version.
+
+- Counts restated: the `OsppErrorCode` and `RecommendedAction` module headers and `README.md` move
+  `119 → 120`; the `3xxx` band assertion `20 → 21`; the dense-range mirror in
+  `tests/enums/ProgramAndTopologyErrorCode.test.ts` to `Array.from({ length: 21 })`; and
+  `RecommendedActionGate` to `covered 120/120` — both halves of that figure being the **spec's** row
+  count, not this package's.
+
+**Suite: 1162 passed, 7 skipped, 0 failed (1169). Typecheck clean. All nine gates green against
+spec `v0.42.0`.** The 7 skips are `RecommendedActionGate.test.ts`, which requires a spec checkout.
+
 ## 0.38.1 — 2026-09-14
 
 **PATCH — `.spec-ref` follows the spec to `v0.41.0`. No schema byte, no vector; one registry
