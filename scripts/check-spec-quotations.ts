@@ -737,7 +737,7 @@ try {
   // number of files: a scanner that stops recognising comments, a citation regex
   // that stops matching, or a masking bug that swallows every binding all leave
   // this gate reporting a clean pass over nothing at all. Measured at spec
-  // v0.42.0: 68 attributed here, 78 in the PHP SDK. The floor is 40, roughly
+  // v0.42.0: 69 attributed here, 80 in the PHP SDK. The floor is 40, roughly
   // 60% of the smaller of the two, which leaves room for comments to be deleted
   // in the ordinary course of work while still catching a collapse. Raise it
   // deliberately if the corpus grows; do not lower it to make a red gate green.
