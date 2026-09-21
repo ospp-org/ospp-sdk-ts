@@ -166,10 +166,10 @@ jobs:
       - name: Every gate ci.yml runs, before anything is published
         run: |
           set -euo pipefail
-          for gate in doc-claims inert-assertions vector-types error-registry \
-                      http-status config-registry recommended-action \
-                      action-registry state-machines crypto-vectors \
-                      vector-corpus; do
+          for gate in doc-claims inert-assertions spec-quotations vector-types \
+                      error-registry http-status config-registry \
+                      recommended-action action-registry state-machines \
+                      crypto-vectors vector-corpus; do
             echo "::group::check:$gate"
             npm run "check:$gate"
             echo "::endgroup::"

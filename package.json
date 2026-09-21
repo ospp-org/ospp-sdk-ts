@@ -58,7 +58,8 @@
     "check:action-registry": "vite-node scripts/check-action-registry.ts",
     "check:doc-claims": "vite-node scripts/check-doc-claims.ts",
     "check:state-machines": "vite-node scripts/check-state-machines.ts",
-    "check:inert-assertions": "node scripts/check-inert-assertions.mjs"
+    "check:inert-assertions": "node scripts/check-inert-assertions.mjs",
+    "check:spec-quotations": "vite-node scripts/check-spec-quotations.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
