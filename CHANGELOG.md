@@ -57,8 +57,9 @@ reading:
   asserts a bijection between `src/types/payloads/*.ts` and `OsppAction`, reporting
   action-without-file and file-without-action separately.
 
-**Census, with its denominator.** 848 `expect(...).matcher(...)` sites across 42 test files at T0;
-15 had both sides folding to compile-time constants. Two are deliberate and stay, with their reasons
+**Census, with its denominator.** 842 `expect(...).matcher(...)` sites across 42 test files at T0,
+of which 15 had both sides folding to compile-time constants; 874 across 43 files afterwards, of
+which 2. Two are deliberate and stay, with their reasons
 written into `.inert-assertions.json`: `EnvelopeCap.test.ts` states a fact about JavaScript
 (`'\u{1F600}'.length === 2`, the UTF-16 contrast the byte-length assertion above it is read
 against), and `common.test.ts` carries its claim in a type annotation (`const empty: MeterValues =
