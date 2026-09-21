@@ -38,6 +38,18 @@ Nothing is published and nothing is tagged here. `package.json` stays at `0.39.0
 
 **One PUBLIC export is added**, so whichever release carries this is a MINOR: `MESSAGE_SIGNING_MODES`.
 
+**IT IS NOT CUT ON ITS OWN.** This MINOR rides the next real protocol change rather than being
+tagged for its own sake, and the sibling `ospp/protocol` (PHP) MINOR is bound the same way so the
+pair stays in lockstep per
+[ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md).
+The binding decision is recorded in full in that package's changelog, because that is the half with
+a cost attached: its two narrowed direction accessors make csms-server's next constraint bump cost
+four changes. Nothing on this side is narrowed and nothing here is urgent — `csms-app` pins
+`^0.39.0` and this release is purely additive to it.
+
+**In this repository a tag IS the publish** (`publish.yml` fires `on: push: tags`), so "not cut"
+means no tag, not a tag held back.
+
 ### Assertions that could not fail
 
 `tests/enums/OsppErrorCode.test.ts` carried `expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118)` until
@@ -219,6 +231,27 @@ the gate loop, which now names **13** gates, all of which resolve to a real `che
 scope reasoning — whole directory, never a hand-maintained file list — moved into the script header,
 where the check now is. Positive control: one byte appended to `src/schemas/mqtt/connection-lost.schema.json`
 turns the wired gate red naming that file, and reverting it turns it green.
+
+### …and it wrote its diff to a path two runs could share
+
+`check-schemas.sh` sent `diff`'s output to the literal `/tmp/schema-diff.txt` and read it back a few
+lines later. Two runs on one machine — the local `npm run check:schemas` beside a self-hosted job, or
+two jobs in one container — share that file, and the second writer wins: **the first run then prints
+the second run's drift as its own.** It is a `mktemp` file per run now.
+
+**Measured, not argued.** Two spec copies were prepared with a DIFFERENT planted byte in each
+(`provisioning-request.schema.json` in one, `provisioning-response.schema.json` in the other) and the
+old script was run against both concurrently, with a `sleep` widening the window between the write and
+the read in one of them. The run whose own drift was `provisioning-request` reported
+`provisioning-response`. The new script, run the same way, reports its own file in both — and the
+non-concurrent behaviour is unchanged: green on the unmodified spec, red naming the right file on a
+planted byte.
+
+The `TMPDIR` reassignment in the clone branch went with it, because it had to: a second `trap … EXIT`
+REPLACES the first rather than adding to it, so a `mktemp` file with its own trap would have silently
+disarmed the clone-directory cleanup. Both temporaries are removed by one handler, and the clone
+directory is now a `CLONE_DIR` of its own rather than an overwritten `TMPDIR`, which also stops the
+script changing where `mktemp` puts anything created after it.
 
 ## 0.39.0 — 2026-09-18
 

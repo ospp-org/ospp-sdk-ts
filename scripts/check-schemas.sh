@@ -40,6 +40,21 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPEC_REF="$(cat "${REPO_ROOT}/.spec-ref" | tr -d '[:space:]')"
 
+# A UNIQUE FILE PER RUN, AND ONE TRAP THAT REMOVES EVERY TEMPORARY THIS SCRIPT
+# MAKES. The diff went to a fixed `/tmp/schema-diff.txt`, so two runs sharing a
+# machine — `npm run check:schemas` beside the CI job, or two jobs in one
+# container — wrote over each other and either could report the other's drift.
+# The clone directory needs removing too, and a second `trap ... EXIT` REPLACES
+# the first rather than adding to it, so both live in one handler.
+DIFF_OUT="$(mktemp)"
+CLONE_DIR=""
+cleanup() {
+  rm -f "${DIFF_OUT}"
+  [[ -n "${CLONE_DIR}" ]] && rm -rf "${CLONE_DIR}"
+  return 0
+}
+trap cleanup EXIT
+
 if [[ -n "${SPEC_REPO:-}" ]]; then
   SOURCE_SCHEMAS="${SPEC_REPO}/schemas"
   if [[ ! -d "${SOURCE_SCHEMAS}" ]]; then
@@ -48,20 +63,19 @@ if [[ -n "${SPEC_REPO:-}" ]]; then
   fi
   echo "Comparing against local spec checkout at ${SPEC_REPO} (.spec-ref=${SPEC_REF} — not enforced for local mode)"
 else
-  TMPDIR="$(mktemp -d)"
-  trap 'rm -rf "${TMPDIR}"' EXIT
+  CLONE_DIR="$(mktemp -d)"
   echo "Cloning ospp-org/spec at ${SPEC_REF}..."
-  git clone --quiet --depth 1 --branch "${SPEC_REF}" https://github.com/ospp-org/spec.git "${TMPDIR}/spec"
-  SOURCE_SCHEMAS="${TMPDIR}/spec/schemas"
+  git clone --quiet --depth 1 --branch "${SPEC_REF}" https://github.com/ospp-org/spec.git "${CLONE_DIR}/spec"
+  SOURCE_SCHEMAS="${CLONE_DIR}/spec/schemas"
 fi
 
-if diff -rq --exclude=README.md --exclude=SchemaPath.ts "${SOURCE_SCHEMAS}" "${REPO_ROOT}/src/schemas" > /tmp/schema-diff.txt 2>&1; then
+if diff -rq --exclude=README.md --exclude=SchemaPath.ts "${SOURCE_SCHEMAS}" "${REPO_ROOT}/src/schemas" > "${DIFF_OUT}" 2>&1; then
   echo "OK — vendored src/schemas/ are byte-identical to spec ${SPEC_REF}"
   exit 0
 fi
 
 echo "DRIFT detected between vendored src/schemas/ and spec ${SPEC_REF}:" >&2
-cat /tmp/schema-diff.txt >&2
+cat "${DIFF_OUT}" >&2
 echo "" >&2
 echo "Fix: copy spec/schemas/* → src/schemas/ (cp -r) and re-commit. Do" >&2
 echo "not edit vendored schemas in-place; they are byte-mirror copies of" >&2
