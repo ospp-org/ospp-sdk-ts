@@ -31,8 +31,13 @@ import { OsppAction } from '../actions/OsppAction.js';
 import { MessageType } from '../enums/MessageType.js';
 
 /**
- * §5.1: "Two modes are defined". `Critical` is removed rather than deprecated —
- * with everything signed it selected nothing.
+ * Two modes, and §5.6 is the section that defines them: its `None` row reads
+ * "This mode exists for development and test harnesses and **MUST NOT** be used
+ * in production." §5.1 is NOT the citation -- it says "There is no mode, and no
+ * configuration key selects one" and records `MessageSigningMode` as **withdrawn**
+ * from the Chapter 08 registry at `0.34.0`. Both are true at once: there is no
+ * deployment SETTING, and there is a library parameter for a test harness. An
+ * earlier version of this comment quoted a §5.1 sentence that does not exist.
  *
  * Both values are PascalCase; lowercase spellings were drift, not an
  * alternative form, and a receiver MUST NOT accept them.

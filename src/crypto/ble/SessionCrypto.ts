@@ -14,9 +14,12 @@
  * (compressed-SEC1 Base64, hex) are decoded to bytes at the message layer; the
  * crypto core operates on raw bytes.
  *
- * P1 implements 2 of the 10 functions: validatePublicKey (Pin 2 / §6.5.2) and
- * ecdhSharedX (Pin 1 / §6.5). Transcript, key schedule, sessionProof, AEAD
- * framing, and cert verification are P2-P5.
+ * The full pipeline is implemented here. It began as P1 with two functions --
+ * validatePublicKey (Pin 2 / §6.5.2) and ecdhSharedX (Pin 1 / §6.5) -- and the
+ * phases that were outstanding then have all landed: transcript, key schedule,
+ * sessionProof, AEAD framing and certificate verification. The sentence that
+ * still described the package as two-of-ten outlived them by several releases,
+ * which is why the module's own arity is now a gated claim rather than prose.
  */
 
 import { p256 } from '@noble/curves/nist.js';

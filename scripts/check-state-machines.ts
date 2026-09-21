@@ -152,7 +152,11 @@ try {
       process.exit(2);
     }
 
-    // §2.3: "A station implements the Station rows. A server implements all of them."
+    // §2.3, verbatim: "a station needs no others and **MUST NOT** implement the
+    // `Server` six. A server implements all twenty-seven." The paraphrase this
+    // line used to carry -- "A station implements the Station rows. A server
+    // implements all of them." -- was presented as a quotation and appears
+    // nowhere in the spec. It happened to describe the code below correctly.
     const expected: Record<string, Set<string>> = m.party
       ? { Station: spec.Station, Server: new Set([...spec.Station, ...spec.Server]) }
       : { '*': spec['*'] };

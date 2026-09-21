@@ -4,8 +4,8 @@
  * "This is the canonical table. Nothing else in this specification restates it."
  *
  * The table has two parties in it and the `Effected by` column says which:
- * "Twenty `Station` rows by distinct `(from, to)` pair, and six `Server` rows —
- * twenty-six in all. [...] A station implements the `Station` rows. A server
+ * "Twenty-one `Station` rows by distinct `(from, to)` pair, and six `Server` rows —
+ * twenty-seven in all. [...] A station implements the `Station` rows. A server
  * implements all of them."
  *
  * The pair lists below are transcribed from §2.3 and are the SAME vectors the
@@ -21,9 +21,9 @@ import { canTransition, transitionCount } from '../../src/state-machines/BayStat
 
 const { UNKNOWN, AVAILABLE, RESERVED, OCCUPIED, FINISHING, FAULTED, UNAVAILABLE } = BayStatus;
 
-/** The twenty `Station` rows of §2.3, by distinct (from, to) pair. */
+/** The twenty-one `Station` rows of §2.3, by distinct (from, to) pair. */
 const STATION_PAIRS: ReadonlyArray<readonly [BayStatus, BayStatus]> = [
-  // Unknown has FIVE exits, not three. §2.3: "A station that reboots mid-session
+  // Unknown has SIX exits, not three. §2.3: "A station that reboots mid-session
   // MUST resume that session [...] `Occupied` and `Finishing` are the two states
   // a resumed session can leave a bay in, and they are the two added."
   [UNKNOWN, AVAILABLE],
@@ -90,7 +90,7 @@ describe('canonical bay transition table (§2.3)', () => {
     expect(canTransition(from, to, EffectedBy.STATION)).toBe(true);
   });
 
-  // "A server implements all twenty-six" — the Station rows included.
+  // "A server implements all twenty-seven" — the Station rows included.
   it.each(STATION_PAIRS)('server also implements %s -> %s', (from, to) => {
     expect(canTransition(from, to, EffectedBy.SERVER)).toBe(true);
   });

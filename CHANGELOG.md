@@ -129,6 +129,52 @@ unchecked; one was FALSE.
 `README.md`'s "Ajv Draft 2020-12" is ungated and TRUE (`Ajv2020` from `ajv/dist/2020.js`); it is a
 claim about a dependency rather than about this package's own contents.
 
+### Prose claims, second round
+
+The first round swept `README.md` and the `src/` headers. It did not sweep the comment prose in
+`scripts/`, `.github/workflows/` and `tests/`, and that is where most of the rot was. **Seventeen
+further sites were FALSE, not merely ungated**, and `check:doc-claims` now stands at **38 claims
+across 19 files**.
+
+- **The error registry moved 118 -> 120 and six sentences did not**: `RecommendedAction.ts:303`,
+  `check-recommended-action.ts` (three), `ci.yml` (two). **Two of them are in the header of
+  `check-doc-claims.ts` itself**, in the paragraph explaining why numbers must be derived — that
+  gate named `118 codes` and `29 keys` while deriving `120` and `28` on every run. It now gates
+  itself.
+- **`BayStateMachine.ts` contradicted itself in five places.** Line 23 said *twenty-one* while lines
+  8, 80, 99, 100 and 114 said *twenty* and *twenty-six*; `transitionCount` answered 21 and 27
+  throughout, and the test asserting 21/27 passed beside the comment denying it. The spec has read
+  *"Twenty-one ... twenty-seven in all"* since `0.30.0`. All three numerals are now derived from
+  `transitionCount`, spelled as words and compared as words.
+- **Two fabricated spec quotations.** `EverythingIsSigned.test.ts` attributed to §5.1 the sentences
+  *"Two modes are defined: `All` (default) [...] `None`"* and *"The middle mode, `Critical`, is
+  removed rather than deprecated"*. **Neither appears anywhere in the spec** — repo-wide grep at
+  `.spec-ref`, zero hits. §5.1 says close to the opposite: *"**There is no mode, and no
+  configuration key selects one.**"* and records `MessageSigningMode` as **withdrawn** from the
+  Chapter 08 registry at `0.34.0`.
+
+  The two modes are real all the same, and **§5.6** is where they live: its `None` row reads *"This
+  mode exists for development and test harnesses and **MUST NOT** be used in production."* So
+  `MESSAGE_SIGNING_MODES` stays — it is a library parameter for a test harness, not a deployment
+  setting, and `ConfigKey` correctly carries no key for it. Only the citation was wrong, and the
+  comment added for it in the first round repeated the same non-existent quote.
+- **A paraphrase presented as a quotation**, `check-state-machines.ts:155`. It described the code
+  below it correctly and was never in the spec.
+- **Stale by measurement**: the corpus (`334` -> `345` conformance vectors, `350` files including
+  crypto), `SchemaValidator.ts` (`316/316` -> `345/345`), `check-vector-types.mjs` (`~43` -> `49`
+  valid/core, `7` -> `8` string enums), `SessionCrypto.ts` (a *"P1 implements 2 of the 10"* phasing
+  note outliving all of P2-P5), `OsppErrorCode.test.ts` (*"30 code-status pairs ... Nothing else in
+  this list moved"* over an array of 31 including `3020`), `ConfigKey.test.ts` (citing a Chapter 08
+  row ordinal the spec says *"nothing cites"*, and which did move).
+
+**What is NOT gated, measured rather than asserted.** A general verbatim-quote checker — every
+sentence attributed to the spec must appear in it — is the mechanism that would have caught the
+fabricated quotes by construction. Probed over the repository it finds **77 spec-attributed quotes,
+24 verbatim and 53 not found**, and inspection shows most of the 53 are the probe mis-parsing code
+and reflowed comments rather than real defects. A gate with that false-positive rate would be
+switched off within a release, so it is **not built**. The quote sites found false here were fixed
+by hand; the class remains open.
+
 ## 0.39.0 — 2026-09-18
 
 **MINOR — `3020 BINDING_UNCOVERED` enters the registry.** `.spec-ref` follows the spec to `v0.42.0`.

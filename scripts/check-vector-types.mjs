@@ -17,13 +17,13 @@
 //
 // SCOPE — this is a seed, not full coverage.
 // ------------------------------------------
-// VECTORS below is explicit rather than derived. Covering all ~43 valid/core
+// VECTORS below is explicit rather than derived. Covering all 49 valid/core
 // vectors automatically would need to solve one problem this does not:
 // TypeScript string enums are NOMINAL, so a JSON string never assigns to an
 // enum-typed field. `"PowerOn"` is not assignable to BootReason even though
 // BootReason.POWER_ON === "PowerOn". A general version therefore needs to know
 // which fields are enum-typed — either by consulting each vendored schema for
-// `enum` and matching its value-set against the SDK's 7 string enums, or by
+// `enum` and matching its value-set against the SDK's 8 string enums, or by
 // reading types out of the TypeScript compiler API. Either is a real piece of
 // work; neither is a one-liner. Until then, ENUM_FIELDS names them by hand.
 //

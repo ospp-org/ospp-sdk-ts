@@ -115,7 +115,10 @@ describe('CONFIG_KEY_REGISTRY', () => {
       expect(CONFIG_KEY_REGISTRY[ConfigKey.OFFLINE_PASS_PUBLIC_KEY].access).toBe('W');
     });
 
-    // spec 0.30.0 08-configuration.md, ordinal 29. Write-only mirrors
+    // spec 08-configuration.md §1.5. The ordinal this line used to cite (29) is
+    // not an identifier: the spec says the index column "is a row number in this
+    // derived table and is renumbered with it ... nothing cites it", and the row
+    // did move when `MessageSigningMode` was withdrawn at 0.34.0. Write-only mirrors
     // OfflinePassPublicKey above -- not confidentiality (the station presents this
     // artefact to any BLE peer during the handshake) but because a held identity is
     // confirmed by completing a handshake, not by echoing ~364 characters back

@@ -245,10 +245,15 @@ describe('OSPP_ERROR_REGISTRY', () => {
   });
 
   describe('spec §2.4 explicit HTTP status mappings', () => {
-    // TRANSCRIBED IN FULL from the §2.4 table at spec 0.32.0, not sampled from it.
-    // 30 code-status pairs. Re-derived from the table at both tags rather than
-    // edited by hand: v0.31.0 carried 31, v0.32.0 carries 30, and the one removed
-    // pair is `2008 -> 401`. Nothing else in this list moved.
+    // TRANSCRIBED IN FULL from the §2.4 table, not sampled from it.
+    // 31 code-status pairs. Re-derived from the table rather than edited by hand:
+    // v0.31.0 carried 31, v0.32.0 carried 30 with `2008 -> 401` removed, and
+    // v0.42.0 carries 31 again with `3020 -> 409` added at SDK 0.39.0.
+    //
+    // The count and the closing clause both went stale at that addition: this
+    // comment read "30 ... Nothing else in this list moved" while the array below
+    // it held 31 entries, one of them `[3020, 409]`. The list is compared to the
+    // registry by the assertion underneath; the SENTENCE was compared to nothing.
     //
     // This list had drifted eleven codes behind the table it claims to mirror --
     // 4010, 4017, 2019, 3003, 3019, 4015, 6008, 4016 and 4020 were all named there

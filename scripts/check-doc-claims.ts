@@ -40,8 +40,8 @@
  * **The derivation chain, and why it is not circular.** README ← SDK ← spec.
  * The counts here are taken from the SDK's own enums and export surface, not
  * re-parsed from the spec, because each of those is ALREADY compared to the spec
- * upstream of this gate: `check-error-registry` for the 118 codes,
- * `check-config-registry` for the 29 keys, `check-action-registry` for the 27
+ * upstream of this gate: `check-error-registry` for the 120 codes,
+ * `check-config-registry` for the 28 keys, `check-action-registry` for the 27
  * actions, `check-schemas` for the 86 schema files. This gate closes the last
  * link — prose to code — and inherits the rest. Deriving these from the spec a
  * second time here would not add a check; it would add a second parser to keep
@@ -74,6 +74,8 @@ import { FIRMWARE_TRANSITIONS } from '../src/state-machines/FirmwareStateMachine
 import { RESERVATION_TRANSITIONS } from '../src/state-machines/ReservationStateMachine.js';
 import { SESSION_TRANSITIONS } from '../src/state-machines/SessionStateMachine.js';
 import { STATION_TRANSITIONS } from '../src/state-machines/StationStateMachine.js';
+import { transitionCount } from '../src/state-machines/BayStateMachine.js';
+import { EffectedBy } from '../src/enums/EffectedBy.js';
 import * as sdk from '../src/index.js';
 import * as sdkServer from '../src/server.js';
 
@@ -115,8 +117,66 @@ function machineStates(m: ReadonlyMap<string, ReadonlySet<string>>): number {
  * that requires a house numeral style is a gate people edit prose to satisfy.
  */
 const CARDINALS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-                   'eight', 'nine', 'ten', 'eleven', 'twelve'] as const;
+                   'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen',
+                   'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty',
+                   'twenty-one', 'twenty-two', 'twenty-three', 'twenty-four',
+                   'twenty-five', 'twenty-six', 'twenty-seven'] as const;
 const asWord = (n: number): string => CARDINALS[n] ?? String(n);
+/** Capitalised, for a sentence that opens with the numeral spelled out. */
+const asWordCap = (n: number): string => {
+  const w = asWord(n);
+  return w.charAt(0).toUpperCase() + w.slice(1);
+};
+
+/** Conformance vectors: the valid/ and invalid/ trees, which is what the corpus gate guards. */
+function countVectors(): number {
+  const dir = join(ROOT, 'src', 'test-vectors');
+  let n = 0;
+  const walk = (d: string): void => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(join(d, e.name));
+      else if (e.name.endsWith('.json')) n += 1;
+    }
+  };
+  for (const bucket of ['valid', 'invalid']) walk(join(dir, bucket));
+  return n;
+}
+
+/** Every *.json under src/test-vectors/, crypto fixtures included. A different scope. */
+function countVectorFiles(): number {
+  let n = 0;
+  const walk = (d: string): void => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(join(d, e.name));
+      else if (e.name.endsWith('.json')) n += 1;
+    }
+  };
+  walk(join(ROOT, 'src', 'test-vectors'));
+  return n;
+}
+
+/** Vectors under valid/core/ — the seed set check-vector-types.mjs would have to cover. */
+function countValidCore(): number {
+  return readdirSync(join(ROOT, 'src', 'test-vectors', 'valid', 'core'))
+    .filter((f) => f.endsWith('.json')).length;
+}
+
+/**
+ * STRING enums in src/enums/ — the ones whose members assign a string literal.
+ * `OsppErrorCode` is numeric and does not count; a type alias of string unions,
+ * such as `OsppErrorSeverity`, is not an enum at all.
+ */
+function countStringEnums(): number {
+  let n = 0;
+  for (const f of readdirSync(join(ROOT, 'src', 'enums'))) {
+    if (!f.endsWith('.ts')) continue;
+    const src = readFileSync(join(ROOT, 'src', 'enums', f), 'utf8');
+    for (const m of src.matchAll(/export enum \w+\s*\{([^}]*)\}/g)) {
+      if (/=\s*'/.test(m[1])) n += 1;
+    }
+  }
+  return n;
+}
 
 /**
  * The state machines this package EXPORTS, by their short name.
@@ -394,6 +454,140 @@ const CLAIMS: Claim[] = [
     },
     from: 'arms of RECOMMENDED_ACTION, stated as "N of N"',
   },
+
+  // ── THE SECOND ROUND ─────────────────────────────────────────────────────
+  //
+  // Found after the first round shipped, by sweeping the comment prose in
+  // scripts/ and .github/ rather than only src/. Every one of these was FALSE
+  // when found, not merely ungated: the error registry moved 118 -> 120, the
+  // config registry 29 -> 28, the bay table 20/26 -> 21/27, the corpus to 345,
+  // and the string-enum count to 8. Two of them sat in the header of THIS FILE,
+  // in the paragraph explaining why numbers must be derived.
+  {
+    file: 'src/enums/RecommendedAction.ts',
+    label: 'registry codes with an entry',
+    pattern: /every one of the ([0-9]+) registry codes has an entry/,
+    expected: () => String(Object.keys(RECOMMENDED_ACTION).length),
+    from: 'arms of RECOMMENDED_ACTION',
+  },
+  {
+    file: 'scripts/check-doc-claims.ts',
+    label: 'this gate: error codes upstream',
+    pattern: /`check-error-registry` for the ([0-9]+) codes/,
+    expected: () => String(Object.keys(OSPP_ERROR_REGISTRY).length),
+    from: 'OSPP_ERROR_REGISTRY',
+  },
+  {
+    file: 'scripts/check-doc-claims.ts',
+    label: 'this gate: config keys upstream',
+    pattern: /`check-config-registry` for the ([0-9]+) keys/,
+    expected: () => String(Object.keys(ConfigKey).length),
+    from: 'ConfigKey',
+  },
+  {
+    file: 'scripts/check-recommended-action.ts',
+    label: 'that gate: rows with an action',
+    pattern: /\*Recommended Action\* for ([0-9]+ of [0-9]+) rows/,
+    expected: () => {
+      const n = Object.keys(RECOMMENDED_ACTION).length;
+      return `${n} of ${n}`;
+    },
+    from: 'arms of RECOMMENDED_ACTION',
+  },
+  {
+    file: 'scripts/check-recommended-action.ts',
+    label: 'that gate: rows verified',
+    pattern: /verified across all ([0-9]+) at the pinned ref/,
+    expected: () => String(Object.keys(RECOMMENDED_ACTION).length),
+    from: 'arms of RECOMMENDED_ACTION',
+  },
+  {
+    file: 'scripts/check-vector-corpus.sh',
+    label: 'corpus size (valid + invalid)',
+    pattern: /the ([0-9]+) files that decide what this SDK/,
+    expected: () => String(countVectors()),
+    from: 'src/test-vectors/{valid,invalid}/**/*.json',
+  },
+  {
+    file: 'src/validation/SchemaValidator.ts',
+    label: 'corpus accepted by the spec verifier',
+    pattern: /accepts the corpus ([0-9]+\/[0-9]+)/,
+    expected: () => {
+      const n = countVectors();
+      return `${n}/${n}`;
+    },
+    from: 'src/test-vectors/{valid,invalid}/**/*.json',
+  },
+  {
+    file: 'scripts/check-vector-types.mjs',
+    label: 'valid/core seed size',
+    pattern: /Covering all ([0-9]+) valid\/core/,
+    expected: () => String(countValidCore()),
+    from: 'src/test-vectors/valid/core/*.json',
+  },
+  {
+    file: 'scripts/check-vector-types.mjs',
+    label: 'string enums',
+    pattern: /against the SDK's ([0-9]+) string enums/,
+    expected: () => String(countStringEnums()),
+    from: 'export enum blocks in src/enums/ whose members assign strings',
+  },
+  {
+    // Five sentences in one file disagreed with each other and with the runtime:
+    // line 23 said twenty-one while lines 8, 80, 99, 100 and 114 said twenty and
+    // twenty-six. `transitionCount` answered 21 and 27 throughout.
+    file: 'src/state-machines/BayStateMachine.ts',
+    label: 'bay rows, station (opening)',
+    pattern: /^ \* ([A-Za-z-]+) `Station` rows by distinct \(from, to\) pair/m,
+    expected: () => asWordCap(transitionCount(EffectedBy.STATION)),
+    from: 'transitionCount(EffectedBy.STATION)',
+  },
+  {
+    file: 'src/state-machines/BayStateMachine.ts',
+    label: 'bay rows, total (opening)',
+    pattern: /^ \* ([a-z-]+) in all\. The split is the point/m,
+    expected: () => asWord(transitionCount(EffectedBy.SERVER)),
+    from: 'transitionCount(EffectedBy.SERVER)',
+  },
+  {
+    // The job comments in ci.yml restate the same numbers the scripts do, and
+    // went stale with them. CLAIMS joins any repo-relative path, so a workflow
+    // file is gated exactly like a source file.
+    file: '.github/workflows/ci.yml',
+    label: 'ci comment: php sibling coverage',
+    pattern: /carried 11 of ([0-9]+), and both states sat behind/,
+    expected: () => String(Object.keys(OSPP_ERROR_REGISTRY).length),
+    from: 'OSPP_ERROR_REGISTRY',
+  },
+  {
+    file: '.github/workflows/ci.yml',
+    label: 'ci comment: rows with an action',
+    pattern: /an action for ([0-9]+ of [0-9]+) rows with no empty cell/,
+    expected: () => {
+      const n = Object.keys(RECOMMENDED_ACTION).length;
+      return `${n} of ${n}`;
+    },
+    from: 'arms of RECOMMENDED_ACTION',
+  },
+  {
+    // A DIFFERENT scope from the corpus claim above, deliberately: this sentence
+    // says "under src/test-vectors/", which includes the five crypto fixtures
+    // that check-vector-corpus.sh excludes from its own diff. Two true numbers,
+    // 350 and 345, for two different sets.
+    file: '.github/workflows/ci.yml',
+    label: 'ci comment: files under test-vectors',
+    pattern: /the ([0-9]+) files under src\/test-vectors\//,
+    expected: () => String(countVectorFiles()),
+    from: 'every *.json under src/test-vectors/, crypto fixtures included',
+  },
+  {
+    file: 'src/state-machines/BayStateMachine.ts',
+    label: 'bay rows, accessor doc',
+    pattern: /\/\*\* ([A-Za-z-]+) for a station, ([a-z-]+) for a server\. \*\//,
+    expected: () => asWordCap(transitionCount(EffectedBy.STATION)),
+    from: 'transitionCount(EffectedBy.STATION)',
+  },
+
 ];
 
 // ── the comparator ─────────────────────────────────────────────────────────

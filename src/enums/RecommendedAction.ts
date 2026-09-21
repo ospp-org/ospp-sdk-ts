@@ -300,7 +300,7 @@ export const RECOMMENDED_ACTION: Readonly<Record<OsppErrorCode, string>> = {
 /**
  * The corrective action for a registry code.
  *
- * Total over `OsppErrorCode`: every one of the 118 registry codes has an entry,
+ * Total over `OsppErrorCode`: every one of the 120 registry codes has an entry,
  * which is what `check:recommended-action` enforces. The signature is therefore
  * `string` and not `string | undefined` — a caller emitting the REST Error
  * Object (§2.4), where `recommendedAction` is REQUIRED, never has to decide what

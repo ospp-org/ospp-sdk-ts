@@ -166,9 +166,9 @@ jobs:
   #
   # check:error-registry compares errorText, severity and recoverable and stops
   # there. This SDK carried NO corrective actions at all — OsppErrorMeta had no
-  # such member — while ospp-sdk-php carried 11 of 118, and both states sat behind
+  # such member — while ospp-sdk-php carried 11 of 120, and both states sat behind
   # a green column. The 11 was read once as the registry being incomplete; §3 gives
-  # an action for 118 of 118 rows with no empty cell, so it was a transcription
+  # an action for 120 of 120 rows with no empty cell, so it was a transcription
   # hole on the SDK side, not a gap upstream.
   #
   # This gate checks COVERAGE and STRUCTURE and never compares an action to its
@@ -237,7 +237,7 @@ jobs:
 
   # The corpus that decides what this SDK accepts and refuses had NO gate.
   # src/schemas/ has been byte-gated since v0.8.0 and tests/crypto/fixtures/ since
-  # 0.14.0; the 334 files under src/test-vectors/ were re-vendored by hand on every
+  # 0.14.0; the 350 files under src/test-vectors/ were re-vendored by hand on every
   # spec sync and nothing compared the result to upstream.
   #
   # The failure it closes is silent by construction: SchemaValidator.test.ts

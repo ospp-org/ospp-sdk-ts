@@ -38,8 +38,8 @@ describe('Bay SM transitions map', () => {
 
 describe('transition counts', () => {
   it('is twenty-one for a station and twenty-seven for a server', () => {
-    // spec/05-state-machines.md §2.3: "Twenty `Station` rows by distinct
-    // `(from, to)` pair, and six `Server` rows — twenty-six in all."
+    // spec/05-state-machines.md §2.3: "Twenty-one `Station` rows by distinct
+    // `(from, to)` pair, and six `Server` rows — twenty-seven in all."
     expect(transitionCount(EffectedBy.STATION)).toBe(21);
     expect(transitionCount(EffectedBy.SERVER)).toBe(27);
   });
@@ -47,7 +47,7 @@ describe('transition counts', () => {
 
 describe('canTransition — valid Station rows', () => {
   const valid: [BayStatus, BayStatus][] = [
-    // Unknown → five exits. `Occupied` and `Finishing` are the two the bay-FSM
+    // Unknown → six exits. `Occupied` and `Finishing` are the two the bay-FSM
     // arc added, for a station that rebooted mid-session and owes a truthful
     // post-boot report (spec 05-state-machines.md §2.3).
     [UNKNOWN, AVAILABLE], [UNKNOWN, FAULTED], [UNKNOWN, UNAVAILABLE],

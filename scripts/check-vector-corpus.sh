@@ -11,7 +11,7 @@
 # WHY THIS EXISTS
 #
 # src/schemas/ has been byte-gated since v0.8.0 and tests/crypto/fixtures/ since
-# 0.14.0. The conformance corpus — the 334 files that decide what this SDK
+# 0.14.0. The conformance corpus — the 345 files that decide what this SDK
 # accepts and refuses — had NOTHING. It was re-vendored by hand on every spec
 # sync and its correctness rested on the maintainer having copied the right
 # tree. A vector edited in place, a vector the spec added and nobody vendored, a

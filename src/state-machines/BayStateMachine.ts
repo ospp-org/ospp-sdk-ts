@@ -4,8 +4,8 @@
  * Source: the canonical transition table, spec/05-state-machines.md §2.3.
  * "This is the canonical table. Nothing else in this specification restates it."
  *
- * Twenty `Station` rows by distinct (from, to) pair and six `Server` rows,
- * twenty-six in all. The split is the point: a station effects and reports the
+ * Twenty-one `Station` rows by distinct (from, to) pair and six `Server` rows,
+ * twenty-seven in all. The split is the point: a station effects and reports the
  * physical transitions, a server infers the move to `Unknown` when it can no
  * longer hear the station. Which party a caller is asking about is therefore a
  * required argument, not a default — see {@link EffectedBy}.
@@ -77,7 +77,7 @@ const SERVER_TRANSITIONS: ReadonlyMap<BayStatus, ReadonlySet<BayStatus>> = new M
   [UNAVAILABLE, new Set([UNKNOWN])],
 ]);
 
-/** The table as this party sees it: the Station twenty, plus the Server six for a server. */
+/** The table as this party sees it: the Station twenty-one, plus the Server six for a server. */
 function tableFor(effectedBy: EffectedBy): ReadonlyMap<BayStatus, ReadonlySet<BayStatus>> {
   if (effectedBy === EffectedBy.STATION) return STATION_TRANSITIONS;
 
@@ -96,8 +96,8 @@ const SERVER_TABLE = tableFor(EffectedBy.SERVER);
 /**
  * May `effectedBy` move a bay from `from` to `to`?
  *
- * A station is held to the twenty `Station` rows. A server implements all
- * twenty-six — the station's rows included, because it must accept what a
+ * A station is held to the twenty-one `Station` rows. A server implements all
+ * twenty-seven — the station's rows included, because it must accept what a
  * station reports.
  */
 export function canTransition(from: BayStatus, to: BayStatus, effectedBy: EffectedBy): boolean {
@@ -111,7 +111,7 @@ export function allowedTransitions(from: BayStatus, effectedBy: EffectedBy): Bay
   return [...(table.get(from) ?? [])];
 }
 
-/** Twenty for a station, twenty-six for a server. */
+/** Twenty-one for a station, twenty-seven for a server. */
 export function transitionCount(effectedBy: EffectedBy): number {
   const table = effectedBy === EffectedBy.STATION ? STATION_TRANSITIONS : SERVER_TABLE;
   let count = 0;

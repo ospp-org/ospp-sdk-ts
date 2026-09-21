@@ -28,15 +28,29 @@ import { MessageType } from '../../src/enums/MessageType';
 
 describe('the signing mode', () => {
   /**
-   * §5.1: "Two modes are defined: `All` (default) [...] `None`."
-   * §5.1: "The middle mode, `Critical`, is removed rather than deprecated.
-   * With everything signed it selected nothing."
+   * Both sentences quoted here until now -- "Two modes are defined: `All`
+   * (default) [...] `None`" and "The middle mode, `Critical`, is removed rather
+   * than deprecated" -- appear NOWHERE in the pinned spec. Repo-wide grep over
+   * spec/ at `.spec-ref`: zero hits for either. They were attributed to §5.1,
+   * which says close to the opposite: "**There is no mode, and no configuration
+   * key selects one.**" and "`MessageSigningMode` -- Chapter 08 registry key
+   * #18, with values `All` and `None` -- is **withdrawn**."
+   *
+   * The two modes are real all the same, and §5.6 is where they live: the `None`
+   * row of its classification table reads "This mode exists for development and
+   * test harnesses and **MUST NOT** be used in production." So what this SDK
+   * ships is a library parameter for a test harness, not a deployment setting --
+   * Chapter 08 carries no key for it, and `ConfigKey` correctly has none.
    */
   it('is exactly All and None', () => {
     expect([...MESSAGE_SIGNING_MODES].sort()).toEqual(['All', 'None']);
   });
 
-  /** §5.1: "`All` **(default)**". The default moves from `Critical` to `All`. */
+  /**
+   * `All` is the default because §5.1 makes signing unconditional: a station that
+   * does not sign "is **non-conforming**, and every non-exempt message it sends
+   * is refused with `1013 MAC_MISSING`". `None` has to be asked for explicitly.
+   */
   it('defaults to All', () => {
     expect(DEFAULT_MESSAGE_SIGNING_MODE).toBe('All');
   });

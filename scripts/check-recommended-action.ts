@@ -3,8 +3,8 @@
  *
  * This SDK carried NO corrective actions at all before 0.28.0 — `OsppErrorMeta`
  * had no such member and no accessor existed — while `ospp-sdk-php` carried
- * eleven of the 118. That eleven was once read as the registry being incomplete.
- * It is not: `07-errors.md` §3 gives a *Recommended Action* for 118 of 118 rows
+ * eleven of the 120. That eleven was once read as the registry being incomplete.
+ * It is not: `07-errors.md` §3 gives a *Recommended Action* for 120 of 120 rows
  * and no cell is empty. The hole was on the SDK side, and nothing could see it —
  * `check-error-registry.ts` compares `errorText`, `severity` and `recoverable`
  * and stops there, so a missing column sat behind a green gate.
@@ -117,7 +117,7 @@ if (!/^v\d+\.\d+\.\d+(-[a-zA-Z0-9._-]+)?$/.test(SPEC_REF)) {
  *
  * That is deliberate rather than a `split('|')`: a *Description* cell may contain
  * a pipe inside a code span, which would shift every field after it. No *Recommended
- * Action* cell contains one — verified across all 118 at the pinned ref — so anchoring on
+ * Action* cell contains one — verified across all 120 at the pinned ref — so anchoring on
  * the last pipe is correct whatever the earlier columns hold.
  */
 const ROW = /^\|\s*(\d{4})\s*\|\s*`([A-Z_]+)`\s*\|\s*\w+\s*\|\s*(?:true|false)\s*\|(.*)\|\s*$/;

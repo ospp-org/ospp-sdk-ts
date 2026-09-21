@@ -43,7 +43,7 @@ export class SchemaValidator {
     // `details` carries its `type: "object"` at the top-level `properties`, so the
     // branch restates only what it narrows. Ajv's strictTypes wants the type repeated
     // at every site that mentions the keyword. Draft 2020-12 does not, and the spec's
-    // own verifier accepts the corpus 316/316. An SDK stricter than the spec would
+    // own verifier accepts the corpus 345/345. An SDK stricter than the spec would
     // reject a conforming server's response, so the lint gives way, not the schema.
     this.ajv = new Ajv2020({
       strict: true,
