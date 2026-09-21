@@ -30,9 +30,13 @@ describe('3017 PROGRAM_NOT_DECLARED', () => {
 describe('3018 TOPOLOGY_MISMATCH', () => {
   /**
    * §3.3: "3018 | `TOPOLOGY_MISMATCH` | Error | true | The topology the station
-   * declared in BootNotification does not match the topology recorded for it at
-   * provisioning [...] `recoverable: true` records exactly that — the station is
+   * declared in BootNotification does not match the station's **in-service
+   * topology** [...] `recoverable: true` records exactly that — the station is
    * out of service but reachable."
+   *
+   * NOT "the topology recorded for it at provisioning", which this comment used
+   * to quote: spec 0.26.0 retired that referent because it excluded nothing the
+   * operator had taken out of service.
    */
   it('is 3018, Error, recoverable', () => {
     expect(OsppErrorCode.TOPOLOGY_MISMATCH).toBe(3018);

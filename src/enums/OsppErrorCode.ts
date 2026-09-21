@@ -270,6 +270,24 @@ function meta(
  *
  * `httpStatus` values: explicit ones from spec §2.4 HTTP status mapping table;
  * the rest are sensible defaults derived by category/semantics (SDK extension).
+ *
+ * The split between those two halves is exactly where this SDK and ospp-sdk-php
+ * part company, measured at spec v0.42.0 on 2026-09-21 by dumping both
+ * registries: 120 codes each, 79 agreements, 41 disagreements. §2.4's table
+ * names 31 of the 120. Of those 31 the two SDKs agree on ALL 31, and both
+ * already answer each one the way §2.4 does — 0 of 31 disagree on either side.
+ * All 41 disagreements are among the 89 the table does not name, and 40 of the
+ * 41 are ospp-sdk-php falling through to a 500 default where this SDK asserts a
+ * value: one library declining to answer, not two libraries disagreeing. Only
+ * 2001 (ts 401 / php 422) is a genuine two-sided disagreement.
+ *
+ * So the divergence is perfectly correlated with the spec's silence — a gap, not
+ * a bug. Nothing needed repairing; what was missing was anything that would
+ * NOTICE if the agreement broke, because `check:error-registry` compares
+ * errorText, severity and recoverable and stops there, deliberately, since those
+ * are the columns §3 carries. `npm run check:http-status` is the reader for the
+ * 31. The other 89 stay free: pinning them would invent a normative rule the
+ * specification declines to state.
  */
 export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>> = {
   // ── Transport (1xxx) ──────────────────────────────────────────────────

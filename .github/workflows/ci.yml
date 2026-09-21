@@ -142,6 +142,34 @@ jobs:
       - name: Compare src/enums/OsppErrorCode.ts against spec/07-errors.md
         run: npm run check:error-registry
 
+  # error-registry above compares errorText, severity and recoverable and stops
+  # there, deliberately, because those are the columns spec 07-errors.md 3 carries.
+  # httpStatus is an SDK extension with no spec column at all -- so it could be
+  # edited to anything and every gate here would stay green.
+  #
+  # Measured at v0.42.0, by dumping both SDK registries: 120 codes each, 79
+  # agreements, 41 disagreements with ospp-sdk-php. Section 2.4's status table
+  # names 31 of the 120; the two SDKs agree on ALL 31 and both already answer each
+  # one the way the table does -- 0 of 31 disagree on either side. All 41
+  # disagreements are among the 89 the table does not name. The divergence is
+  # perfectly correlated with the spec's silence, which makes this a gap rather
+  # than a bug: nothing needed repairing, and nothing was watching.
+  #
+  # This job reads the 31 and says nothing about the other 89. Pinning those would
+  # invent a normative rule the specification declines to state.
+  http-status:
+    name: HTTP status vs the spec status table, where it speaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Every code named by 07-errors.md 2.4 carries the status it gives
+        run: npm run check:http-status
+
   state-machines:
     name: All six state machines vs spec chapter 05
     runs-on: ubuntu-latest

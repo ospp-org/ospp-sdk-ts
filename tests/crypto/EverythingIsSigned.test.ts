@@ -123,9 +123,9 @@ describe('§5.7 — both directions fail closed', () => {
   const unusable = ['', '   ', '!!!not-base64!!!'];
 
   /**
-   * §5.7 Sending: "A sender holding no key MUST refuse to send. It MUST NOT
-   * publish the message unsigned. It MUST log the refusal [...] and MUST NOT
-   * silently drop it without a record."
+   * §5.7 *Sending*, the row for "No session key held for the peer": "**Refuse
+   * to send.** The sender **MUST NOT** publish the message unsigned. It **MUST**
+   * log the refusal [...] and **MUST NOT** silently drop it without a record".
    *
    * Refusing loudly is the only option that is neither of the two the clause
    * forbids, so the signer throws rather than returning something.

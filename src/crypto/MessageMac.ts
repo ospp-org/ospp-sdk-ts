@@ -110,11 +110,11 @@ export function isUsableSessionKey(sessionKey: unknown): boolean {
 /**
  * Compute the HMAC-SHA256 MAC for an OSPP message.
  *
- * @throws When no usable session key is held. §5.7: "A sender holding no key
- *   MUST refuse to send. It MUST NOT publish the message unsigned. It MUST log
- *   the refusal and surface it to the operator, and MUST NOT silently drop it
- *   without a record." Throwing is the only response that is neither of the two
- *   the clause forbids.
+ * @throws When no usable session key is held. §5.7 *Sending*, the row for "No
+ *   session key held for the peer": "**Refuse to send.** The sender **MUST NOT**
+ *   publish the message unsigned. It **MUST** log the refusal and surface it to
+ *   the operator, and **MUST NOT** silently drop it without a record". Throwing
+ *   is the only response that is neither of the two the clause forbids.
  */
 export function computeMac(sessionKey: string, message: Record<string, unknown>): string {
   const keyBytes = decodeKey(sessionKey);

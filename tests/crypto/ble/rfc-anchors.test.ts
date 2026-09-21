@@ -16,10 +16,13 @@ import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
  *   - HKDF-SHA256             RFC 5869 A.1/A.2 (Pin 3 key-schedule primitive)
  *   - ChaCha20-Poly1305 IETF  RFC 8439 §2.8.2  (Pin 6 AEAD)
  *
- * Why this exists (the EC-scalar lesson — 06-security.md §6.5 Pin 1): "byte-identical
- * to the spec oracle" only means "correct" if the primitives are independently anchored
+ * Why this exists (the EC-scalar lesson — 06-security.md §6.5 Pin 1): *byte-identical
+ * to the spec oracle* only means *correct* if the primitives are independently anchored
  * on an external truth we do not control. Without this gate, sdk-ts and ospp-sdk-php
  * could agree with the spec oracle while all three are wrong the same way.
+ *
+ * Those two phrases are this file's own words, not the spec's, and are set in italics
+ * for that reason: double quotes beside a chapter citation are reserved for quotation.
  *
  * Expected values are loaded from the vendored spec corpus
  * (tests/crypto/fixtures/rfc-primitive-anchors.json — byte-identical to spec

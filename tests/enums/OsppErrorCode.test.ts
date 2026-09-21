@@ -15,8 +15,10 @@ describe('OsppErrorCode', () => {
     // v0.5.2: spec v0.4.2 07-errors.md §3.2 added 2014-2017 (4 codes): 102 → 106.
     // v0.6.2: spec 07-errors.md §3.2 added 2018 SERVER_AUTH_NONCE_MISMATCH: 106 → 107.
     // v0.8.0: spec 07-errors.md added the seven provisioning-identity codes —
-    //         2019 (§3.2) and 4015-4020 (§3.4): 107 → 114. Matches the spec's
-    //         own stated "Total: 114 standard error codes" (07-errors.md §1.1).
+    //         2019 (§3.2) and 4015-4020 (§3.4): 107 → 114, matching the total the
+    //         spec stated at the time. At the pinned v0.42.0, 07-errors.md §1.1
+    //         reads "**Total: 120 standard error codes.**" — the sentence quoted
+    //         here said 114 and was a version of it the spec no longer carries.
     // v0.11.0: 114 → 118 with 3017 PROGRAM_NOT_DECLARED and 3018 TOPOLOGY_MISMATCH.
     // v0.39.0: 119 → 120 with 3020 BINDING_UNCOVERED (spec v0.42.0 §3.3).
     expect(allCodes).toHaveLength(120);
@@ -129,8 +131,11 @@ describe('OsppErrorCode', () => {
       //         different user than the envelope claims; 403 — pass is fine,
       //         just not for this user; same shape as 2006 STATION_MISMATCH)
       //   2017 OFFLINE_RECEIPT_MISMATCH  → 422  (signature itself verified per
-      //         spec §3.2 — NOT 401; the cross-check failure is "syntax correct,
-      //         instructions inconsistent" ≡ RFC 9110 422 Unprocessable Entity)
+      //         spec §3.2 — NOT 401; the cross-check failure is *syntax correct,
+      //         instructions inconsistent* ≡ RFC 9110 422 Unprocessable Entity.
+      //         That phrase condenses RFC 9110 §15.5.21 and is this file's own;
+      //         it is italicised because double quotes beside a §-citation are
+      //         reserved for the spec's words.)
       expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_PASS_REVOKED].httpStatus).toBe(401);
       expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_ORG_MISMATCH].httpStatus).toBe(403);
       expect(OSPP_ERROR_REGISTRY[OsppErrorCode.OFFLINE_USER_MISMATCH].httpStatus).toBe(403);

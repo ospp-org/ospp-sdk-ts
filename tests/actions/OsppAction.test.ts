@@ -1,93 +1,36 @@
 import { describe, it, expect } from 'vitest';
-import { OsppAction } from '../../src/actions/OsppAction';
+import {
+  OsppAction,
+  STATION_TO_SERVER_ACTIONS,
+  SERVER_TO_STATION_ACTIONS,
+  BROKER_TO_SERVER_ACTIONS,
+  BIDIRECTIONAL_ACTIONS,
+  EVENT_ACTIONS,
+  REQ_RES_ACTIONS,
+} from '../../src/actions/OsppAction';
 
 /**
- * The six buckets below are TRANSCRIBED from the `Direction` and `Type` columns
- * of the MQTT Quick Reference in `spec/03-messages.md`. `OsppAction` carries no
- * direction or type metadata, so there is nothing in this SDK to derive them
- * from; the gate that compares this enum to something OUTSIDE this repository is
- * `npm run check:action-registry`, which reads the Action cell of that same
- * table at the pinned `.spec-ref`. It does not read the Direction or Type cells,
- * so those two columns are transcribed here and nowhere checked upstream.
+ * The six buckets this file exercises are no longer written here. They were
+ * local `const` arrays TRANSCRIBED from the `Direction` and `Type` columns of
+ * the MQTT Quick Reference in `spec/03-messages.md`, and the note that used to
+ * stand in this place said what that cost: the gate that compares this enum to
+ * something outside the repository read the Action cell only, so the two
+ * columns were transcribed here and checked nowhere upstream.
  *
- * What the two partition assertions below establish is the property that does
- * NOT depend on the transcription being right: whatever the buckets say, they
- * say it about EVERY member of the enum, and about no member twice. An action
- * added to `OsppAction` and forgotten here goes red; one deleted from the enum
- * and left here goes red.
+ * They now live in `src/actions/OsppAction.ts` and are imported above, which is
+ * what allows `npm run check:action-registry` to compare them to those two
+ * columns at the pinned `.spec-ref`, in both directions, one spec literal to
+ * one list. This file keeps the half of the question the spec cannot answer:
+ * whatever the lists say, they say it about EVERY member of the enum and about
+ * no member twice. An action added to `OsppAction` and left unclassified goes
+ * red here; one deleted from the enum and left in a list goes red here; one
+ * routed to the wrong column goes red in the gate.
  *
- * `ConnectionLost` is `Broker -> Server, or Station -> Server` in the spec. It
- * is bucketed under broker alone so the four direction buckets stay disjoint;
- * the station bucket is therefore station-ONLY, which is what makes 11 + 14 + 1
- * + 1 a partition rather than a cover.
+ * `ConnectionLost` is `Broker -> Server, or Station -> Server` in the spec and
+ * is bucketed under broker alone so the four direction lists stay disjoint; the
+ * station list is therefore station-ONLY, which is what makes 11 + 14 + 1 + 1 a
+ * partition rather than a cover.
  */
-const stationToServer: OsppAction[] = [
-  OsppAction.BOOT_NOTIFICATION,
-  OsppAction.AUTHORIZE_OFFLINE_PASS,
-  OsppAction.TRANSACTION_EVENT,
-  OsppAction.HEARTBEAT,
-  OsppAction.STATUS_NOTIFICATION,
-  OsppAction.METER_VALUES,
-  OsppAction.SESSION_ENDED,
-  OsppAction.SECURITY_EVENT,
-  OsppAction.FIRMWARE_STATUS_NOTIFICATION,
-  OsppAction.DIAGNOSTICS_NOTIFICATION,
-  OsppAction.SIGN_CERTIFICATE,
-];
-
-const serverToStation: OsppAction[] = [
-  OsppAction.RESERVE_BAY,
-  OsppAction.CANCEL_RESERVATION,
-  OsppAction.START_SERVICE,
-  OsppAction.STOP_SERVICE,
-  OsppAction.CHANGE_CONFIGURATION,
-  OsppAction.GET_CONFIGURATION,
-  OsppAction.RESET,
-  OsppAction.UPDATE_FIRMWARE,
-  OsppAction.GET_DIAGNOSTICS,
-  OsppAction.SET_MAINTENANCE_MODE,
-  OsppAction.UPDATE_SERVICE_CATALOG,
-  OsppAction.CERTIFICATE_INSTALL,
-  OsppAction.TRIGGER_CERTIFICATE_RENEWAL,
-  OsppAction.TRIGGER_MESSAGE,
-];
-
-const brokerToServer: OsppAction[] = [OsppAction.CONNECTION_LOST];
-
-const bidirectional: OsppAction[] = [OsppAction.DATA_TRANSFER];
-
-const eventActions: OsppAction[] = [
-  OsppAction.STATUS_NOTIFICATION,
-  OsppAction.METER_VALUES,
-  OsppAction.SESSION_ENDED,
-  OsppAction.CONNECTION_LOST,
-  OsppAction.SECURITY_EVENT,
-  OsppAction.FIRMWARE_STATUS_NOTIFICATION,
-  OsppAction.DIAGNOSTICS_NOTIFICATION,
-];
-
-const reqResActions: OsppAction[] = [
-  OsppAction.BOOT_NOTIFICATION,
-  OsppAction.AUTHORIZE_OFFLINE_PASS,
-  OsppAction.RESERVE_BAY,
-  OsppAction.CANCEL_RESERVATION,
-  OsppAction.START_SERVICE,
-  OsppAction.STOP_SERVICE,
-  OsppAction.TRANSACTION_EVENT,
-  OsppAction.HEARTBEAT,
-  OsppAction.CHANGE_CONFIGURATION,
-  OsppAction.GET_CONFIGURATION,
-  OsppAction.RESET,
-  OsppAction.UPDATE_FIRMWARE,
-  OsppAction.GET_DIAGNOSTICS,
-  OsppAction.SET_MAINTENANCE_MODE,
-  OsppAction.UPDATE_SERVICE_CATALOG,
-  OsppAction.SIGN_CERTIFICATE,
-  OsppAction.CERTIFICATE_INSTALL,
-  OsppAction.TRIGGER_CERTIFICATE_RENEWAL,
-  OsppAction.DATA_TRANSFER,
-  OsppAction.TRIGGER_MESSAGE,
-];
 
 /**
  * Report how `buckets` sit against the LIVE enum. Every field is derived from
@@ -134,13 +77,16 @@ describe('OsppAction', () => {
   });
 
   describe('Station → Server actions', () => {
-    // The length here is the transcription pinned against itself and cannot be
-    // moved by src/; what reads the enum is the loop below, and what makes the
-    // bucket answerable to the enum as a whole is the partition test further
-    // down. Pinned so that re-bucketing an action has to be deliberate twice.
+    // The length used to be a transcription pinned against itself, unmovable by
+    // src/ because the list it counted was written two screens above it. The
+    // list now comes from src/, so this is a real pin: re-bucketing an action
+    // moves it and the assertion says so. It is kept deliberately redundant
+    // with the gate — the gate answers "does the spec agree", this answers
+    // "did anyone change the split without meaning to", and the two fail at
+    // different times.
     it('should include all 11 station-originated actions', () => {
-      expect(stationToServer).toHaveLength(11);
-      for (const action of stationToServer) {
+      expect(STATION_TO_SERVER_ACTIONS).toHaveLength(11);
+      for (const action of STATION_TO_SERVER_ACTIONS) {
         expect(Object.values(OsppAction)).toContain(action);
       }
     });
@@ -148,8 +94,8 @@ describe('OsppAction', () => {
 
   describe('Server → Station actions', () => {
     it('should include all 14 server-originated actions', () => {
-      expect(serverToStation).toHaveLength(14);
-      for (const action of serverToStation) {
+      expect(SERVER_TO_STATION_ACTIONS).toHaveLength(14);
+      for (const action of SERVER_TO_STATION_ACTIONS) {
         expect(Object.values(OsppAction)).toContain(action);
       }
     });
@@ -158,14 +104,14 @@ describe('OsppAction', () => {
   describe('Broker → Server actions', () => {
     it('should include ConnectionLost as the only broker-originated action', () => {
       expect(OsppAction.CONNECTION_LOST).toBe('ConnectionLost');
-      expect(brokerToServer).toEqual([OsppAction.CONNECTION_LOST]);
+      expect(BROKER_TO_SERVER_ACTIONS).toEqual([OsppAction.CONNECTION_LOST]);
     });
   });
 
   describe('Bidirectional actions', () => {
     it('should include DataTransfer as the only bidirectional action', () => {
       expect(OsppAction.DATA_TRANSFER).toBe('DataTransfer');
-      expect(bidirectional).toEqual([OsppAction.DATA_TRANSFER]);
+      expect(BIDIRECTIONAL_ACTIONS).toEqual([OsppAction.DATA_TRANSFER]);
     });
   });
 
@@ -181,10 +127,10 @@ describe('OsppAction', () => {
     // either side.
     it('the four direction buckets partition the action enum exactly', () => {
       const report = partitionReport([
-        stationToServer,
-        serverToStation,
-        brokerToServer,
-        bidirectional,
+        STATION_TO_SERVER_ACTIONS,
+        SERVER_TO_STATION_ACTIONS,
+        BROKER_TO_SERVER_ACTIONS,
+        BIDIRECTIONAL_ACTIONS,
       ]);
 
       expect({
@@ -236,8 +182,8 @@ describe('OsppAction', () => {
 
   describe('EVENT-only actions (no RESPONSE expected)', () => {
     it('should have 7 event-only actions', () => {
-      expect(eventActions).toHaveLength(7);
-      for (const action of eventActions) {
+      expect(EVENT_ACTIONS).toHaveLength(7);
+      for (const action of EVENT_ACTIONS) {
         expect(Object.values(OsppAction)).toContain(action);
       }
     });
@@ -245,8 +191,8 @@ describe('OsppAction', () => {
 
   describe('REQ/RES actions', () => {
     it('should have 20 request/response actions', () => {
-      expect(reqResActions).toHaveLength(20);
-      for (const action of reqResActions) {
+      expect(REQ_RES_ACTIONS).toHaveLength(20);
+      for (const action of REQ_RES_ACTIONS) {
         expect(Object.values(OsppAction)).toContain(action);
       }
     });
@@ -258,7 +204,7 @@ describe('OsppAction', () => {
     // action that is neither, or both, or absent from the enum entirely, is now
     // named in the failure rather than absorbed by an identity.
     it('REQ/RES and EVENT partition the action enum exactly', () => {
-      const report = partitionReport([reqResActions, eventActions]);
+      const report = partitionReport([REQ_RES_ACTIONS, EVENT_ACTIONS]);
 
       expect({
         unplaced: report.unplaced,

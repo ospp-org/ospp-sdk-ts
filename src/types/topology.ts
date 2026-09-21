@@ -126,13 +126,18 @@ export function sameProgramSet(a: readonly number[], b: readonly number[]): bool
 }
 
 /**
- * Does a declared topology match a provisioned one?
+ * Does a declared topology match the station's in-service topology?
  *
  * 05-state-machines.md §1.5: "The server compares that declaration, as a set in
- * both directions, against the topology recorded for the station at
- * provisioning. [...] The mismatch is symmetric: a bay or a program ordinal
- * present on one side and absent on the other is a mismatch in either
- * direction."
+ * both directions, against the station's **in-service topology**. [...] The
+ * mismatch is symmetric: a bay or a program ordinal present on one side and
+ * absent on the other is a mismatch in either direction."
+ *
+ * The referent is NOT "the topology recorded at provisioning", which is what
+ * this comment used to quote. Spec 0.26.0 retired that wording deliberately:
+ * §1.5 now says provisioning "creates that record; it does not freeze it", and
+ * bays the operator has taken out of service are excluded. Under the old
+ * reading a single retired bay held a conforming station in `Pending` for ever.
  */
 export function topologyMatches(
   expected: readonly BayTopology[],

@@ -171,9 +171,11 @@ export function canonicalize(value: Record<string, unknown>): string {
 /**
  * Canonical form for MAC input: §5.3 step 1 then §4.8.
  *
- * §5.3 step 1: "Remove the `mac` field from the message envelope if present —
- * the MAC field cannot be part of the input that produces it." Top level only,
- * and the caller's object is not mutated.
+ * §5.3 step 1: "**Remove** the `mac` field from the message envelope if present
+ * (HMAC-specific — the MAC field cannot be part of the input that produces it)."
+ * Top level only, and the caller's object is not mutated. The qualifier is the
+ * spec's own and was dropped from this quotation: the removal is a property of
+ * the HMAC construction, not of canonicalisation in general.
  *
  * The PHP twin is `MacSigner::canonicalize()`.
  */

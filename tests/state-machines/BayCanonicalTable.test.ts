@@ -25,7 +25,10 @@ const { UNKNOWN, AVAILABLE, RESERVED, OCCUPIED, FINISHING, FAULTED, UNAVAILABLE 
 const STATION_PAIRS: ReadonlyArray<readonly [BayStatus, BayStatus]> = [
   // Unknown has SIX exits, not three. §2.3: "A station that reboots mid-session
   // MUST resume that session [...] `Occupied` and `Finishing` are the two states
-  // a resumed session can leave a bay in, and they are the two added."
+  // a resumed session can leave a bay in, and **they were the first two added**."
+  // The tail matters: this comment used to end "and they are the two added",
+  // which was the pre-0.30.0 sentence and contradicted its own opening line —
+  // `Reserved` became the sixth exit and the spec re-worded the clause with it.
   [UNKNOWN, AVAILABLE],
   [UNKNOWN, FAULTED],
   [UNKNOWN, UNAVAILABLE],

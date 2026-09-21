@@ -153,10 +153,15 @@ try {
     }
 
     // §2.3, verbatim: "a station needs no others and **MUST NOT** implement the
-    // `Server` six. A server implements all twenty-seven." The paraphrase this
-    // line used to carry -- "A station implements the Station rows. A server
-    // implements all of them." -- was presented as a quotation and appears
-    // nowhere in the spec. It happened to describe the code below correctly.
+    // `Server` six. A server implements all twenty-seven."
+    //
+    // The sentence this line used to carry -- "A station implements the `Station`
+    // rows. A server implements all of them." -- was called a paraphrase that
+    // "appears nowhere in the spec". That was wrong in the other direction: it is
+    // VERBATIM at 05-state-machines.md:219-220, in the chapter-2 preamble
+    // blockquote rather than in §2.3, which is the only thing the old note had
+    // right. Both sentences are the spec's; §2.3 is cited here because it is the
+    // one that also carries the counts this comparison uses.
     const expected: Record<string, Set<string>> = m.party
       ? { Station: spec.Station, Server: new Set([...spec.Station, ...spec.Server]) }
       : { '*': spec['*'] };
