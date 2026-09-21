@@ -1,10 +1,33 @@
 #!/usr/bin/env bash
 # Verify that vendored src/schemas/ are byte-identical to the spec
-# source at the ref pinned in .spec-ref. Local mirror of the CI gate.
+# source at the ref pinned in .spec-ref.
+#
+# THE ONLY DEFINITION OF THIS CHECK. It used to be three: this script, which
+# nothing called, and two inlined copies of its diff — ci.yml's `schemas` job
+# and publish.yml's "Byte-identity check" step. A script with no caller cannot
+# rot loudly; it rots the way the two copies would have, by disagreeing with a
+# check nobody compared it to. Both copies now call this file, so there is one
+# place to change and one place that can be wrong.
 #
 # Usage:
 #   scripts/check-schemas.sh                  # diffs against pinned ref
 #   SPEC_REPO=/local/path scripts/check-schemas.sh   # diffs against a local checkout
+#   npm run check:schemas                     # same, as a package script
+#
+# SCOPE — this diffs the WHOLE directory, and that is deliberate.
+#
+# sdk-ts vendors the COMPLETE spec schema set (85 of 85 at v0.8.0), not a
+# subset, so "every vendored file matches the spec" and "the directory matches
+# the spec" are the same assertion here. The full-directory form is the stronger
+# one: it also catches a schema DELETED from the vendored copy, or one ADDED to
+# the spec and never vendored — which is precisely how
+# provisioning-request.schema.json was missed at v0.8.0.
+#
+# Do NOT narrow this to a hand-maintained file list. A list is a second place to
+# forget to update, and the failure it produces is silent: the gate goes green
+# while an unlisted schema drifts. If a genuine reason to vendor a subset ever
+# arises, derive the list from the vendored tree at run time (comm -12 of both
+# file sets), never from a literal.
 #
 # Excludes:
 #   - README.md           — non-schema documentation in spec/schemas/

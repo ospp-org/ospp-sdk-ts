@@ -140,7 +140,7 @@ jobs:
 
       # THE GATES, ON THE RELEASE PATH.
       #
-      # ci.yml carries twelve gate jobs and triggers on `push: branches: [main]`
+      # ci.yml carries thirteen gate jobs and triggers on `push: branches: [main]`
       # and `pull_request`. A TAG PUSH MATCHES NEITHER. Until this step, the
       # moment a release was cut was the one moment at which not a single gate
       # ran: this workflow did `npm ci`, `npm run build`, `npm test`, `npm
@@ -161,6 +161,12 @@ jobs:
       # already exported by that step, so the spec-comparing gates use the
       # checkout that is already on disk and no gate clones a second time.
       #
+      # `schemas` is in the loop rather than spelled out below it. It used to be
+      # the one gate written as a directory diff instead of an npm script, so it
+      # was copied into this file by hand — a second statement of a check whose
+      # script already existed and had no caller. It is `check:schemas` now, and
+      # this loop is the whole list.
+      #
       # Ordered cheapest-first so a stale README fails in seconds rather than
       # after the corpus diffs.
       - name: Every gate ci.yml runs, before anything is published
@@ -169,25 +175,11 @@ jobs:
           for gate in doc-claims inert-assertions spec-quotations vector-types \
                       error-registry http-status config-registry \
                       recommended-action action-registry state-machines \
-                      crypto-vectors vector-corpus; do
+                      schemas crypto-vectors vector-corpus; do
             echo "::group::check:$gate"
             npm run "check:$gate"
             echo "::endgroup::"
           done
-
-      # The twelfth gate is a directory diff rather than an npm script, so it is
-      # spelled out here exactly as ci.yml's `schemas` job spells it. SPEC_REPO
-      # is the checkout cloned at .spec-ref above.
-      - name: Byte-identity check (src/schemas/ vs spec/schemas/)
-        run: |
-          set -euo pipefail
-          if diff -rq --exclude=README.md --exclude=SchemaPath.ts \
-               "$SPEC_REPO/schemas/" ./src/schemas/; then
-            echo "OK — vendored src/schemas/ byte-identical to the pinned spec"
-          else
-            echo "DRIFT between vendored src/schemas/ and the pinned spec — refusing to publish."
-            exit 1
-          fi
 
       - name: Publish to npm
         run: npm publish --access public --provenance

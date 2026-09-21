@@ -44,7 +44,9 @@
     "src/test-vectors"
   ],
   "scripts": {
+    "prebuild": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "tsc && copyfiles -u 1 \"src/schemas/**/*.schema.json\" dist",
+    "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -52,6 +54,7 @@
     "check:error-registry": "vite-node scripts/check-error-registry.ts",
     "check:http-status": "vite-node scripts/check-http-status.ts",
     "check:config-registry": "vite-node scripts/check-config-registry.ts",
+    "check:schemas": "bash scripts/check-schemas.sh",
     "check:crypto-vectors": "bash scripts/check-crypto-vectors.sh",
     "check:vector-corpus": "bash scripts/check-vector-corpus.sh",
     "check:recommended-action": "vite-node scripts/check-recommended-action.ts",

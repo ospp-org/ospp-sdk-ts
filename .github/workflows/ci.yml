@@ -419,33 +419,17 @@ jobs:
       # with, and the gate enforces it.
       - name: Clone spec at pinned ref
         run: git clone --depth 1 --branch "$SPEC_REF" https://github.com/ospp-org/spec.git /tmp/spec-source
-      # SCOPE — this diffs the WHOLE directory, and that is deliberate.
+      # The diff itself lives in scripts/check-schemas.sh and nowhere else. It
+      # was spelled out here, and a second time in publish.yml, while the script
+      # sat with no caller at all — three statements of one check, two of which
+      # could drift from the third without anything going red. The script header
+      # carries the scope reasoning (whole directory, never a hand-maintained
+      # file list) because that is where the check now is.
       #
-      # sdk-ts vendors the COMPLETE spec schema set (85 of 85 at v0.8.0), not a
-      # subset, so "every vendored file matches the spec" and "the directory
-      # matches the spec" are the same assertion here. The full-directory form
-      # is the stronger one: it also catches a schema DELETED from the vendored
-      # copy, or one ADDED to the spec and never vendored — which is precisely
-      # how provisioning-request.schema.json was missed at v0.8.0.
-      #
-      # Do NOT narrow this to a hand-maintained file list. A list is a second
-      # place to forget to update, and the failure it produces is silent: the
-      # gate goes green while an unlisted schema drifts. If a genuine reason to
-      # vendor a subset ever arises, derive the list from the vendored tree at
-      # run time (comm -12 of both file sets), never from a literal.
-      #
-      # Excludes:
-      #   - README.md       — non-schema doc in spec/schemas/
-      #   - SchemaPath.ts   — sdk-ts-local Node helper (not in spec)
+      # Called as bash rather than `npm run check:schemas` so this job keeps
+      # needing neither Node nor `npm ci`: a byte diff of two directories should
+      # not pay for an install.
       - name: Byte-identity check (src/schemas/ ↔ spec/schemas/)
-        run: |
-          set -euo pipefail
-          if diff -rq --exclude=README.md --exclude=SchemaPath.ts /tmp/spec-source/schemas/ ./src/schemas/; then
-            echo "OK — vendored src/schemas/ byte-identical to spec $SPEC_REF"
-          else
-            echo ""
-            echo "DRIFT between vendored src/schemas/ and spec $SPEC_REF — fail."
-            echo "Fix: copy spec/schemas/* -> src/schemas/ (cp -r) and re-commit."
-            echo "Bump .spec-ref if vendoring against a newer spec release."
-            exit 1
-          fi
+        env:
+          SPEC_REPO: /tmp/spec-source
+        run: bash scripts/check-schemas.sh

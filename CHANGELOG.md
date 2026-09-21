@@ -175,6 +175,51 @@ and reflowed comments rather than real defects. A gate with that false-positive 
 switched off within a release, so it is **not built**. The quote sites found false here were fixed
 by hand; the class remains open.
 
+### A module deleted at `0.12.0` shipped to npm at `0.14.0`
+
+`src/crypto/CriticalMessageRegistry.ts` was deleted on 2026-08-05 in `11f824d`, first released in
+`v0.12.0`, and **35 tags contain that deletion**. Its four build products —
+`CriticalMessageRegistry.{js,js.map,d.ts,d.ts.map}` — were still sitting in `dist/`, because `tsc`
+does not clear `outDir`, nothing else cleared it, and `dist/` is gitignored so no `git status` ever
+mentioned them. `"files": ["dist", ...]` ships that directory wholesale.
+
+**It shipped, once.** All 49 published versions were downloaded from the registry and listed.
+`0.1.0`–`0.11.0` carry the four files legitimately — the source existed then, which is also the
+positive control that makes a zero here a real absence rather than a broken search. `0.12.0` and
+`0.13.0` do not. **`0.14.0` does**, and differs from both neighbours by exactly those four entries
+and nothing else (416, **420**, 416). `0.15.0` onward do not. The published bytes are identical to
+the copy that was still on disk, dated 2026-07-30 — the `0.11.0` build — so `0.14.0` was packed
+from a working copy rather than from the clean checkout `publish.yml` gives a runner.
+
+What a consumer of `0.14.0` got was a `.d.ts` declaring
+`export type MessageSigningMode = 'All' | 'Critical' | 'None'` and a header counting *"47 message
+types total: 31 require HMAC in Critical mode"*, describing a `Critical` mode the package had
+already removed. Nothing imported it, so nothing broke; it was dead weight that read as current.
+
+- **`prebuild` removes `dist/` before every `tsc`.** Measured: the four files survived a full
+  `npm run build` on the tree that found them, and do not survive one now — `dist/` went 334 files
+  to 330, orphans 4 to 0.
+- **`prepack` runs the build**, so `npm pack` and `npm publish` cannot ship a directory that was not
+  just produced from the current source. A clean build script alone would not have stopped `0.14.0`,
+  which was packed without building. Measured with `npm pack --dry-run`: 777 entries before, **773**
+  after, `CriticalMessageRegistry` entries 4 before, **0** after.
+
+### `scripts/check-schemas.sh` had no caller, and its check had two copies
+
+The script existed with **zero** invocations — no npm script, no workflow, no Makefile (there is no
+Makefile) — while `ci.yml`'s `schemas` job and `publish.yml`'s "Byte-identity check" step each
+spelled out its `diff` by hand. Three statements of one check, two of which could drift from the
+third with nothing to notice.
+
+**Wired rather than deleted, because that is the option that leaves ONE definition.** Deleting the
+script would have left the two inlined copies, which is two. The script is now `check:schemas` in
+`package.json`; `ci.yml` calls it as `bash scripts/check-schemas.sh` with `SPEC_REPO` set, so that
+job still needs neither Node nor `npm ci`; and `publish.yml` drops its copy and adds `schemas` to
+the gate loop, which now names **13** gates, all of which resolve to a real `check:*` script. The
+scope reasoning — whole directory, never a hand-maintained file list — moved into the script header,
+where the check now is. Positive control: one byte appended to `src/schemas/mqtt/connection-lost.schema.json`
+turns the wired gate red naming that file, and reverting it turns it green.
+
 ## 0.39.0 — 2026-09-18
 
 **MINOR — `3020 BINDING_UNCOVERED` enters the registry.** `.spec-ref` follows the spec to `v0.42.0`.
