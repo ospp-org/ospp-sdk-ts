@@ -3,6 +3,7 @@ import {
   ReservationStateMachine,
   canTransition,
   isTerminal,
+  RESERVATION_TRANSITIONS,
   type ReservationState,
 } from '../../src/state-machines/ReservationStateMachine';
 
@@ -20,8 +21,21 @@ describe('canTransition — valid', () => {
     });
   }
 
-  it('should have 5 valid transitions total', () => {
-    expect(valid).toHaveLength(5);
+  // WAS `expect(valid).toHaveLength(5)` — the transcription above compared to its
+  // own length, which no change to `ReservationStateMachine.ts` could move. The
+  // sibling defect in `SessionStateMachine.test.ts` at least imported the table
+  // it failed to read; this file did not import it at all.
+  //
+  // The count is now derived from the machine's own table, and the transcription
+  // is compared to it set-wise.
+  it('declares exactly the 5 transitions transcribed above', () => {
+    const declared = [...RESERVATION_TRANSITIONS].flatMap(([from, tos]) =>
+      [...tos].map((to) => `${from} -> ${to}`),
+    );
+    const transcribed = valid.map(([from, to]) => `${from} -> ${to}`);
+
+    expect(declared.slice().sort()).toEqual(transcribed.slice().sort());
+    expect(declared).toHaveLength(5);
   });
 });
 

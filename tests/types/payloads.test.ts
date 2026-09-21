@@ -1,7 +1,29 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { join } from 'path';
 import { SchemaValidator } from '../../src/validation/SchemaValidator';
+import { OsppAction } from '../../src/actions/OsppAction';
+
+// EXHAUSTIVE UNION SAMPLES
+// ------------------------
+// Several tests below sample a string union -- `X['status']`, and so on -- under a
+// title of the form "should accept all N statuses". They used to do it as
+//
+//     const statuses: X['status'][] = ['A', 'B', 'C'];
+//     expect(statuses).toHaveLength(3);
+//
+// which proves only that the three listed values are ASSIGNABLE. A member ADDED to
+// the union upstream left that green in both readers: vitest sees a three-element
+// literal compared to a literal 3, and tsc sees three values that are still
+// assignable. Measured, not argued -- adding a third member to `PricingType` left
+// the old form passing under vitest AND under tsc, while the new form failed tsc
+// with "Property 'Tiered' is missing ... but required in type Record<PricingType, true>".
+//
+// `Record<Union, true>` is exhaustive in BOTH directions: a member missing from the
+// object is a compile error, and a key that is not a member is a compile error.
+// These unions are type-only and have no runtime list in `src/` to read, so the
+// compile-time check is the only one available; the reader that can fail is
+// `npm run typecheck`, which CI runs as its own job.
 
 // Import every payload type to verify they compile and are assignable
 import type { BootNotificationRequest, BootNotificationResponse } from '../../src/types/payloads/boot-notification';
@@ -638,10 +660,15 @@ describe('UpdateFirmware payloads', () => {
 
 describe('FirmwareStatusNotification payload', () => {
   it('should accept all 5 statuses', () => {
-    const statuses: FirmwareStatusNotificationPayload['status'][] = [
-      'Downloading', 'Downloaded', 'Installing', 'Installed', 'Failed',
-    ];
-    expect(statuses).toHaveLength(5);
+    // Exhaustive in both directions -- see EXHAUSTIVE UNION SAMPLES at the top of this file.
+    const statuses: Record<FirmwareStatusNotificationPayload['status'], true> = {
+      Downloading: true,
+      Downloaded: true,
+      Installing: true,
+      Installed: true,
+      Failed: true,
+    };
+    expect(Object.keys(statuses)).toHaveLength(5);
   });
 
   it('should accept progress percentage', () => {
@@ -690,10 +717,14 @@ describe('GetDiagnostics payloads', () => {
 
 describe('DiagnosticsNotification payload', () => {
   it('should accept all 4 statuses', () => {
-    const statuses: DiagnosticsNotificationPayload['status'][] = [
-      'Collecting', 'Uploading', 'Uploaded', 'Failed',
-    ];
-    expect(statuses).toHaveLength(4);
+    // Exhaustive in both directions -- see EXHAUSTIVE UNION SAMPLES at the top of this file.
+    const statuses: Record<DiagnosticsNotificationPayload['status'], true> = {
+      Collecting: true,
+      Uploading: true,
+      Uploaded: true,
+      Failed: true,
+    };
+    expect(Object.keys(statuses)).toHaveLength(4);
   });
 });
 
@@ -828,10 +859,14 @@ describe('DataTransfer payloads', () => {
   });
 
   it('should accept all 4 response statuses', () => {
-    const statuses: DataTransferResponse['status'][] = [
-      'Accepted', 'Rejected', 'UnknownVendor', 'UnknownData',
-    ];
-    expect(statuses).toHaveLength(4);
+    // Exhaustive in both directions -- see EXHAUSTIVE UNION SAMPLES at the top of this file.
+    const statuses: Record<DataTransferResponse['status'], true> = {
+      Accepted: true,
+      Rejected: true,
+      UnknownVendor: true,
+      UnknownData: true,
+    };
+    expect(Object.keys(statuses)).toHaveLength(4);
   });
 });
 
@@ -839,28 +874,71 @@ describe('DataTransfer payloads', () => {
 
 describe('TriggerMessage payloads', () => {
   it('should accept all 8 triggerable messages', () => {
-    const msgs: TriggerMessageRequest['requestedMessage'][] = [
-      'BootNotification', 'StatusNotification', 'MeterValues', 'Heartbeat',
-      'DiagnosticsNotification', 'FirmwareStatusNotification', 'SecurityEvent', 'SignCertificate',
-    ];
-    expect(msgs).toHaveLength(8);
+    // Exhaustive in both directions -- see EXHAUSTIVE UNION SAMPLES at the top of this file.
+    const msgs: Record<TriggerMessageRequest['requestedMessage'], true> = {
+      BootNotification: true,
+      StatusNotification: true,
+      MeterValues: true,
+      Heartbeat: true,
+      DiagnosticsNotification: true,
+      FirmwareStatusNotification: true,
+      SecurityEvent: true,
+      SignCertificate: true,
+    };
+    expect(Object.keys(msgs)).toHaveLength(8);
   });
 
   it('should accept all 3 response statuses', () => {
-    const statuses: TriggerMessageResponse['status'][] = ['Accepted', 'Rejected', 'NotImplemented'];
-    expect(statuses).toHaveLength(3);
+    // Exhaustive in both directions -- see EXHAUSTIVE UNION SAMPLES at the top of this file.
+    const statuses: Record<TriggerMessageResponse['status'], true> = {
+      Accepted: true,
+      Rejected: true,
+      NotImplemented: true,
+    };
+    expect(Object.keys(statuses)).toHaveLength(3);
   });
 });
 
 // ── Coverage check ──────────────────────────────────────────────────────
 
 describe('Payload file coverage', () => {
-  it('should have 27 payload files matching 27 actions', () => {
-    // This test documents that all 27 actions have corresponding payload types.
-    // 20 REQ/RES actions = 20 files with Request+Response interfaces
-    // 7 EVENT actions = 7 files with Payload interfaces
-    const reqResActions = 20;
-    const eventActions = 7;
-    expect(reqResActions + eventActions).toBe(27);
+  // WAS:
+  //   const reqResActions = 20;
+  //   const eventActions = 7;
+  //   expect(reqResActions + eventActions).toBe(27);
+  //
+  // Two local constants added together and compared to a third, folding to
+  // `27 === 27`. It opened no directory and read no enum, so it would have
+  // passed over an empty `src/types/payloads/` and over an empty `OsppAction`,
+  // while its title claimed to have counted both. The comment above it narrated
+  // a 20 + 7 split that nothing in the assertion consulted. Same defect, same
+  // repair, as the two in `tests/actions/OsppAction.test.ts` and the one in
+  // `tests/enums/OsppErrorCode.test.ts` before them.
+  //
+  // Both sides are now derived: the file list from the directory on disk, the
+  // action list from the enum. The two failure directions are reported
+  // separately because they are different mistakes — an action with no payload
+  // file is an unimplemented message, a payload file with no action is a file
+  // nothing routes to.
+  it('has one payload file per action, and no payload file without an action', () => {
+    const kebab = (action: string) => action.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+
+    const files = new Set(
+      readdirSync(new URL('../../src/types/payloads', import.meta.url))
+        .filter((f) => f.endsWith('.ts'))
+        .map((f) => f.replace(/\.ts$/, '')),
+    );
+    const actions = Object.values(OsppAction);
+
+    // Positive control: a directory read that silently returned nothing would
+    // make every set difference below empty and the assertion vacuous.
+    expect(files.size).toBeGreaterThan(0);
+
+    expect({
+      actionWithoutFile: actions.filter((a) => !files.has(kebab(a))),
+      fileWithoutAction: [...files].filter((f) => !actions.some((a) => kebab(a) === f)),
+    }).toEqual({ actionWithoutFile: [], fileWithoutAction: [] });
+
+    expect(files.size).toBe(actions.length);
   });
 });

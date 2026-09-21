@@ -23,8 +23,23 @@ describe('canTransition — valid', () => {
     });
   }
 
-  it('should have 9 valid transitions total', () => {
-    expect(valid).toHaveLength(9);
+  // WAS `expect(valid).toHaveLength(9)` — the transcription above compared to its
+  // own length. No change to `SessionStateMachine.ts` could move it, and
+  // `SESSION_TRANSITIONS` was imported at the top of this file and never read.
+  // The number was live in fact and unchecked: it was 8 until 0.32.0, when
+  // `Active -> Completed` was added, and it moved because a person moved it.
+  //
+  // The count is now derived from the machine's own table, and the transcription
+  // is compared to it set-wise, so a row added to the machine and not to the list
+  // is named rather than absorbed into a matching total.
+  it('declares exactly the 9 transitions transcribed above', () => {
+    const declared = [...SESSION_TRANSITIONS].flatMap(([from, tos]) =>
+      [...tos].map((to) => `${from} -> ${to}`),
+    );
+    const transcribed = valid.map(([from, to]) => `${from} -> ${to}`);
+
+    expect(declared.slice().sort()).toEqual(transcribed.slice().sort());
+    expect(declared).toHaveLength(9);
   });
 });
 

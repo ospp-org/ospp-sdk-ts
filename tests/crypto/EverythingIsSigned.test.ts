@@ -11,13 +11,20 @@ import {
   allStructuralExemptions,
   requiresMac,
   DEFAULT_MESSAGE_SIGNING_MODE,
-  type MessageSigningMode,
+  MESSAGE_SIGNING_MODES,
 } from '../../src/crypto/MessageSigningRegistry';
 import { computeMac, verifyMac, canonicalizeToBytes } from '../../src/server';
 import { OsppAction } from '../../src/actions/OsppAction';
 import { MessageType } from '../../src/enums/MessageType';
 
-const ALL_MODES: MessageSigningMode[] = ['All', 'None'];
+// The previous form was `const ALL_MODES: MessageSigningMode[] = ['All', 'None']`,
+// compared below to a second copy of the same two literals — literal against
+// literal, which a third mode added to the union could not have moved. The
+// comment on it claimed to pin "the runtime list the SDK ships"; no such list
+// existed, because `MessageSigningMode` was a type-only union.
+//
+// It exists now. `MESSAGE_SIGNING_MODES` is the runtime list and the type is
+// derived from it, so this reads the thing it claims to be about.
 
 describe('the signing mode', () => {
   /**
@@ -26,8 +33,7 @@ describe('the signing mode', () => {
    * With everything signed it selected nothing."
    */
   it('is exactly All and None', () => {
-    // The union is compile-time; this pins the runtime list the SDK ships.
-    expect(ALL_MODES).toEqual(['All', 'None']);
+    expect([...MESSAGE_SIGNING_MODES].sort()).toEqual(['All', 'None']);
   });
 
   /** §5.1: "`All` **(default)**". The default moves from `Critical` to `All`. */
@@ -56,7 +62,7 @@ describe('the three structural exemptions', () => {
    * not something a deployment can turn off."
    */
   it('holds in every mode', () => {
-    for (const mode of ALL_MODES) {
+    for (const mode of MESSAGE_SIGNING_MODES) {
       expect(requiresMac(OsppAction.BOOT_NOTIFICATION, MessageType.REQUEST, mode)).toBe(false);
       expect(requiresMac(OsppAction.BOOT_NOTIFICATION, MessageType.RESPONSE, mode)).toBe(false);
       expect(requiresMac(OsppAction.CONNECTION_LOST, MessageType.EVENT, mode)).toBe(false);

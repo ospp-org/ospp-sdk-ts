@@ -26,6 +26,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { OSPP_ERROR_REGISTRY } from '../../src/enums/OsppErrorCode';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SPEC_REPO = process.env.SPEC_REPO;
@@ -106,9 +107,19 @@ describe.skipIf(!md)('check-recommended-action gate', () => {
 
   it('passes against the pinned registry, unmutated', () => {
     const { exit, out } = runGate(spec());
-    // Both halves are the SPEC's row count (`covered ${covered}/${spec.size}`), not this
-    // package's, so this literal tracks the pinned spec: 119 → 120 at spec v0.42.0.
-    expect(out).toContain('covered 120/120');
+    // Both halves of the gate's `covered ${covered}/${spec.size}` are the SPEC's §3
+    // row count, not this package's. It was written here as the literal
+    // `covered 120/120`, which made it one more number a release had to hand-edit:
+    // it was `119` until spec v0.42.0 added 3020, and an edit that is remembered
+    // every time until the once it is not is the shape this session exists to
+    // close. It is now DERIVED from this SDK's own registry.
+    //
+    // Not circular, for the reason check-doc-claims.ts states for its own chain:
+    // `npm run check:error-registry` separately proves SDK == spec for these rows,
+    // so the SDK's count is a legitimate stand-in for the spec's HERE, downstream
+    // of that. If the two ever disagree it is that gate, not this line, that says so.
+    const registrySize = Object.keys(OSPP_ERROR_REGISTRY).length;
+    expect(out).toContain(`covered ${registrySize}/${registrySize}`);
     expect(exit).toBe(0);
   });
 

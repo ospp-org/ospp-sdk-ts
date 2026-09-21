@@ -24,6 +24,20 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+      # `tsc -p tsconfig.json` above EXCLUDES tests/ ("exclude": [..., "tests"]) and
+      # vitest transpiles via esbuild without type-checking, so between them nothing
+      # in this workflow ever type-checked a test file. tsconfig.test.json was added
+      # at 0.11.0 precisely to close that, and `npm run typecheck` was never wired to
+      # a job -- the same shape as check-crypto-vectors.sh, which existed from v0.6.0
+      # with nothing running it.
+      #
+      # It is load-bearing for the assertions whose claim lives in a TYPE ANNOTATION
+      # rather than in the expect: `const empty: MeterValues = {}` stops compiling
+      # when a field of MeterValues stops being optional, and `Record<Union, true>`
+      # is how the union samples in payloads.test.ts and common.test.ts are made
+      # exhaustive in both directions. None of that is checked by vitest, and until
+      # this step none of it was checked anywhere.
+      - run: npm run typecheck
       # tests/enums/RecommendedActionGate.test.ts runs the recommendedAction gate
       # against synthetic, deliberately-broken copies of the spec registry —
       # including the case that proves the gate does NOT assert the byte-identity
@@ -241,6 +255,46 @@ jobs:
           node-version: 24
       - name: Byte-identity check (src/test-vectors/ ↔ spec conformance corpus)
         run: npm run check:vector-corpus
+
+  # An assertion whose two sides both fold to compile-time constants cannot fail,
+  # and being green tells you nothing about it. `OsppErrorCode.test.ts` carried
+  # `expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118)` through every tag this
+  # repository has ever cut; it read no registry, and it had been arithmetically
+  # wrong since 0.31.0 because the two NEIGHBOURING assertions that do read the
+  # registry were updated at that release and it was not. Three more of the same
+  # shape were found alongside it -- two in OsppAction.test.ts, one in
+  # payloads.test.ts wearing two local constants.
+  #
+  # Nothing could have caught them by grep: every number involved was correct.
+  # What was wrong was that no side computed one. This job classifies both
+  # arguments of every expect() on the AST and fails on any pair that folds,
+  # unless .inert-assertions.json carries a written reason.
+  #
+  # WHY NOT A LINTER. There is no linter in this package at all -- no eslint,
+  # biome or oxlint in package.json, node_modules or any config file -- so the
+  # question is what adding one would buy. Measured: `npm install --dry-run
+  # eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin` adds 97
+  # packages to an 86-package tree. And no rule in what it brings covers this
+  # shape: eslint's own `no-constant-binary-expression` flags operations that do
+  # not affect the value (`x === {}`, `a && false`) and does not flag `20 + 7` as
+  # a call argument, while eslint-plugin-vitest's nearest rules are
+  # `expect-expect` (the test contains SOME assertion) and `valid-expect`
+  # (the call is well formed). Neither asks whether the two sides are constant.
+  # A hundred packages for a rule that would have to be written anyway.
+  #
+  # No spec clone and no network: it reads only this repository's tests/.
+  inert-assertions:
+    name: No assertion that cannot fail
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Every expect() has at least one side that src/ can move
+        run: npm run check:inert-assertions
 
   schemas:
     name: Schema byte-identity gate

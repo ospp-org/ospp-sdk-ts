@@ -66,6 +66,14 @@ import { OSPP_ERROR_REGISTRY } from '../src/enums/OsppErrorCode.js';
 import { ConfigKey } from '../src/enums/ConfigKey.js';
 import { RECOMMENDED_ACTION } from '../src/enums/RecommendedAction.js';
 import { SessionEndReason } from '../src/enums/SessionEndReason.js';
+import { MESSAGE_SIGNING_MODES } from '../src/crypto/MessageSigningRegistry.js';
+import { BayStatus } from '../src/enums/BayStatus.js';
+import { StationState } from '../src/enums/StationState.js';
+import { BAY_STATION_TRANSITIONS } from '../src/state-machines/BayStateMachine.js';
+import { FIRMWARE_TRANSITIONS } from '../src/state-machines/FirmwareStateMachine.js';
+import { RESERVATION_TRANSITIONS } from '../src/state-machines/ReservationStateMachine.js';
+import { SESSION_TRANSITIONS } from '../src/state-machines/SessionStateMachine.js';
+import { STATION_TRANSITIONS } from '../src/state-machines/StationStateMachine.js';
 import * as sdk from '../src/index.js';
 import * as sdkServer from '../src/server.js';
 
@@ -85,6 +93,30 @@ function countSchemas(dir: string): number {
   }
   return n;
 }
+
+/**
+ * How many distinct states a transition table mentions, counting targets as well
+ * as sources: a terminal state is never a key, so counting keys alone would make
+ * every machine smaller than its own header says.
+ */
+function machineStates(m: ReadonlyMap<string, ReadonlySet<string>>): number {
+  const seen = new Set<string>();
+  for (const [from, tos] of m) {
+    seen.add(from);
+    for (const to of tos) seen.add(to);
+  }
+  return seen.size;
+}
+
+/**
+ * Small cardinals as English words. Two of these headers spell the number out
+ * ("The six states") and the rest use digits. The prose is left as its author
+ * wrote it and the comparison adapts, rather than the other way round — a gate
+ * that requires a house numeral style is a gate people edit prose to satisfy.
+ */
+const CARDINALS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+                   'eight', 'nine', 'ten', 'eleven', 'twelve'] as const;
+const asWord = (n: number): string => CARDINALS[n] ?? String(n);
 
 /**
  * The state machines this package EXPORTS, by their short name.
@@ -200,6 +232,24 @@ const CLAIMS: Claim[] = [
     from: 'src/schemas/**/*.schema.json',
   },
   {
+    // The seventh README claim, and the one that was FALSE while the other six
+    // were green: the line read "with Critical/All/None modes" long after
+    // `Critical` was removed from the spec rather than deprecated, and
+    // `MessageSigningRegistry.ts` had said so in prose for as long. Nothing here
+    // could check it, because a type-only union has no runtime form and every
+    // derivation in this file reads a VALUE. MESSAGE_SIGNING_MODES was added as
+    // that value, with `MessageSigningMode` derived from it, so the sentence now
+    // has something to be wrong against.
+    //
+    // A SET claim, like the state-machine names above: a count alone would pass
+    // a README naming two modes that are not these two.
+    file: 'README.md',
+    label: 'signing modes',
+    pattern: /with ([A-Za-z/]+) modes/,
+    expected: () => [...MESSAGE_SIGNING_MODES].join('/'),
+    from: 'MESSAGE_SIGNING_MODES in src/crypto/MessageSigningRegistry.ts',
+  },
+  {
     // `check-recommended-action` enforces the 1..500 bound but never states the
     // margin; this sentence does, and until now nothing compared it. A cell
     // re-transcribed past 500 fails there — one re-transcribed to 499 fails only
@@ -267,6 +317,82 @@ const CLAIMS: Claim[] = [
     pattern: /^\s*\* ([0-9]+\.\.[0-9]+) entries\.$/m,
     expected: () => schemaBound(join('mqtt', 'boot-notification-request.schema.json'), 'bays'),
     from: 'minItems..maxItems of `bays` in the vendored boot-notification-request schema',
+  },
+
+  // ── THE EIGHT THAT WERE NOT CHECKED ──────────────────────────────────────
+  //
+  // Every header above states this package's own size and, before this block,
+  // eight of them were compared to nothing. All eight were RIGHT when they were
+  // measured, which is the same thing that was true of the 27 in OsppAction.ts
+  // on the line whose protocol version had been false for twenty-nine minors.
+  // Being right is not the property; being checked is.
+  //
+  // The five machine headers are derived from the transition table each file
+  // exports, so they move with the machine rather than with a person's memory of
+  // it. `check:state-machines` already proves those tables against spec chapter
+  // 05, so this is the last link -- prose to code -- and inherits the rest, the
+  // same chain this file's header sets out for README.
+  {
+    file: 'src/enums/BayStatus.ts',
+    label: 'BayStatus size',
+    pattern: /exactly one of these ([0-9]+) states/,
+    expected: () => String(Object.keys(BayStatus).length),
+    from: 'members of BayStatus',
+  },
+  {
+    file: 'src/enums/StationState.ts',
+    label: 'StationState size',
+    pattern: /The ([a-z]+) states of the station state machine/,
+    expected: () => asWord(Object.keys(StationState).length),
+    from: 'members of StationState, spelled as a word',
+  },
+  {
+    file: 'src/state-machines/BayStateMachine.ts',
+    label: 'Bay machine states',
+    pattern: /Bay State Machine \u2014 ([0-9]+) states/,
+    expected: () => String(machineStates(BAY_STATION_TRANSITIONS as never)),
+    from: 'distinct states in BAY_STATION_TRANSITIONS',
+  },
+  {
+    file: 'src/state-machines/FirmwareStateMachine.ts',
+    label: 'Firmware machine states',
+    pattern: /Firmware Update State Machine \u2014 ([0-9]+) states/,
+    expected: () => String(machineStates(FIRMWARE_TRANSITIONS as never)),
+    from: 'distinct states in FIRMWARE_TRANSITIONS',
+  },
+  {
+    file: 'src/state-machines/ReservationStateMachine.ts',
+    label: 'Reservation machine states',
+    pattern: /Reservation State Machine \u2014 ([0-9]+) states/,
+    expected: () => String(machineStates(RESERVATION_TRANSITIONS as never)),
+    from: 'distinct states in RESERVATION_TRANSITIONS',
+  },
+  {
+    file: 'src/state-machines/SessionStateMachine.ts',
+    label: 'Session machine states',
+    pattern: /Session State Machine \u2014 ([0-9]+) states/,
+    expected: () => String(machineStates(SESSION_TRANSITIONS as never)),
+    from: 'distinct states in SESSION_TRANSITIONS',
+  },
+  {
+    file: 'src/state-machines/StationStateMachine.ts',
+    label: 'Station machine states',
+    pattern: /Station State Machine \u2014 ([0-9]+) states/,
+    expected: () => String(machineStates(STATION_TRANSITIONS as never)),
+    from: 'distinct states in STATION_TRANSITIONS',
+  },
+  {
+    // The SECOND number in this file. The first ("All N registry codes are
+    // transcribed") was gated above; this one sits three lines under it, states
+    // the same quantity twice, and was not.
+    file: 'src/enums/RecommendedAction.ts',
+    label: 'registry rows with an action',
+    pattern: /Recommended Action for ([0-9]+ of [0-9]+) rows/,
+    expected: () => {
+      const n = Object.keys(RECOMMENDED_ACTION).length;
+      return `${n} of ${n}`;
+    },
+    from: 'arms of RECOMMENDED_ACTION, stated as "N of N"',
   },
 ];
 

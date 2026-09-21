@@ -207,6 +207,7 @@ export {
   allStructuralExemptions,
   requiresMac,
   requiresMacVerification,
+  MESSAGE_SIGNING_MODES,
   type MessageSigningMode,
 } from './crypto/MessageSigningRegistry.js';
 

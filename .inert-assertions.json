@@ -1,0 +1,26 @@
+{
+  "//": [
+    "Assertions in tests/ whose two sides both fold to compile-time constants, and which are",
+    "deliberately about arithmetic or about JavaScript rather than about this repository.",
+    "",
+    "scripts/check-inert-assertions.mjs fails on any inert assertion that is absent from this file,",
+    "so a test that cannot fail has to be declared deliberately instead of being discovered years",
+    "later. It ALSO fails on any entry here that matches nothing, so an exemption cannot outlive the",
+    "assertion it excused: fix or delete the assertion and the licence has to go with it.",
+    "",
+    "An entry is a statement that the assertion makes no claim about this repository. It is NOT a",
+    "way to stop the gate asking. If the assertion's title describes src/ -- a count of enum",
+    "members, of files, of registry rows -- then the fix is to make a side read that, not to write",
+    "a line here. The four that prompted this gate all had correct numbers and no reader:",
+    "OsppErrorCode.test.ts (15+20+20+20+34+9 === 118), OsppAction.test.ts twice (11+14+1+1 === 27",
+    "and 20+7 === 27), and payloads.test.ts (two local constants summed to 27 under a title that",
+    "claimed to have counted the payload directory).",
+    "",
+    "The key is the file plus the assertion text with whitespace collapsed, so it survives the",
+    "assertion moving lines and stops matching the moment the assertion itself changes."
+  ],
+  "exempt": {
+    "tests/types/EnvelopeCap.test.ts :: expect('😀'.length).toBe(2)": "A fact about JavaScript, not about this SDK: String.length counts UTF-16 code units, so an astral character measures 2 there and 4 as UTF-8 bytes. It sits directly under expect(envelopeByteLength('😀')).toBe(4) and exists to be read against it -- the contrast is the point, and deriving either side would destroy it. The envelope cap is measured in bytes because the broker measures the packet; a cap checked with String.length would pass a frame the broker then drops.",
+    "tests/types/common.test.ts :: expect(empty).toEqual({})": "The assertion here is the ANNOTATION on the line above -- const empty: MeterValues = {} -- which stops compiling the moment any field of MeterValues stops being optional, which is exactly what the test title claims. The expect is a runtime no-op that adds nothing and takes nothing away. The reader that can fail is `npm run typecheck`, which CI runs as its own job."
+  }
+}

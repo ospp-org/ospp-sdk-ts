@@ -55,6 +55,11 @@ describe('Timestamp', () => {
 
 describe('MeterValues', () => {
   it('should allow all fields optional', () => {
+    // HARMLESS, and left as it is. The assertion here is the ANNOTATION, not the
+    // `expect`: if any field of `MeterValues` stopped being optional, `{}` would
+    // no longer be assignable and `npm run typecheck` would refuse it. The
+    // `expect` line is a runtime no-op and makes no claim the annotation does not
+    // already carry.
     const empty: MeterValues = {};
     expect(empty).toEqual({});
   });
@@ -196,8 +201,10 @@ describe('OfflinePass', () => {
 
 describe('SessionSource', () => {
   it('should accept MobileApp and WebPayment', () => {
-    const sources: SessionSource[] = ['MobileApp', 'WebPayment'];
-    expect(sources).toHaveLength(2);
+    // Exhaustive in both directions; the reader that can fail is `npm run typecheck`.
+    // Same idiom and same reason as the union samples in payloads.test.ts.
+    const sources: Record<SessionSource, true> = { MobileApp: true, WebPayment: true };
+    expect(Object.keys(sources)).toHaveLength(2);
   });
 });
 
@@ -242,7 +249,9 @@ describe('StationCapabilities', () => {
 
 describe('PricingType', () => {
   it('should accept PerMinute and Fixed', () => {
-    const types: PricingType[] = ['PerMinute', 'Fixed'];
-    expect(types).toHaveLength(2);
+    // Exhaustive in both directions; the reader that can fail is `npm run typecheck`.
+    // Same idiom and same reason as the union samples in payloads.test.ts.
+    const types: Record<PricingType, true> = { PerMinute: true, Fixed: true };
+    expect(Object.keys(types)).toHaveLength(2);
   });
 });

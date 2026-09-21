@@ -36,8 +36,18 @@ import { MessageType } from '../enums/MessageType.js';
  *
  * Both values are PascalCase; lowercase spellings were drift, not an
  * alternative form, and a receiver MUST NOT accept them.
+ *
+ * A RUNTIME list, with the type derived from it rather than written beside it,
+ * so there is one place to change and no way for the two to disagree. It is a
+ * value and not only a type because a claim needed something to be checked
+ * against: `README.md` advertised "Critical/All/None modes" long after
+ * `Critical` was removed, and `check:doc-claims` could not see it, because a
+ * type-only union has no runtime form and that gate compares prose to values.
+ * It is now the derivation for that line.
  */
-export type MessageSigningMode = 'All' | 'None';
+export const MESSAGE_SIGNING_MODES = ['All', 'None'] as const;
+
+export type MessageSigningMode = (typeof MESSAGE_SIGNING_MODES)[number];
 
 /** §5.1: "`All` **(default)**". The default moves from `Critical` to `All`. */
 export const DEFAULT_MESSAGE_SIGNING_MODE: MessageSigningMode = 'All';

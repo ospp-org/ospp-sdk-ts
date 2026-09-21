@@ -16,7 +16,7 @@ npm install @ospp/protocol
 - **6 state machines** (Station, Bay, Session, Reservation, Firmware, Diagnostics) with enforced transitions
 - **HMAC-SHA256** canonical JSON serialization, signing, and timing-safe verification
 - **ECDSA P-256** signing and verification
-- **HMAC signing classification** per (action, messageType) with Critical/All/None modes
+- **HMAC signing classification** per (action, messageType) with All/None modes
 - **JSON Schema validation** (Ajv Draft 2020-12) with 86 bundled schemas
 - **MQTT topic builders** with shared subscription support
 

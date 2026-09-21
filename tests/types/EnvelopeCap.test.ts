@@ -59,6 +59,11 @@ describe('envelope cap', () => {
     // be dropped by the broker, which measures the packet.
     expect(envelopeByteLength('é')).toBe(2);
     expect(envelopeByteLength('😀')).toBe(4);
+    // HARMLESS, and left as it is. This is the only assertion in the corpus whose
+    // two sides are both constants and which makes no claim about this
+    // repository: it states a fact about JavaScript — `String.length` counts
+    // UTF-16 code units — and exists to be read against the 4 on the line above.
+    // Deriving it from anything would destroy the contrast it is here to draw.
     expect('😀'.length).toBe(2);
 
     const twoByte = 'é'.repeat(MAX_ENVELOPE_BYTES);

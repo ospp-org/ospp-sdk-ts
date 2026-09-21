@@ -32,6 +32,102 @@ All four gaps are declared in [`.release-gaps.json`](.release-gaps.json).
 file, so a future gap has to be recorded deliberately rather than discovered from a version series
 with a hole in it.
 
+## Unreleased
+
+Nothing is published and nothing is tagged here. `package.json` stays at `0.39.0`.
+
+**One PUBLIC export is added**, so whichever release carries this is a MINOR: `MESSAGE_SIGNING_MODES`.
+
+### Assertions that could not fail
+
+`tests/enums/OsppErrorCode.test.ts` carried `expect(15 + 20 + 20 + 20 + 34 + 9).toBe(118)` until
+`0.39.0` removed it. Both sides folded to `118`, so it read no registry and would have passed over
+an empty one. **Three more of the same shape are removed here**, found by census rather than by
+reading:
+
+- `tests/actions/OsppAction.test.ts` twice — `expect(11 + 14 + 1 + 1).toBe(27)` and
+  `expect(20 + 7).toBe(27)`, both folding to `27 === 27`. Replaced by two PARTITION assertions: the
+  four direction buckets, and the REQ/RES / EVENT split, must each place every member of
+  `OsppAction` exactly once, with nothing left over on either side. Measured: adding an action and
+  correctly updating both neighbouring assertions (the count and the value list) leaves only the two
+  partition tests red, naming the unplaced action.
+- `tests/types/payloads.test.ts` — `const reqResActions = 20; const eventActions = 7;
+  expect(reqResActions + eventActions).toBe(27)`, under the title *"should have 27 payload files
+  matching 27 actions"*. It opened no directory and read no enum. It now derives both sides and
+  asserts a bijection between `src/types/payloads/*.ts` and `OsppAction`, reporting
+  action-without-file and file-without-action separately.
+
+**Census, with its denominator.** 848 `expect(...).matcher(...)` sites across 42 test files at T0;
+15 had both sides folding to compile-time constants. Two are deliberate and stay, with their reasons
+written into `.inert-assertions.json`: `EnvelopeCap.test.ts` states a fact about JavaScript
+(`'\u{1F600}'.length === 2`, the UTF-16 contrast the byte-length assertion above it is read
+against), and `common.test.ts` carries its claim in a type annotation (`const empty: MeterValues =
+{}`) rather than in the `expect`.
+
+### Gated
+
+- **`check:inert-assertions`** (`scripts/check-inert-assertions.mjs`, CI job *No assertion that
+  cannot fail*). Classifies both arguments of every `expect()` on the TypeScript AST, folding
+  through local `const` bindings and stopping at anything mutated or reaching `src/`. Fails on any
+  inert pair with no declared reason, and ALSO on any declaration that matches nothing, so a licence
+  cannot outlive the assertion it excused. Refuses to pass over an empty corpus.
+  `tests/gates/InertAssertionGate.test.ts` proves it sees the defect, and proves it does not fire on
+  live assertions, on mutated `const` arrays, or on argument-less matchers.
+
+  No linter rule does this and none is installed: eslint's `no-constant-binary-expression` does not
+  flag `20 + 7` as a call argument, `eslint-plugin-vitest` offers only `expect-expect` and
+  `valid-expect`, and the toolchain measures at 97 added packages against an 86-package tree.
+
+- **`npm run typecheck` now runs in CI**, in both workflows. `tsc -p tsconfig.json` excludes
+  `tests/` and vitest does not type-check, so nothing ever type-checked a test file —
+  `tsconfig.test.json` was added at `0.11.0` for exactly this and was wired to no job. It is
+  load-bearing for every assertion whose claim lives in an annotation.
+
+- **Eight union samples made exhaustive.** `const statuses: X['status'][] = [...]` proves only that
+  the listed values are ASSIGNABLE; a member ADDED upstream left it green in BOTH readers. Measured
+  on `PricingType`: adding a third member left the old form passing under vitest and under `tsc`,
+  while `Record<Union, true>` fails `tsc` with *"Property 'Tiered' is missing"*.
+
+- **Two state-machine counts derived.** `SessionStateMachine.test.ts` imported `SESSION_TRANSITIONS`
+  and never read it; `ReservationStateMachine.test.ts` did not import its table at all. Both
+  compared a transcribed list to its own length. The count now comes from the machine's table and
+  the transcription is compared to it set-wise.
+
+### The release path had no gates on it
+
+`ci.yml` carries every gate and triggers on `push: branches: [main]` and `pull_request`. **A tag
+push matches neither.** `publish.yml` ran `npm ci`, `npm run build`, `npm test`, `npm publish` and
+nothing else, so the moment a release was cut was the one moment at which not a single gate ran.
+
+That is how `0.38.1` shipped with two prose sites naming the old spec version after `.spec-ref` had
+moved to `v0.41.0`. `check:doc-claims` is built to catch exactly that and did — on a later push to
+main, days afterwards, where it stayed red until an unrelated session found it. The gate was never
+wrong; it was never asked. **Every gate now runs in `publish.yml` before anything is published.**
+
+### Prose claims
+
+`check:doc-claims` went from **14 claims across 6 files to 23 across 13**. Nine were typed and
+unchecked; one was FALSE.
+
+- **`README.md` advertised "Critical/All/None modes"** — three, one of them removed from the spec
+  rather than deprecated, as `MessageSigningRegistry.ts` had said in prose for as long. Six README
+  claims were gated and this seventh was not, because a type-only union has no runtime form and that
+  gate compares prose to VALUES. **`MESSAGE_SIGNING_MODES` is added as that value**, with
+  `MessageSigningMode` derived from it rather than written beside it, and the line is now gated as a
+  SET — a count alone would pass a README naming two modes that are not these two.
+- **Eight self-size headers gated**: `BayStatus` (7), `StationState` (*six*, spelled as a word and
+  compared as one), the five machine headers (Bay 7, Firmware 10, Reservation 5, Session 6,
+  Station 6, each derived from the transition table its own file exports), and the SECOND number in
+  `RecommendedAction.ts` (*"120 of 120 rows"*), three lines under the one that was already gated.
+  All eight were right when measured. Being right is not the property; being checked is.
+- **`RecommendedActionGate.test.ts` asserted `covered 120/120` as a literal** — a count of the
+  SPEC's registry that a release had to hand-edit, and did (`119` until `v0.42.0` added `3020`). It
+  is derived from `OSPP_ERROR_REGISTRY`, which `check:error-registry` separately proves equal to the
+  spec.
+
+`README.md`'s "Ajv Draft 2020-12" is ungated and TRUE (`Ajv2020` from `ajv/dist/2020.js`); it is a
+claim about a dependency rather than about this package's own contents.
+
 ## 0.39.0 — 2026-09-18
 
 **MINOR — `3020 BINDING_UNCOVERED` enters the registry.** `.spec-ref` follows the spec to `v0.42.0`.

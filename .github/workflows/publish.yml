@@ -104,6 +104,13 @@ jobs:
 
       - run: npm run build
 
+      # Same step as ci.yml's test job, added at the same time and for the reason
+      # the comment below records: the two workflows each run `npm test` and each
+      # needs the same inputs, and a step added to one and not the other is a
+      # difference only a tag push can find. `tsc -p tsconfig.json` in the build
+      # above excludes tests/, and vitest does not type-check.
+      - run: npm run typecheck
+
       # tests/enums/RecommendedActionGate.test.ts needs a spec checkout to mutate,
       # and THROWS rather than skipping when CI is set and SPEC_REPO is not — a
       # skipped gate test reads as a pass in the run summary, which is the exact
@@ -130,6 +137,56 @@ jobs:
       # the rare case where the tag points at a commit that no longer
       # builds/tests cleanly under the resolved lockfile state.
       - run: npm test
+
+      # THE GATES, ON THE RELEASE PATH.
+      #
+      # ci.yml carries twelve gate jobs and triggers on `push: branches: [main]`
+      # and `pull_request`. A TAG PUSH MATCHES NEITHER. Until this step, the
+      # moment a release was cut was the one moment at which not a single gate
+      # ran: this workflow did `npm ci`, `npm run build`, `npm test`, `npm
+      # publish`, and nothing else. Every check that compares this package to the
+      # spec, and the one that reads its prose, sat in a workflow the tag did not
+      # trigger.
+      #
+      # That is how 0.38.1 shipped with two prose sites naming the OLD spec
+      # version after `.spec-ref` had moved to v0.41.0 — `README.md` and
+      # `src/enums/SessionEndReason.ts`. `check:doc-claims` is built to catch
+      # exactly that and did catch it, but on a later push to main, days after
+      # the release, and it stayed red until an unrelated session found it. The
+      # gate was never wrong; it was never asked.
+      #
+      # This is the same lesson the spec-clone step above records for itself
+      # ("a step added to one and not the other is a difference that only a tag
+      # push can find"), generalised from one step to all of them. SPEC_REPO is
+      # already exported by that step, so the spec-comparing gates use the
+      # checkout that is already on disk and no gate clones a second time.
+      #
+      # Ordered cheapest-first so a stale README fails in seconds rather than
+      # after the corpus diffs.
+      - name: Every gate ci.yml runs, before anything is published
+        run: |
+          set -euo pipefail
+          for gate in doc-claims inert-assertions vector-types error-registry \
+                      config-registry recommended-action action-registry \
+                      state-machines crypto-vectors vector-corpus; do
+            echo "::group::check:$gate"
+            npm run "check:$gate"
+            echo "::endgroup::"
+          done
+
+      # The twelfth gate is a directory diff rather than an npm script, so it is
+      # spelled out here exactly as ci.yml's `schemas` job spells it. SPEC_REPO
+      # is the checkout cloned at .spec-ref above.
+      - name: Byte-identity check (src/schemas/ vs spec/schemas/)
+        run: |
+          set -euo pipefail
+          if diff -rq --exclude=README.md --exclude=SchemaPath.ts \
+               "$SPEC_REPO/schemas/" ./src/schemas/; then
+            echo "OK — vendored src/schemas/ byte-identical to the pinned spec"
+          else
+            echo "DRIFT between vendored src/schemas/ and the pinned spec — refusing to publish."
+            exit 1
+          fi
 
       - name: Publish to npm
         run: npm publish --access public --provenance
