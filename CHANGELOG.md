@@ -32,9 +32,15 @@ All four gaps are declared in [`.release-gaps.json`](.release-gaps.json).
 file, so a future gap has to be recorded deliberately rather than discovered from a version series
 with a hole in it.
 
-## Unreleased
+## 0.40.0 — 2026-09-22
 
-Nothing is published and nothing is tagged here. `package.json` stays at `0.39.0`.
+**The protocol change this MINOR was waiting for arrived.** The `Unreleased` section that stood here said this release "rides the next real protocol change rather than being tagged for its own sake". Spec `v0.43.0` is that change: it repairs both halves of `06-security.md` §5.9 — the session key gains a `PlannedShutdown` discard trigger, and the clock prohibition narrows from every time bound to every time bound used as the LIFECYCLE. The sibling `ospp/protocol` (PHP) `0.40.0` is tagged with it, so the pair stays in lockstep per [ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md).
+
+### Spec pin
+
+- **`.spec-ref` `v0.42.0` → `v0.43.0`, and `package.json` `0.39.0` → `0.40.0`.** **This package carries none of the changed rules and no source file moves for them**, measured before the pin was touched: there is no session-key lifecycle enum, no discard-trigger set, no TTL constant for the key, and `scripts/check-doc-claims.ts` gates no claim about its lifetime. The key appears in `src/` only as bytes to sign and verify with (`crypto/MessageMac.ts`, `crypto/ble/SessionCrypto.ts`), as the wire field on `BootNotificationResponsePayload`, and in `state-machines/StationStateMachine.ts`'s `holdsSessionKey()` — a fact about the STATION's state machine, unchanged.
+- **`ConnectionLostReason` is unchanged, and it is the one place this rule could have reached source.** `src/types/payloads/connection-lost.ts` types it as the two wire values, `'UnexpectedDisconnect' | 'PlannedShutdown'`, which is what the spec's `reason` enum has held since `0.36.0`. Spec `v0.43.0` changes what a server OWES on receiving `PlannedShutdown`, not the value itself, so the union and the `tests/types/payloads.test.ts` assertion over it both stand.
+- **Vendored artefacts re-synced at the new tag; both byte-identity gates pass against it.** `src/schemas/` is byte-identical to spec `v0.43.0` across all **86** files and unchanged from `v0.42.0` — the release moved **0 schema bytes**. `src/test-vectors/` re-vendored: **346** files, of which exactly **1** moved, `README.md`, and only its document-version header. **0 of 345 vectors** changed a byte or a verdict.
 
 **One PUBLIC export is added**, so whichever release carries this is a MINOR: `MESSAGE_SIGNING_MODES`.
 
