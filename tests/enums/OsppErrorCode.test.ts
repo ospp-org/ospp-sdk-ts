@@ -145,7 +145,7 @@ describe('OsppErrorCode', () => {
 
   describe('v0.6.2 code (spec 07-errors.md §3.2)', () => {
     it('should expose SERVER_AUTH_NONCE_MISMATCH = 2018 with Critical severity, non-recoverable', () => {
-      // spec 07-errors.md:245 — BLE Partial-A ServerSignedAuth anti-replay
+      // spec 07-errors.md §3.2 — BLE Partial-A ServerSignedAuth anti-replay
       // (signed appNonce != Hello.appNonce). Critical, recoverable=false.
       expect(OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH).toBe(2018);
       const meta = OSPP_ERROR_REGISTRY[OsppErrorCode.SERVER_AUTH_NONCE_MISMATCH];

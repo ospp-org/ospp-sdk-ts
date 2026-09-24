@@ -158,7 +158,7 @@ try {
     // The sentence this line used to carry -- "A station implements the `Station`
     // rows. A server implements all of them." -- was called a paraphrase that
     // "appears nowhere in the spec". That was wrong in the other direction: it is
-    // VERBATIM at 05-state-machines.md:219-220, in the chapter-2 preamble
+    // VERBATIM in 05-state-machines.md §2's preamble
     // blockquote rather than in §2.3, which is the only thing the old note had
     // right. Both sentences are the spec's; §2.3 is cited here because it is the
     // one that also carries the counts this comparison uses.
