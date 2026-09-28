@@ -302,6 +302,20 @@ describe('OSPP_ERROR_REGISTRY', () => {
     }
   });
 
+  // §2.4's table names no status for 2001, so `check:http-status` -- which reads only
+  // the codes that table names -- cannot see this value. This test is the only pin.
+  describe('2001 STATION_NOT_REGISTERED, a status §2.4 does not name (0.41.0)', () => {
+    it('answers HTTP 422, not 401', () => {
+      // 401 until 0.41.0, while ospp-sdk-php answered 422: the pair's one two-sided
+      // disagreement, settled by the spec's KNOWN-ISSUES.md at 0.44.0 in favour of
+      // 422 in both SDKs. 401 is §2.4's authentication-failed-or-expired row, and a
+      // client acts on it -- it refreshes its credential and retries, and a console
+      // whose refresh cannot help signs its operator out. A stationId the server
+      // does not know is not a failed credential.
+      expect(OSPP_ERROR_REGISTRY[OsppErrorCode.STATION_NOT_REGISTERED].httpStatus).toBe(422);
+    });
+  });
+
   describe('spec-defined severity spot checks', () => {
     const checks: [number, string, boolean][] = [
       [1003, 'Critical', false],

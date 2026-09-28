@@ -278,16 +278,22 @@ function meta(
  * already answer each one the way §2.4 does — 0 of 31 disagree on either side.
  * All 41 disagreements are among the 89 the table does not name, and 40 of the
  * 41 are ospp-sdk-php falling through to a 500 default where this SDK asserts a
- * value: one library declining to answer, not two libraries disagreeing. Only
- * 2001 (ts 401 / php 422) is a genuine two-sided disagreement.
+ * value: one library declining to answer, not two libraries disagreeing. 2001
+ * (ts 401 / php 422) was the one genuine two-sided disagreement, and it is
+ * settled at 0.41.0: this SDK moves to 422, the answer ospp-sdk-php already
+ * gave, as the spec's KNOWN-ISSUES.md decides at 0.44.0 (see the 2001 row).
+ * Re-measured after the move, against ospp-sdk-php 0.40.0: 80 agreements, 40
+ * disagreements, and every one of the 40 is that 500 default. No two-sided
+ * disagreement is left.
  *
  * So the divergence is perfectly correlated with the spec's silence — a gap, not
- * a bug. Nothing needed repairing; what was missing was anything that would
- * NOTICE if the agreement broke, because `check:error-registry` compares
- * errorText, severity and recoverable and stops there, deliberately, since those
- * are the columns §3 carries. `npm run check:http-status` is the reader for the
- * 31. The other 89 stay free: pinning them would invent a normative rule the
- * specification declines to state.
+ * a bug. Nothing among the 31 needed repairing; what was missing was anything
+ * that would NOTICE if the agreement broke, because `check:error-registry`
+ * compares errorText, severity and recoverable and stops there, deliberately,
+ * since those are the columns §3 carries. `npm run check:http-status` is the
+ * reader for the 31. The other 89 stay free: pinning them would invent a
+ * normative rule the specification declines to state — which is why 2001's
+ * status is pinned by a test in this package, not by that gate.
  */
 export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>> = {
   // ── Transport (1xxx) ──────────────────────────────────────────────────
@@ -309,7 +315,17 @@ export const OSPP_ERROR_REGISTRY: Readonly<Record<OsppErrorCode, OsppErrorMeta>>
 
   // ── Auth & Authorization (2xxx) ───────────────────────────────────────
   [OsppErrorCode.AUTH_GENERIC]:              meta(2000, 'AUTH_GENERIC',              'Error',    false, 401, 'Auth'),
-  [OsppErrorCode.STATION_NOT_REGISTERED]:    meta(2001, 'STATION_NOT_REGISTERED',    'Error',    false, 401, 'Auth'),
+  // 0.41.0: 2001 → 422, from 401. The spec's KNOWN-ISSUES.md decides it at 0.44.0 —
+  // "`2001 STATION_NOT_REGISTERED` answers `422` in both SDKs" — and §2.4 still names
+  // no status for 2001, so the value stays this SDK's extension. 401 was the wrong
+  // one: §2.4's 401 row is authentication failed or expired, and a client acts on
+  // exactly that — it refreshes its credential and retries, and a console whose
+  // refresh cannot help signs its operator out. An unregistered station is a fact
+  // about the stationId the request names, not about the caller's credential. 422
+  // is what ospp-sdk-php has always answered, so the pair's one two-sided
+  // disagreement is gone. `tests/enums/OsppErrorCode.test.ts` pins it, because
+  // `check:http-status` reads only the codes §2.4 names.
+  [OsppErrorCode.STATION_NOT_REGISTERED]:    meta(2001, 'STATION_NOT_REGISTERED',    'Error',    false, 422, 'Auth'),
   [OsppErrorCode.OFFLINE_PASS_INVALID]:      meta(2002, 'OFFLINE_PASS_INVALID',      'Error',    false, 401, 'Auth'),
   [OsppErrorCode.OFFLINE_PASS_EXPIRED]:      meta(2003, 'OFFLINE_PASS_EXPIRED',      'Warning',  true,  401, 'Auth'),
   [OsppErrorCode.OFFLINE_EPOCH_REVOKED]:     meta(2004, 'OFFLINE_EPOCH_REVOKED',     'Error',    false, 401, 'Auth'),
