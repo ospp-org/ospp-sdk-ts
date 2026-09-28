@@ -21,8 +21,13 @@ export interface ResetRequest {
    * Omitted or false: the station REFUSES if any bay has an active session,
    * answering `3016 ACTIVE_SESSIONS_PRESENT`. True: the station settles every
    * active session under the operator-disable policy FIRST — stopped, metered
-   * and reported exactly as an operator-initiated stop, so the customer is
-   * billed for what they received — and only then reboots.
+   * from the time actually delivered, and reported as SessionEnded with reason
+   * `OperatorStopped` — and only then reboots.
+   *
+   * The station decides no money: reset.md §5 rule 3 makes its report the one
+   * "from which the server decides what the customer pays, by service kind" —
+   * pro-rata for `UserDuration`, a full refund for `FixedDuration` and
+   * `MultiUnit` (04-flows.md §6, Settlement by Service Kind; spec 0.44.0).
    *
    * `force` is not a licence to drop a session on the floor; it is a licence to
    * end it without waiting (reset.md §5 rule 3).

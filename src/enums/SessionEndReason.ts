@@ -25,14 +25,27 @@ export enum SessionEndReason {
    * An operator ended the session deliberately — a Reset carrying `force: true`,
    * or a station disable.
    *
-   * spec v0.11.1 03-messages.md §5.4: the ONLY member that bills a NON-ZERO amount
-   * for a session the station did not run to completion. Every other
-   * non-completion reason here mandates zero, and `Deauthorized` reads as the
-   * nearest alternative while carrying "Session MUST be billed at zero" — so
-   * reusing it delivers a wash and charges nothing for it.
+   * The station settles it under the operator-disable policy (04-flows.md) before
+   * it acts: the session is stopped, metered from the time ACTUALLY DELIVERED, and
+   * reported with the `actualDurationSeconds` delivered and the `creditsCharged`
+   * those seconds earned. That report is the same whatever the service kind — the
+   * station does not know the kind and decides no money.
    *
-   * Settled under the operator-disable policy (04-flows.md): metered from the time
-   * ACTUALLY DELIVERED, reported, and only then does the station act.
+   * What the customer pays is the SERVER's decision, by service kind: 03-messages.md
+   * §5.4 settles it "pro-rata on delivered time for `UserDuration`, a full refund for
+   * `FixedDuration` and `MultiUnit`, because the operator, not the customer, cut the
+   * preset short". That is spec 0.44.0. Until then both preset kinds were charged in
+   * full on this reason, and only `UserDuration` was pro-rata.
+   *
+   * The server settles a stop it issues itself for an operator the same way, by
+   * kind — StopService from a console, or a station disable the server carries out.
+   * No SessionEnded reports that stop and StopService carries no reason, so only
+   * the server knows an operator asked for it (04-flows.md §6, Settlement by
+   * Service Kind).
+   *
+   * It needed a member of its own because `Deauthorized`, the nearest alternative,
+   * carries "Session MUST be billed at zero" (03-messages.md §5.4): reusing it would
+   * erase the delivered time a `UserDuration` session is billed on.
    */
   OPERATOR_STOPPED = 'OperatorStopped',
 
