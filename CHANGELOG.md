@@ -32,6 +32,93 @@ All four gaps are declared in [`.release-gaps.json`](.release-gaps.json).
 file, so a future gap has to be recorded deliberately rather than discovered from a version series
 with a hole in it.
 
+## 0.41.0 — 2026-09-28
+
+**MINOR — spec `v0.44.0`: `2001 STATION_NOT_REGISTERED` answers HTTP `422`, `SessionTimeout` defaults to `0`, and an operator-stopped preset is refunded in full.** MINOR and not PATCH because two values a consumer reads change behaviour — `httpStatus` for one code and `defaultValue` for one key — and a consumer pinned to `^0.40.0` must opt in to receive them. Pairs with `ospp/protocol` (PHP) `0.41.0` from the same spec pin, so the pair stays in lockstep per [ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md). **The wire does not move:** spec `v0.44.0` changes no message field, enum value, error code, schema constraint or conformance vector, and 2 schema files change their `description` text only.
+
+### Changed — behaviour
+
+- **`OSPP_ERROR_REGISTRY[OsppErrorCode.STATION_NOT_REGISTERED].httpStatus` `401` → `422`.** A behaviour
+  change of `httpStatus`, the SDK extension; code, text, severity, recoverable and category are
+  unchanged. §2.4's status table names no status for `2001` and still does not: the spec's
+  `KNOWN-ISSUES.md` settles the question in the SDK pair instead, and both SDKs answer `422`. `401`
+  was the wrong answer to own. It is §2.4's *authentication failed or expired* row, and a client acts
+  on exactly that — it refreshes its credential and retries, and a console whose refresh cannot help
+  signs its operator out, over a `stationId` the server does not know. `422` is what `ospp-sdk-php`
+  has always answered.
+
+  **The pair's one two-sided disagreement is gone.** Re-measured by dumping both registries, this
+  package against `ospp-sdk-php` `0.40.0`: 120 codes each, **80 agreements and 40 disagreements**
+  (was 79 and 41), and every one of the 40 is the PHP `default => 500` where this SDK asserts a value
+  — one library declining to answer, not two disagreeing. Of the 31 codes §2.4 names, 0 disagree on
+  either side, as before. `check:http-status` reads only those 31 and cannot see `2001`, so a new test
+  in `tests/enums/OsppErrorCode.test.ts` pins it.
+
+  The category labels here — `Transport`, `Auth`, `Session`, `Payment`, `Hardware`, `Server`,
+  `Vendor` — **do not move**. The same decision aligns the PHP `category()` to them.
+
+- **`CONFIG_KEY_REGISTRY[ConfigKey.SESSION_TIMEOUT].defaultValue` `'120'` → `'0'`: the idle timer is
+  off by default.** Spec `v0.44.0`, `08-configuration.md` §3 and the §9 summary row. A station whose
+  only customer input is the start button — a self-service wash bay — has no continuous
+  user-interaction signal, so a non-zero default stopped every session still running at the
+  timeout. At `0` a station **MUST NOT** stop a session on inactivity; an operator whose station has
+  such a signal enables the timer with a non-zero value. Range `0`–`600`, type, access, mutability and
+  profile are unchanged. Anything that seeds a station's configuration from this registry now starts
+  with the timer off. `check:config-registry` compares the column to the spec — red against the
+  `v0.44.0` text before this change (`SessionTimeout: default spec='0' sdk='120'`), green after — and
+  `tests/enums/ConfigKey.test.ts` adds the key to its spec-default table.
+
+### Changed — documentation: `OperatorStopped` is settled by service kind
+
+Spec `v0.44.0` refunds an operator-stopped `FixedDuration` or `MultiUnit` session in full, because the
+operator, not the customer, cut the preset short; `UserDuration` stays pro-rata on delivered time.
+Until then both preset kinds were charged in full on that reason. **No code in this package settles
+money**, so nothing executable moves. Two docblocks stated the old rule with no service kind in sight:
+
+- **`SessionEndReason.OPERATOR_STOPPED`** called it *the ONLY member that bills a NON-ZERO amount* for
+  a session not run to completion. It now says what the station reports — the delivered
+  `actualDurationSeconds` and the `creditsCharged` they earned, the same report whatever the kind —
+  that the server settles it by kind, and the new server-side clause: a stop the server issues for an
+  operator (StopService from a console, or a station disable it carries out) produces no SessionEnded
+  and carries no reason, and the server settles it as `OperatorStopped`, by kind, never as the
+  customer's own stop.
+- **`ResetRequest.force`** said a forced reset settles its sessions *so the customer is billed for
+  what they received*. It now says the station decides no money and the server settles its report by
+  kind.
+
+**Pinned by `check:spec-quotations`.** Those two docblocks, the new `SessionTimeout` docblock and the
+new comment on the `2001` row each quote the `v0.44.0` text they rest on, beside its citation, and
+the gate requires every such quotation to be verbatim in the pinned spec. Measured: all four are
+found in the release text and all four are **NOT FOUND** against `v0.43.0`, so a later spec edit to
+any of these rules turns the gate red instead of leaving a comment that describes a rule the spec no
+longer states.
+Spec-attributed quotations go **69 → 74**: the four new ones, and the `Deauthorized` quotation in
+`SessionEndReason.ts`, which now sits beside its citation and is checked for the first time.
+
+### Spec pin
+
+- **`.spec-ref` `v0.43.0` → `v0.44.0`**, moved only once that tag exists on the spec remote: every
+  spec-comparing gate clones it.
+- **Vendored artefacts re-synced at the new tag.** `src/schemas/`: **2 of 86** schema files move, and
+  only a `description` string in each — `mqtt/session-ended-event.schema.json` (`reason`, the
+  `OperatorStopped` sentence) and `mqtt/reset-request.schema.json` (`force`). With every
+  `description` removed, both parse identical to their `v0.43.0` form. `src/test-vectors/`:
+  `README.md` alone moves, its document-version header; **0 of 345 vectors** change.
+- **The two prose sites `check:doc-claims` derives from `.spec-ref` move with it:** `README.md`
+  (*pinned to spec*) and `src/enums/SessionEndReason.ts` (*7 values as of spec*). The second cannot
+  move ahead of the pin — measured, writing `0.44.0` there first turns the gate red, which is the gate
+  doing its job.
+
+### Also in this release
+
+Comment text only, on `main` since `0.40.0`. Spec citations that named a line number cite the section
+instead — a line rots at every spec release with nothing going red, and `07-errors.md:245` addressed
+the wrong row outright — and two bare section references in `BootReason.ts` gain the file they meant
+(`boot-notification.md §5.2`).
+
+**Suite: 1183 passed, 0 skipped, 0 failed (1183). Typecheck clean. All 13 gates green against spec
+`v0.44.0`.**
+
 ## 0.40.0 — 2026-09-22
 
 **The protocol change this MINOR was waiting for arrived.** The `Unreleased` section that stood here said this release "rides the next real protocol change rather than being tagged for its own sake". Spec `v0.43.0` is that change: it repairs both halves of `06-security.md` §5.9 — the session key gains a `PlannedShutdown` discard trigger, and the clock prohibition narrows from every time bound to every time bound used as the LIFECYCLE. The sibling `ospp/protocol` (PHP) `0.40.0` is tagged with it, so the pair stays in lockstep per [ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md).
