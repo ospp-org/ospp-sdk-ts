@@ -32,7 +32,7 @@ All four gaps are declared in [`.release-gaps.json`](.release-gaps.json).
 file, so a future gap has to be recorded deliberately rather than discovered from a version series
 with a hole in it.
 
-## 0.41.0 — 2026-09-28
+## 0.41.0 — 2026-09-29
 
 **MINOR — spec `v0.44.0`: `2001 STATION_NOT_REGISTERED` answers HTTP `422`, `SessionTimeout` defaults to `0`, and an operator-stopped preset is refunded in full.** MINOR and not PATCH because two values a consumer reads change behaviour — `httpStatus` for one code and `defaultValue` for one key — and a consumer pinned to `^0.40.0` must opt in to receive them. Pairs with `ospp/protocol` (PHP) `0.41.0` from the same spec pin, so the pair stays in lockstep per [ADR-001](https://github.com/ospp-org/spec/blob/main/adr/ADR-001-cross-repo-lockstep-versioning.md). **The wire does not move:** spec `v0.44.0` changes no message field, enum value, error code, schema constraint or conformance vector, and 2 schema files change their `description` text only.
 
@@ -64,8 +64,8 @@ with a hole in it.
   timeout. At `0` a station **MUST NOT** stop a session on inactivity; an operator whose station has
   such a signal enables the timer with a non-zero value. Range `0`–`600`, type, access, mutability and
   profile are unchanged. Anything that seeds a station's configuration from this registry now starts
-  with the timer off. `check:config-registry` compares the column to the spec — red against the
-  `v0.44.0` text before this change (`SessionTimeout: default spec='0' sdk='120'`), green after — and
+  with the timer off. `check:config-registry` compares the column to the spec — red at `v0.44.0`
+  before this change (`SessionTimeout: default spec='0' sdk='120'`), green after — and
   `tests/enums/ConfigKey.test.ts` adds the key to its spec-default table.
 
 ### Changed — documentation: `OperatorStopped` is settled by service kind
@@ -89,25 +89,36 @@ money**, so nothing executable moves. Two docblocks stated the old rule with no 
 **Pinned by `check:spec-quotations`.** Those two docblocks, the new `SessionTimeout` docblock and the
 new comment on the `2001` row each quote the `v0.44.0` text they rest on, beside its citation, and
 the gate requires every such quotation to be verbatim in the pinned spec. Measured: all four are
-found in the release text and all four are **NOT FOUND** against `v0.43.0`, so a later spec edit to
-any of these rules turns the gate red instead of leaving a comment that describes a rule the spec no
-longer states.
-Spec-attributed quotations go **69 → 74**: the four new ones, and the `Deauthorized` quotation in
-`SessionEndReason.ts`, which now sits beside its citation and is checked for the first time.
+found at `v0.44.0` and all four are **NOT FOUND** at `v0.43.0`, so a later spec edit to any of these
+rules turns the gate red instead of leaving a comment that describes a rule the spec no longer
+states. Spec-attributed quotations go **69 → 74**, all 74 verbatim at `v0.44.0`: the four new ones,
+and the `Deauthorized` quotation in `SessionEndReason.ts`, which now sits beside its citation and is
+checked for the first time.
 
 ### Spec pin
 
-- **`.spec-ref` `v0.43.0` → `v0.44.0`**, moved only once that tag exists on the spec remote: every
-  spec-comparing gate clones it.
-- **Vendored artefacts re-synced at the new tag.** `src/schemas/`: **2 of 86** schema files move, and
-  only a `description` string in each — `mqtt/session-ended-event.schema.json` (`reason`, the
-  `OperatorStopped` sentence) and `mqtt/reset-request.schema.json` (`force`). With every
-  `description` removed, both parse identical to their `v0.43.0` form. `src/test-vectors/`:
-  `README.md` alone moves, its document-version header; **0 of 345 vectors** change.
-- **The two prose sites `check:doc-claims` derives from `.spec-ref` move with it:** `README.md`
-  (*pinned to spec*) and `src/enums/SessionEndReason.ts` (*7 values as of spec*). The second cannot
-  move ahead of the pin — measured, writing `0.44.0` there first turns the gate red, which is the gate
-  doing its job.
+- **`.spec-ref` `v0.43.0` → `v0.44.0`.**
+- **Vendored artefacts re-synced at the new tag; both byte-identity gates pass against it.**
+  `src/schemas/` is byte-identical to spec `v0.44.0` across all **86** schema files, of which exactly
+  **2** moved, and only a `description` string in each — `mqtt/session-ended-event.schema.json`
+  (`reason`, the `OperatorStopped` sentence) and `mqtt/reset-request.schema.json` (`force`). With
+  every `description` removed, both parse identical to their `v0.43.0` form. `src/test-vectors/`:
+  **346** files byte-identical, of which exactly **1** moved, `README.md`, and only its
+  document-version header; **0 of 345 vectors** changed a byte or a verdict.
+- **`src/schemas/README.md` had read `OSPP Version: 0.41.0` since `0.38.1`.** `check:schemas`
+  excludes it by name, so the `v0.42.0` and `v0.43.0` re-syncs left it behind with no gate noticing,
+  and it ships to npm with the rest of `src/schemas/`. It is re-vendored with the schemas and now
+  reads `0.44.0`, byte-identical to the spec's.
+- **The two prose sites `check:doc-claims` derives from `.spec-ref` moved with it:** `README.md`
+  (*pinned to spec*) and `src/enums/SessionEndReason.ts` (*7 values as of spec*). The second could
+  not move ahead of the pin — measured, writing `0.44.0` there first turned the gate red, which is the
+  gate doing its job.
+- **The rest of `v0.44.0` reaches no source here**, measured rather than assumed. TriggerMessage and
+  DataTransfer now expire at 60 s, and this package carries no per-message expiry at all.
+  `errorText` on DiagnosticsNotification and FirmwareStatusNotification is documented as prose,
+  which `FirmwareStatusNotificationPayload.errorText` already says it is. `BruteForceAttempt`'s
+  threshold, window and source become implementation-defined, and `SecurityEventType` carries it
+  only as a wire value.
 
 ### Also in this release
 
