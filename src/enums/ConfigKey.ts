@@ -69,6 +69,21 @@ export enum ConfigKey {
   METER_VALUES_INTERVAL         = 'MeterValuesInterval',
   METER_VALUES_SAMPLE_INTERVAL  = 'MeterValuesSampleInterval',
   MAX_SESSION_DURATION_SECONDS  = 'MaxSessionDurationSeconds',
+  /**
+   * The idle timer, in seconds: with no user interaction for this long the
+   * station MAY stop the service, reporting SessionEnded with reason
+   * `Inactivity`. MeterValues do not reset it — they are the station's own
+   * telemetry, not the customer's.
+   *
+   * Default `0`, the timer OFF, since spec 0.44.0; it was `120` before. At `0` the
+   * station MUST NOT stop a session on inactivity, and the session is bounded by
+   * `durationSeconds` and `MaxSessionDurationSeconds` alone. The default moved
+   * because a station whose only customer input is the start button — a
+   * self-service wash bay — has no continuous user-interaction signal, and
+   * 08-configuration.md §3 records the consequence: "a non-zero default would stop
+   * every session still running at the timeout". An operator whose station does
+   * have such a signal enables the timer by setting a non-zero value.
+   */
   SESSION_TIMEOUT               = 'SessionTimeout',
   RESERVATION_DEFAULT_TTL       = 'ReservationDefaultTTL',
   DEFAULT_CREDITS_PER_SESSION   = 'DefaultCreditsPerSession',
@@ -145,7 +160,7 @@ export const CONFIG_KEY_REGISTRY: Readonly<Record<ConfigKey, ConfigKeyMeta>> = {
   [ConfigKey.METER_VALUES_INTERVAL]:        km('MeterValuesInterval',         'integer', '60',    'RW', 'Dynamic', 'Transaction'),
   [ConfigKey.METER_VALUES_SAMPLE_INTERVAL]: km('MeterValuesSampleInterval',   'integer', '10',    'RW', 'Dynamic', 'Transaction'),
   [ConfigKey.MAX_SESSION_DURATION_SECONDS]: km('MaxSessionDurationSeconds',   'integer', '900',   'RW', 'Dynamic', 'Transaction'),
-  [ConfigKey.SESSION_TIMEOUT]:              km('SessionTimeout',              'integer', '120',   'RW', 'Dynamic', 'Transaction'),
+  [ConfigKey.SESSION_TIMEOUT]:              km('SessionTimeout',              'integer', '0',     'RW', 'Dynamic', 'Transaction'),
   [ConfigKey.RESERVATION_DEFAULT_TTL]:      km('ReservationDefaultTTL',       'integer', '300',   'RW', 'Dynamic', 'Transaction'),
   [ConfigKey.DEFAULT_CREDITS_PER_SESSION]:  km('DefaultCreditsPerSession',    'integer', '100',   'RW', 'Dynamic', 'Transaction'),
 

@@ -166,6 +166,13 @@ describe('CONFIG_KEY_REGISTRY', () => {
       [ConfigKey.CONNECTION_TIMEOUT, '60'],
       [ConfigKey.METER_VALUES_INTERVAL, '60'],
       [ConfigKey.MAX_SESSION_DURATION_SECONDS, '900'],
+      // 0.41.0: '120' -> '0', the idle timer OFF by default, following spec 0.44.0
+      // (08-configuration.md §3 and the §9 summary row). A station whose only
+      // customer input is the start button has no continuous user-interaction
+      // signal, so a non-zero default stopped every session still running at the
+      // timeout. The range stays 0--600; an operator enables the timer by setting a
+      // non-zero value.
+      [ConfigKey.SESSION_TIMEOUT, '0'],
       [ConfigKey.RESERVATION_DEFAULT_TTL, '300'],
       [ConfigKey.LOG_LEVEL, 'Info'],
       [ConfigKey.AUTO_REBOOT_ENABLED, 'false'],
