@@ -19,7 +19,7 @@
  *   Transaction        Transaction            6   yes
  *   Security           Security               6   yes
  *   OfflineBLE         Offline / BLE          4   if capabilities.bleSupported
- *   DeviceManagement   Device Management      4   if capabilities.deviceManagementSupported
+ *   DeviceManagement   Device Management      3   if capabilities.deviceManagementSupported
  *
  * The display labels carry a space and a slash and do not survive being made an
  * identifier; that is why §1.5 states the ID column separately and requires it
